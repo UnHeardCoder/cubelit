@@ -1,0 +1,71 @@
+{
+  "id": "valheim",
+  "name": "Valheim",
+  "description": "Viking survival and exploration game set in a procedurally generated world.",
+  "icon": "valheim",
+  "available": false,
+  "docker_image": "lloesche/valheim-server",
+  "default_tag": "latest",
+  "ports": [
+    {
+      "container_port": 2456,
+      "default_host_port": 2456,
+      "protocol": "udp",
+      "label": "Game Port"
+    },
+    {
+      "container_port": 2457,
+      "default_host_port": 2457,
+      "protocol": "udp",
+      "label": "Query Port"
+    }
+  ],
+  "environment": [
+    {
+      "key": "SERVER_NAME",
+      "default_value": "Cubelit Valheim Server",
+      "label": "Server Name",
+      "type": "string",
+      "options": []
+    },
+    {
+      "key": "WORLD_NAME",
+      "default_value": "CubelitWorld",
+      "label": "World Name",
+      "type": "string",
+      "options": []
+    },
+    {
+      "key": "SERVER_PASS",
+      "default_value": "changeme",
+      "label": "Server Password",
+      "type": "string",
+      "options": []
+    },
+    {
+      "key": "BACKUPS_MAX_AGE",
+      "default_value": "3",
+      "label": "Backup Max Age (days)",
+      "type": "number",
+      "options": []
+    }
+  ],
+  "volumes": [
+    {
+      "container_path": "/config",
+      "label": "Server Config"
+    },
+    {
+      "container_path": "/opt/valheim",
+      "label": "Server Data"
+    }
+  ],
+  "config_files": [],
+  "mods": {
+    "supported": true,
+    "path": "BepInEx/plugins",
+    "file_types": [".dll"]
+  },
+  "estimated_disk_mb": 3000,
+  "tags": ["survival", "coop", "moddable"]
+}

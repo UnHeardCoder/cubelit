@@ -1,0 +1,77 @@
+{
+  "id": "palworld",
+  "name": "Palworld",
+  "description": "Open-world survival crafting game with creature collection.",
+  "icon": "palworld",
+  "available": false,
+  "docker_image": "thijsvanloef/palworld-server-docker",
+  "default_tag": "latest",
+  "ports": [
+    {
+      "container_port": 8211,
+      "default_host_port": 8211,
+      "protocol": "udp",
+      "label": "Game Port"
+    },
+    {
+      "container_port": 27015,
+      "default_host_port": 27016,
+      "protocol": "udp",
+      "label": "Query Port"
+    }
+  ],
+  "environment": [
+    {
+      "key": "SERVER_NAME",
+      "default_value": "Cubelit Palworld Server",
+      "label": "Server Name",
+      "type": "string",
+      "options": []
+    },
+    {
+      "key": "MAX_PLAYERS",
+      "default_value": "16",
+      "label": "Max Players",
+      "type": "number",
+      "options": []
+    },
+    {
+      "key": "SERVER_PASSWORD",
+      "default_value": "",
+      "label": "Server Password",
+      "type": "string",
+      "options": []
+    },
+    {
+      "key": "ADMIN_PASSWORD",
+      "default_value": "changeme",
+      "label": "Admin Password",
+      "type": "string",
+      "options": []
+    },
+    {
+      "key": "MULTITHREADING",
+      "default_value": "true",
+      "label": "Multithreading",
+      "type": "boolean",
+      "options": []
+    },
+    {
+      "key": "COMMUNITY",
+      "default_value": "false",
+      "label": "Community Server",
+      "type": "boolean",
+      "options": []
+    }
+  ],
+  "volumes": [
+    {
+      "container_path": "/palworld",
+      "label": "Server Data"
+    }
+  ],
+  "config_files": [],
+  "mods": null,
+  "estimated_disk_mb": 8000,
+  "tags": ["popular", "survival", "coop"]
+}

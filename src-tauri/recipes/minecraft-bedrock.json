@@ -1,0 +1,71 @@
+{
+  "id": "minecraft-bedrock",
+  "name": "Minecraft Bedrock",
+  "description": "Cross-platform Minecraft for consoles, mobile, and Windows 10/11.",
+  "icon": "minecraft-bedrock",
+  "available": false,
+  "docker_image": "itzg/minecraft-bedrock-server",
+  "default_tag": "latest",
+  "ports": [
+    {
+      "container_port": 19132,
+      "default_host_port": 19132,
+      "protocol": "udp",
+      "label": "Game Port"
+    }
+  ],
+  "environment": [
+    {
+      "key": "EULA",
+      "default_value": "TRUE",
+      "label": "Accept EULA",
+      "type": "boolean",
+      "options": []
+    },
+    {
+      "key": "GAMEMODE",
+      "default_value": "survival",
+      "label": "Game Mode",
+      "type": "select",
+      "options": ["survival", "creative", "adventure"]
+    },
+    {
+      "key": "DIFFICULTY",
+      "default_value": "normal",
+      "label": "Difficulty",
+      "type": "select",
+      "options": ["peaceful", "easy", "normal", "hard"]
+    },
+    {
+      "key": "MAX_PLAYERS",
+      "default_value": "10",
+      "label": "Max Players",
+      "type": "number",
+      "options": []
+    },
+    {
+      "key": "SERVER_NAME",
+      "default_value": "Cubelit Bedrock Server",
+      "label": "Server Name",
+      "type": "string",
+      "options": []
+    },
+    {
+      "key": "ONLINE_MODE",
+      "default_value": "true",
+      "label": "Online Mode",
+      "type": "boolean",
+      "options": []
+    }
+  ],
+  "volumes": [
+    {
+      "container_path": "/data",
+      "label": "Server Data"
+    }
+  ],
+  "config_files": [],
+  "mods": null,
+  "estimated_disk_mb": 500,
+  "tags": ["popular", "crossplay"]
+}

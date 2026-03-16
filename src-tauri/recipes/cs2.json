@@ -1,0 +1,84 @@
+{
+  "id": "cs2",
+  "name": "Counter-Strike 2",
+  "description": "Competitive tactical FPS. Run your own community server.",
+  "icon": "cs2",
+  "available": false,
+  "docker_image": "joedwards32/cs2",
+  "default_tag": "latest",
+  "ports": [
+    {
+      "container_port": 27015,
+      "default_host_port": 27015,
+      "protocol": "udp",
+      "label": "Game Port"
+    },
+    {
+      "container_port": 27015,
+      "default_host_port": 27015,
+      "protocol": "tcp",
+      "label": "RCON Port"
+    }
+  ],
+  "environment": [
+    {
+      "key": "CS2_SERVERNAME",
+      "default_value": "Cubelit CS2 Server",
+      "label": "Server Name",
+      "type": "string",
+      "options": []
+    },
+    {
+      "key": "CS2_PORT",
+      "default_value": "27015",
+      "label": "Server Port",
+      "type": "number",
+      "options": []
+    },
+    {
+      "key": "CS2_MAXPLAYERS",
+      "default_value": "10",
+      "label": "Max Players",
+      "type": "number",
+      "options": []
+    },
+    {
+      "key": "CS2_GAMETYPE",
+      "default_value": "0",
+      "label": "Game Type",
+      "type": "select",
+      "options": ["0", "1"]
+    },
+    {
+      "key": "CS2_GAMEMODE",
+      "default_value": "1",
+      "label": "Game Mode",
+      "type": "select",
+      "options": ["0", "1", "2"]
+    },
+    {
+      "key": "CS2_RCONPW",
+      "default_value": "changeme",
+      "label": "RCON Password",
+      "type": "string",
+      "options": []
+    },
+    {
+      "key": "CS2_STARTMAP",
+      "default_value": "de_dust2",
+      "label": "Start Map",
+      "type": "select",
+      "options": ["de_dust2", "de_mirage", "de_inferno", "de_nuke", "de_overpass", "de_ancient", "de_anubis", "de_vertigo"]
+    }
+  ],
+  "volumes": [
+    {
+      "container_path": "/home/steam/cs2-dedicated",
+      "label": "Server Data"
+    }
+  ],
+  "config_files": [],
+  "mods": null,
+  "estimated_disk_mb": 35000,
+  "tags": ["popular", "competitive", "fps"]
+}

@@ -1,0 +1,108 @@
+{
+  "id": "minecraft-java",
+  "name": "Minecraft Java",
+  "description": "The original Minecraft experience. Supports mods, plugins, and custom worlds.",
+  "icon": "minecraft-java",
+  "available": true,
+  "docker_image": "itzg/minecraft-server",
+  "default_tag": "latest",
+  "ports": [
+    {
+      "container_port": 25565,
+      "default_host_port": 25565,
+      "protocol": "tcp",
+      "label": "Game Port"
+    },
+    {
+      "container_port": 25575,
+      "default_host_port": 25575,
+      "protocol": "tcp",
+      "label": "RCON Port"
+    }
+  ],
+  "environment": [
+    {
+      "key": "EULA",
+      "default_value": "TRUE",
+      "label": "Accept EULA",
+      "type": "boolean",
+      "options": []
+    },
+    {
+      "key": "TYPE",
+      "default_value": "VANILLA",
+      "label": "Server Type",
+      "type": "select",
+      "options": ["VANILLA", "FORGE", "FABRIC", "PAPER", "SPIGOT", "BUKKIT"]
+    },
+    {
+      "key": "VERSION",
+      "default_value": "LATEST",
+      "label": "Minecraft Version",
+      "type": "string",
+      "options": []
+    },
+    {
+      "key": "MEMORY",
+      "default_value": "2G",
+      "label": "Server RAM",
+      "type": "ram",
+      "options": ["1G", "2G", "4G", "6G", "8G"]
+    },
+    {
+      "key": "DIFFICULTY",
+      "default_value": "normal",
+      "label": "Difficulty",
+      "type": "select",
+      "options": ["peaceful", "easy", "normal", "hard"]
+    },
+    {
+      "key": "MAX_PLAYERS",
+      "default_value": "20",
+      "label": "Max Players",
+      "type": "number",
+      "options": []
+    },
+    {
+      "key": "MOTD",
+      "default_value": "A Cubelit Minecraft Server",
+      "label": "Server Message",
+      "type": "string",
+      "options": []
+    },
+    {
+      "key": "ONLINE_MODE",
+      "default_value": "TRUE",
+      "label": "Online Mode",
+      "type": "boolean",
+      "options": []
+    },
+    {
+      "key": "RCON_PASSWORD",
+      "default_value": "minecraft",
+      "label": "RCON Password",
+      "type": "string",
+      "options": []
+    }
+  ],
+  "volumes": [
+    {
+      "container_path": "/data",
+      "label": "Server Data"
+    }
+  ],
+  "config_files": [
+    {
+      "path": "server.properties",
+      "format": "properties",
+      "label": "Server Properties"
+    }
+  ],
+  "mods": {
+    "supported": true,
+    "path": "mods",
+    "file_types": [".jar"]
+  },
+  "estimated_disk_mb": 1000,
+  "tags": ["popular", "moddable", "java"]
+}

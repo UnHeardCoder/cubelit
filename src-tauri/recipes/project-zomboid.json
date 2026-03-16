@@ -1,0 +1,80 @@
+{
+  "id": "project-zomboid",
+  "name": "Project Zomboid",
+  "description": "Open-world zombie survival with deep crafting and building mechanics.",
+  "icon": "project-zomboid",
+  "available": false,
+  "docker_image": "dandoby/project-zomboid",
+  "default_tag": "latest",
+  "ports": [
+    {
+      "container_port": 16261,
+      "default_host_port": 16261,
+      "protocol": "udp",
+      "label": "Game Port"
+    },
+    {
+      "container_port": 16262,
+      "default_host_port": 16262,
+      "protocol": "udp",
+      "label": "Direct Connect Port"
+    }
+  ],
+  "environment": [
+    {
+      "key": "SERVER_NAME",
+      "default_value": "CubelitPZ",
+      "label": "Server Name",
+      "type": "string",
+      "options": []
+    },
+    {
+      "key": "MAX_PLAYERS",
+      "default_value": "16",
+      "label": "Max Players",
+      "type": "number",
+      "options": []
+    },
+    {
+      "key": "ADMIN_PASSWORD",
+      "default_value": "changeme",
+      "label": "Admin Password",
+      "type": "string",
+      "options": []
+    },
+    {
+      "key": "SERVER_PASSWORD",
+      "default_value": "",
+      "label": "Server Password",
+      "type": "string",
+      "options": []
+    },
+    {
+      "key": "MEMORY",
+      "default_value": "4G",
+      "label": "Server RAM",
+      "type": "ram",
+      "options": ["2G", "4G", "6G", "8G"]
+    }
+  ],
+  "volumes": [
+    {
+      "container_path": "/data",
+      "label": "Server Data"
+    }
+  ],
+  "config_files": [
+    {
+      "path": "Server/servertest.ini",
+      "format": "properties",
+      "label": "Server Config"
+    }
+  ],
+  "mods": {
+    "supported": true,
+    "path": "Workshop",
+    "file_types": []
+  },
+  "estimated_disk_mb": 5000,
+  "tags": ["survival", "zombie", "moddable"]
+}

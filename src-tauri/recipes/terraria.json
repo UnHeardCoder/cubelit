@@ -1,0 +1,61 @@
+{
+  "id": "terraria",
+  "name": "Terraria",
+  "description": "2D sandbox adventure game with exploration, building, and combat.",
+  "icon": "terraria",
+  "available": false,
+  "docker_image": "ryshe/terraria",
+  "default_tag": "latest",
+  "ports": [
+    {
+      "container_port": 7777,
+      "default_host_port": 7777,
+      "protocol": "tcp",
+      "label": "Game Port"
+    }
+  ],
+  "environment": [
+    {
+      "key": "WORLD_FILENAME",
+      "default_value": "cubelit_world.wld",
+      "label": "World Filename",
+      "type": "string",
+      "options": []
+    },
+    {
+      "key": "WORLD_SIZE",
+      "default_value": "2",
+      "label": "World Size",
+      "type": "select",
+      "options": ["1", "2", "3"]
+    },
+    {
+      "key": "MAX_PLAYERS",
+      "default_value": "8",
+      "label": "Max Players",
+      "type": "number",
+      "options": []
+    },
+    {
+      "key": "DIFFICULTY",
+      "default_value": "1",
+      "label": "Difficulty",
+      "type": "select",
+      "options": ["0", "1", "2", "3"]
+    }
+  ],
+  "volumes": [
+    {
+      "container_path": "/root/.local/share/Terraria/Worlds",
+      "label": "World Data"
+    }
+  ],
+  "config_files": [],
+  "mods": {
+    "supported": true,
+    "path": "tModLoader/Mods",
+    "file_types": [".tmod"]
+  },
+  "estimated_disk_mb": 1000,
+  "tags": ["sandbox", "moddable"]
+}

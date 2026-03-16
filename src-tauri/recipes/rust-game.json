@@ -1,0 +1,74 @@
+{
+  "id": "rust-game",
+  "name": "Rust",
+  "description": "Survival game where you gather resources, build bases, and fight to survive.",
+  "icon": "rust-game",
+  "available": false,
+  "docker_image": "didstopia/rust-server",
+  "default_tag": "latest",
+  "ports": [
+    {
+      "container_port": 28015,
+      "default_host_port": 28015,
+      "protocol": "udp",
+      "label": "Game Port"
+    },
+    {
+      "container_port": 28016,
+      "default_host_port": 28016,
+      "protocol": "tcp",
+      "label": "RCON Port"
+    }
+  ],
+  "environment": [
+    {
+      "key": "RUST_SERVER_NAME",
+      "default_value": "Cubelit Rust Server",
+      "label": "Server Name",
+      "type": "string",
+      "options": []
+    },
+    {
+      "key": "RUST_SERVER_MAXPLAYERS",
+      "default_value": "50",
+      "label": "Max Players",
+      "type": "number",
+      "options": []
+    },
+    {
+      "key": "RUST_SERVER_WORLDSIZE",
+      "default_value": "3000",
+      "label": "World Size",
+      "type": "number",
+      "options": []
+    },
+    {
+      "key": "RUST_SERVER_SEED",
+      "default_value": "",
+      "label": "World Seed",
+      "type": "string",
+      "options": []
+    },
+    {
+      "key": "RUST_RCON_PASSWORD",
+      "default_value": "changeme",
+      "label": "RCON Password",
+      "type": "string",
+      "options": []
+    }
+  ],
+  "volumes": [
+    {
+      "container_path": "/steamcmd/rust",
+      "label": "Server Data"
+    }
+  ],
+  "config_files": [],
+  "mods": {
+    "supported": true,
+    "path": "oxide/plugins",
+    "file_types": [".cs"]
+  },
+  "estimated_disk_mb": 8000,
+  "tags": ["popular", "survival", "moddable"]
+}

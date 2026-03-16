@@ -1,0 +1,79 @@
+{
+  "id": "fivem",
+  "name": "FiveM",
+  "description": "Multiplayer modification framework for GTA V with custom servers and txAdmin.",
+  "icon": "fivem",
+  "available": true,
+  "docker_image": "spritsail/fivem",
+  "default_tag": "latest",
+  "ports": [
+    {
+      "container_port": 30120,
+      "default_host_port": 30120,
+      "protocol": "tcp",
+      "label": "Game Port (TCP)"
+    },
+    {
+      "container_port": 30120,
+      "default_host_port": 30120,
+      "protocol": "udp",
+      "label": "Game Port (UDP)"
+    },
+    {
+      "container_port": 40120,
+      "default_host_port": 40120,
+      "protocol": "tcp",
+      "label": "txAdmin Web Panel"
+    }
+  ],
+  "environment": [
+    {
+      "key": "SV_MAXCLIENTS",
+      "default_value": "32",
+      "label": "Max Players",
+      "type": "number",
+      "options": []
+    },
+    {
+      "key": "SERVER_NAME",
+      "default_value": "Cubelit FiveM Server",
+      "label": "Server Name",
+      "type": "string",
+      "options": []
+    },
+    {
+      "key": "DB_PASSWORD",
+      "default_value": "",
+      "label": "Database Root Password",
+      "type": "string",
+      "options": []
+    },
+    {
+      "key": "DB_HOST_PORT",
+      "default_value": "3306",
+      "label": "Database Host Port",
+      "type": "number",
+      "options": []
+    }
+  ],
+  "volumes": [
+    {
+      "container_path": "/config",
+      "label": "Server Config"
+    }
+  ],
+  "config_files": [
+    {
+      "path": "server.cfg",
+      "format": "cfg",
+      "label": "Server Config"
+    }
+  ],
+  "mods": {
+    "supported": true,
+    "path": "resources",
+    "file_types": [".lua", ".js"]
+  },
+  "estimated_disk_mb": 5000,
+  "tags": ["popular", "moddable", "roleplay"]
+}

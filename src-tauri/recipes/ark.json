@@ -1,0 +1,74 @@
+{
+  "id": "ark",
+  "name": "ARK: Survival Evolved",
+  "description": "Dinosaur survival game with taming, building, and multiplayer combat.",
+  "icon": "ark",
+  "available": false,
+  "docker_image": "hermsi/ark-server",
+  "default_tag": "latest",
+  "ports": [
+    {
+      "container_port": 7777,
+      "default_host_port": 7778,
+      "protocol": "udp",
+      "label": "Game Port"
+    },
+    {
+      "container_port": 27015,
+      "default_host_port": 27015,
+      "protocol": "udp",
+      "label": "Query Port"
+    }
+  ],
+  "environment": [
+    {
+      "key": "SESSION_NAME",
+      "default_value": "Cubelit ARK Server",
+      "label": "Session Name",
+      "type": "string",
+      "options": []
+    },
+    {
+      "key": "SERVER_MAP",
+      "default_value": "TheIsland",
+      "label": "Map",
+      "type": "select",
+      "options": ["TheIsland", "TheCenter", "ScorchedEarth_P", "Ragnarok", "Aberration_P", "Extinction", "Valguero_P", "Genesis", "CrystalIsles", "LostIsland", "Fjordur"]
+    },
+    {
+      "key": "MAX_PLAYERS",
+      "default_value": "20",
+      "label": "Max Players",
+      "type": "number",
+      "options": []
+    },
+    {
+      "key": "SERVER_PASSWORD",
+      "default_value": "",
+      "label": "Server Password",
+      "type": "string",
+      "options": []
+    },
+    {
+      "key": "ADMIN_PASSWORD",
+      "default_value": "changeme",
+      "label": "Admin Password",
+      "type": "string",
+      "options": []
+    }
+  ],
+  "volumes": [
+    {
+      "container_path": "/ark",
+      "label": "Server Data"
+    }
+  ],
+  "config_files": [],
+  "mods": {
+    "supported": true,
+    "path": "ShooterGame/Content/Mods",
+    "file_types": [".mod"]
+  },
+  "estimated_disk_mb": 15000,
+  "tags": ["survival", "dinosaurs"]
+}
