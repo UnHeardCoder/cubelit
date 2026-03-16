@@ -69,6 +69,14 @@
 
   const isRunning = $derived(server.status === "running");
 
+  // ─── Public IP ────────────────────────────────────────────────────────────
+  let publicIp = $state<string | null>(null);
+
+  function getPort(): string {
+    const ports = parsePorts(server.port_mappings);
+    return String(Object.values(ports)[0] ?? "");
+  }
+
   function getAddress(): string {
     const ports = parsePorts(server.port_mappings);
     const firstPort = Object.values(ports)[0];
@@ -265,6 +273,14 @@
   }
 
   onMount(async () => {
+    // Fetch public IP for the connection card
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      publicIp = await invoke<string>("get_public_ip");
+    } catch {
+      publicIp = null;
+    }
+
     if (activeTab === "mods") loadMods();
     if (activeTab === "plugins") loadPlugins();
     if (activeTab === "worlds") loadWorlds();
@@ -404,7 +420,21 @@
 
     <div class="bg-cubelit-surface border border-cubelit-border rounded-xl p-5">
       <h3 class="text-sm font-medium text-cubelit-muted mb-3">Connection</h3>
-      <p class="text-cubelit-text font-mono text-sm">{getAddress()}</p>
+      <div class="space-y-2">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-xs text-cubelit-muted shrink-0">Local</span>
+          <span class="text-cubelit-text font-mono text-sm">{getAddress()}</span>
+        </div>
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-xs text-cubelit-muted shrink-0">Public</span>
+          {#if publicIp}
+            <span class="text-cubelit-text font-mono text-sm">{publicIp}:{getPort()}</span>
+          {:else}
+            <span class="text-cubelit-muted font-mono text-sm text-xs">fetching…</span>
+          {/if}
+        </div>
+        <p class="text-xs text-cubelit-muted/60 pt-1">Friends use the Public address to connect. Make sure port {getPort()} is forwarded on your router.</p>
+      </div>
     </div>
 
     <StatsCards serverId={server.id} serverStatus={server.status} />

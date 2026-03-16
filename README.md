@@ -27,6 +27,13 @@ Built with a Rust backend for performance and reliability, and a Svelte 5 fronte
 - **10 supported games** out of the box, with a recipe system designed for easy expansion
 - **Full lifecycle management** — Start, stop, restart, and delete servers from the dashboard
 - **Real-time progress** — Watch image pulls and server creation in real time via streamed events
+- **Live resource stats** — CPU and memory usage cards on every server dashboard, auto-polled while the server is running
+- **Settings editing** — Edit environment variables and apply changes; Cubelit recreates the container automatically
+- **Mod & plugin management** — Upload, drag-and-drop, and delete `.jar` files directly from the dashboard (Minecraft)
+- **Backup system** — One-click server backup via the Console tab (Minecraft)
+- **Minecraft console** — Send RCON commands, quick-action buttons (OP self, whitelist, save, weather), and command history
+- **Connection info** — Local and public IP addresses shown on the overview, so you can share the address with friends
+- **Open folder buttons** — Jump straight to server files, mods, or plugins in your file manager
 - **Automatic state sync** — On startup, Cubelit inspects Docker to sync server statuses with reality
 - **Port management** — Built-in port availability checking with auto-suggestions
 - **Persistent data** — Each server gets its own volume directory that survives restarts and upgrades
@@ -198,12 +205,15 @@ All Docker operations, database access, recipe parsing, and port management happ
 
 ## Roadmap
 
-- [x] **Server management tabs** — Overview, mods/resources, settings, logs (Minecraft + FiveM)
-- [x] **Log viewing** — Container log viewer with auto-polling (FiveM); backend streaming available
-- [x] **Mod/resource management** — Upload and delete mods (Minecraft) and resources (FiveM)
-- [ ] **Settings editing** — Edit and apply environment variable changes without recreating the container
-- [ ] **Live stats** — CPU and memory usage panel (backend implemented, no UI yet)
-- [ ] **Backup system** — Zip and restore server volumes
+- [x] **Server management tabs** — Overview, mods/plugins, settings, console/logs (Minecraft + FiveM)
+- [x] **Log viewing** — Container log viewer with auto-polling while server is running
+- [x] **Mod & plugin management** — Upload, drag-and-drop, and delete `.jar` files (Minecraft)
+- [x] **Settings editing** — Edit environment variables; container is recreated with new settings on apply
+- [x] **Live stats** — CPU and memory usage cards, auto-polled every 5 seconds while running
+- [x] **Backup system** — One-click backup from the Console tab (Minecraft)
+- [x] **Minecraft console** — RCON command input with history, quick-action buttons
+- [x] **Connection info** — Local + public IP display so friends know what address to use
+- [x] **Open folder** — Jump to server files, mods, or plugins in the OS file manager
 - [ ] **Server updates** — One-click Docker image pull + container recreate
 - [ ] **System tray** — Background operation with tray icon
 - [ ] **More games** — 8 recipes are stubbed (ARK, CS2, Minecraft Bedrock, Palworld, Project Zomboid, Rust, Terraria, Valheim)

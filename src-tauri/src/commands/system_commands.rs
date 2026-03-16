@@ -12,6 +12,19 @@ pub fn suggest_port(default_port: u16) -> u16 {
 }
 
 #[tauri::command]
+pub async fn get_public_ip() -> Result<String, AppError> {
+    let ip = reqwest::Client::new()
+        .get("https://api.ipify.org")
+        .send()
+        .await
+        .map_err(|e| AppError::Validation(e.to_string()))?
+        .text()
+        .await
+        .map_err(|e| AppError::Validation(e.to_string()))?;
+    Ok(ip.trim().to_string())
+}
+
+#[tauri::command]
 pub fn open_folder(path: String) -> Result<(), AppError> {
     std::fs::create_dir_all(&path)?;
 
