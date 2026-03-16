@@ -205,15 +205,10 @@
 
   async function openFolder(subpath?: string) {
     try {
-      const { openPath } = await import("@tauri-apps/plugin-opener");
+      const { invoke } = await import("@tauri-apps/api/core");
       const sep = server.volume_path.includes("\\") ? "\\" : "/";
       const path = subpath ? `${server.volume_path}${sep}${subpath}` : server.volume_path;
-      try {
-        await openPath(path);
-      } catch {
-        // Subdir may not exist yet — fall back to root volume path
-        await openPath(server.volume_path);
-      }
+      await invoke("open_folder", { path });
     } catch (e) {
       console.error("Failed to open folder:", e);
     }

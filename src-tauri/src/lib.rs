@@ -61,6 +61,7 @@ pub fn run() {
             get_recipe_detail,
             check_port,
             suggest_port,
+            open_folder,
             list_server_files,
             copy_file_to_server,
             delete_server_file,
