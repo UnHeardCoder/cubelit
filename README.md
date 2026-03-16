@@ -41,18 +41,18 @@ Built with a Rust backend for performance and reliability, and a Svelte 5 fronte
 
 ## Supported Games
 
-| Game | Docker Image | Mods |
-|:-----|:-------------|:----:|
-| Minecraft Java | `itzg/minecraft-server` | Yes |
-| Minecraft Bedrock | `itzg/minecraft-bedrock-server` | -- |
-| FiveM | `spritsail/fivem` | Yes |
-| Rust | `didstopia/rust-server` | Yes |
-| Terraria | `ryshe/terraria` | Yes |
-| Valheim | `lloesche/valheim-server` | Yes |
-| ARK: Survival Evolved | `hermsi/ark-server` | Yes |
-| Counter-Strike 2 | `joedwards32/cs2` | -- |
-| Project Zomboid | `dandoby/project-zomboid` | Yes |
-| Palworld | `thijsvanloef/palworld-server-docker` | -- |
+| Game | Docker Image | Mods | Status |
+|:-----|:-------------|:----:|:------:|
+| Minecraft Java | `itzg/minecraft-server` | Yes | Available |
+| FiveM | `spritsail/fivem` | Yes | Available |
+| Minecraft Bedrock | `itzg/minecraft-bedrock-server` | -- | Coming Soon |
+| ARK: Survival Evolved | `hermsi/ark-server` | Yes | Coming Soon |
+| Counter-Strike 2 | `joedwards32/cs2` | -- | Coming Soon |
+| Palworld | `thijsvanloef/palworld-server-docker` | -- | Coming Soon |
+| Project Zomboid | `dandoby/project-zomboid` | Yes | Coming Soon |
+| Rust | `didstopia/rust-server` | Yes | Coming Soon |
+| Terraria | `ryshe/terraria` | Yes | Coming Soon |
+| Valheim | `lloesche/valheim-server` | Yes | Coming Soon |
 
 Each game is defined as a JSON recipe in `src-tauri/recipes/`. Adding a new game is as simple as creating a new recipe file — no code changes required.
 
