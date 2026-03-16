@@ -59,8 +59,8 @@
     <!-- Narrow Icon Sidebar -->
     <aside class="w-16 bg-cubelit-surface border-r border-cubelit-border flex flex-col items-center shrink-0 py-3 gap-2">
       <!-- Logo -->
-      <a href="/" class="w-10 h-10 bg-cubelit-accent rounded-xl flex items-center justify-center text-white font-bold text-sm mb-2">
-        C
+      <a href="/" class="w-10 h-10 rounded-xl flex items-center justify-center mb-2 overflow-hidden">
+        <img src="/logo.jpg" alt="Cubelit" class="w-10 h-10 object-contain" />
       </a>
 
       <!-- Dashboard -->
