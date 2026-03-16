@@ -12,3 +12,4 @@ vite.config.ts.timestamp-*
 *.db-shm
 *.db-wal
 nul
+echo "*:Zone.Identifier" >> .gitignore
