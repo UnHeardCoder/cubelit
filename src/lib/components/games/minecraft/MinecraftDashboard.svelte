@@ -36,6 +36,7 @@
   let showDeleteModModal = $state(false);
   let deletePluginName = $state<string | null>(null);
   let showDeletePluginModal = $state(false);
+  let fileError = $state<string | null>(null);
 
   // ─── Drag-and-drop state ──────────────────────────────────────────────────
   let modsDropDepth = $state(0);
@@ -154,6 +155,7 @@
   }
 
   async function uploadMod() {
+    fileError = null;
     try {
       const { open } = await import("@tauri-apps/plugin-dialog");
       const selected = await open({
@@ -165,11 +167,12 @@
         await loadMods();
       }
     } catch (e) {
-      console.error("Failed to upload mod:", e);
+      fileError = String(e);
     }
   }
 
   async function uploadPlugin() {
+    fileError = null;
     try {
       const { open } = await import("@tauri-apps/plugin-dialog");
       const selected = await open({
@@ -181,17 +184,18 @@
         await loadPlugins();
       }
     } catch (e) {
-      console.error("Failed to upload plugin:", e);
+      fileError = String(e);
     }
   }
 
   async function confirmDeleteMod() {
     if (!deleteModName) return;
+    fileError = null;
     try {
       await deleteServerFile(server.id, `mods/${deleteModName}`);
       await loadMods();
     } catch (e) {
-      console.error("Failed to delete mod:", e);
+      fileError = String(e);
     } finally {
       deleteModName = null;
       showDeleteModModal = false;
@@ -200,11 +204,12 @@
 
   async function confirmDeletePlugin() {
     if (!deletePluginName) return;
+    fileError = null;
     try {
       await deleteServerFile(server.id, `plugins/${deletePluginName}`);
       await loadPlugins();
     } catch (e) {
-      console.error("Failed to delete plugin:", e);
+      fileError = String(e);
     } finally {
       deletePluginName = null;
       showDeletePluginModal = false;
@@ -298,14 +303,14 @@
               jarPaths.map((p: string) =>
                 copyFileToServer(server.id, p, `mods/${p.split(/[/\\]/).pop()}`)
               )
-            ).then(() => loadMods()).catch(console.error);
+            ).then(() => loadMods()).catch((e) => { fileError = String(e); });
             modsDropDepth = 0;
           } else if (activeTab === "plugins") {
             Promise.all(
               jarPaths.map((p: string) =>
                 copyFileToServer(server.id, p, `plugins/${p.split(/[/\\]/).pop()}`)
               )
-            ).then(() => loadPlugins()).catch(console.error);
+            ).then(() => loadPlugins()).catch((e) => { fileError = String(e); });
             pluginsDropDepth = 0;
           }
         }
@@ -393,6 +398,17 @@
     </button>
   {/each}
 </div>
+
+{#if fileError}
+  <div class="flex items-start justify-between gap-3 px-4 py-3 mb-4 bg-cubelit-error/5 border border-cubelit-error/30 rounded-xl">
+    <p class="text-xs text-cubelit-error">{fileError}</p>
+    <button class="shrink-0 text-cubelit-error/60 hover:text-cubelit-error transition-colors" onclick={() => fileError = null}>
+      <svg class="w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+      </svg>
+    </button>
+  </div>
+{/if}
 
 {#if activeTab === "overview"}
   {#if server.status === "starting"}

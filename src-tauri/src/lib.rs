@@ -19,6 +19,8 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .setup(|app| {
             let app_handle = app.handle().clone();
 
@@ -41,7 +43,19 @@ pub fn run() {
                 // Sync server statuses with Docker reality
                 let _ = sync_all_servers(&state.docker, &state.db).await;
 
+                // Clone handles before moving state into manage()
+                let watcher_docker = state.docker.clone();
+                let watcher_db = state.db.clone();
+                let watcher_handle = app_handle.clone();
+
                 app_handle.manage(state);
+
+                // Spawn background watcher to detect unexpected container crashes
+                commands::docker_commands::spawn_crash_watcher(
+                    watcher_docker,
+                    watcher_db,
+                    watcher_handle,
+                );
             });
 
             Ok(())

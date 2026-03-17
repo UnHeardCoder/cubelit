@@ -65,15 +65,22 @@
           {#if env.type === "select"}
             <div class="flex flex-col gap-1.5">
               <label class="text-sm text-cubelit-muted">{env.label}</label>
-              <select
-                class="w-full px-3 py-2 bg-cubelit-bg border border-cubelit-border rounded-lg text-cubelit-text focus:outline-none focus:border-cubelit-accent transition-colors"
-                value={envValues[env.key] ?? env.default_value}
-                onchange={(e) => handleEnvInput(env.key, e)}
-              >
-                {#each env.options as option}
-                  <option value={option}>{option}</option>
-                {/each}
-              </select>
+              <div class="relative">
+                <select
+                  class="w-full appearance-none px-3 py-2 pr-8 bg-cubelit-bg border border-cubelit-border rounded-lg text-cubelit-text focus:outline-none focus:border-cubelit-accent transition-colors"
+                  value={envValues[env.key] ?? env.default_value}
+                  onchange={(e) => handleEnvInput(env.key, e)}
+                >
+                  {#each env.options as option}
+                    <option value={option} style="background-color:#23272f;color:#f5f5f6;">{option}</option>
+                  {/each}
+                </select>
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2.5">
+                  <svg class="w-4 h-4 text-cubelit-muted" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                  </svg>
+                </div>
+              </div>
             </div>
           {:else if env.type === "boolean"}
             <div class="flex items-center justify-between">
@@ -93,15 +100,22 @@
           {:else if env.type === "ram"}
             <div class="flex flex-col gap-1.5">
               <label class="text-sm text-cubelit-muted">{env.label}</label>
-              <select
-                class="w-full px-3 py-2 bg-cubelit-bg border border-cubelit-border rounded-lg text-cubelit-text focus:outline-none focus:border-cubelit-accent transition-colors"
-                value={envValues[env.key] ?? env.default_value}
-                onchange={(e) => handleEnvInput(env.key, e)}
-              >
-                {#each env.options as option}
-                  <option value={option}>{option}</option>
-                {/each}
-              </select>
+              <div class="relative">
+                <select
+                  class="w-full appearance-none px-3 py-2 pr-8 bg-cubelit-bg border border-cubelit-border rounded-lg text-cubelit-text focus:outline-none focus:border-cubelit-accent transition-colors"
+                  value={envValues[env.key] ?? env.default_value}
+                  onchange={(e) => handleEnvInput(env.key, e)}
+                >
+                  {#each env.options as option}
+                    <option value={option} style="background-color:#23272f;color:#f5f5f6;">{option}</option>
+                  {/each}
+                </select>
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2.5">
+                  <svg class="w-4 h-4 text-cubelit-muted" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                  </svg>
+                </div>
+              </div>
             </div>
           {:else}
             <div class="flex flex-col gap-1.5">

@@ -57,6 +57,8 @@ Frontend (Svelte 5)          Tauri IPC           Rust Backend
 - **`docker/logs.rs`** — Streams container logs via Tauri events.
 - **`docker/stats.rs`** — Streams container resource stats (CPU, memory) via Tauri events.
 - **`recipes.rs`** — Loads JSON recipe files from `recipes_dir`, deserializes into `Recipe` structs.
+- **`error.rs`** — `AppError` enum with variants: `Docker`, `Database`, `Io`, `NotFound`, `Validation`. Serializes as a plain string for IPC transport.
+- **`ports.rs`** — `is_port_available()` / `suggest_port()` utilities (tries up to 100 offsets from the default); used by `system_commands.rs`.
 
 ### Frontend (`src/`)
 

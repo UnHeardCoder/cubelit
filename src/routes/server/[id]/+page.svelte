@@ -21,6 +21,7 @@
 
   let showDeleteModal = $state(false);
   let deleteWithData = $state(false);
+  let showRestartModal = $state(false);
 
   let editing = $state(false);
   let editName = $state("");
@@ -123,6 +124,21 @@
   }
 </script>
 
+<!-- Restart Confirmation Modal -->
+<Modal bind:open={showRestartModal} onclose={() => showRestartModal = false} title="Restart Server">
+  <div class="space-y-4">
+    <p class="text-sm text-cubelit-muted">
+      Restarting <span class="text-cubelit-text font-medium">{server?.name}</span> will
+      <span class="text-cubelit-warning font-medium">disconnect all active players</span>.
+      Continue?
+    </p>
+    <div class="flex gap-3 justify-end pt-2">
+      <Button variant="ghost" onclick={() => showRestartModal = false}>Cancel</Button>
+      <Button variant="secondary" onclick={() => { showRestartModal = false; handleRestart(); }} loading={actionLoading}>Restart</Button>
+    </div>
+  </div>
+</Modal>
+
 <!-- Delete Confirmation Modal -->
 <Modal bind:open={showDeleteModal} onclose={() => { showDeleteModal = false; deleteWithData = false; }} title="Delete Server">
   <div class="space-y-4">
@@ -189,7 +205,7 @@
       </div>
       <div class="flex gap-2">
         {#if server.status === "running"}
-          <Button variant="secondary" onclick={handleRestart} loading={actionLoading}>Restart</Button>
+          <Button variant="secondary" onclick={() => showRestartModal = true} loading={actionLoading}>Restart</Button>
           <Button variant="danger" onclick={handleStop} loading={actionLoading}>Stop</Button>
         {:else if server.status === "starting"}
           <Button variant="danger" onclick={handleStop} loading={actionLoading}>Stop</Button>

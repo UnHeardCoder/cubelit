@@ -418,15 +418,22 @@
         {:else if packVersions.length > 0}
           <div class="space-y-1.5">
             <label class="text-xs text-cubelit-muted">Version</label>
-            <select
-              class="w-full px-3 py-2.5 bg-cubelit-bg border border-cubelit-border rounded-lg text-cubelit-text text-sm focus:outline-none focus:border-cubelit-accent transition-colors"
-              value={selectedVersionId}
-              onchange={(e) => selectVersion((e.target as HTMLSelectElement).value)}
-            >
-              {#each packVersions as v}
-                <option value={v.id}>{v.name}{v.minecraftVersion ? ` (MC ${v.minecraftVersion})` : ""}</option>
-              {/each}
-            </select>
+            <div class="relative">
+              <select
+                class="w-full appearance-none px-3 py-2.5 pr-8 bg-cubelit-bg border border-cubelit-border rounded-lg text-cubelit-text text-sm focus:outline-none focus:border-cubelit-accent transition-colors"
+                value={selectedVersionId}
+                onchange={(e) => selectVersion((e.target as HTMLSelectElement).value)}
+              >
+                {#each packVersions as v}
+                  <option value={v.id} style="background-color:#23272f;color:#f5f5f6;">{v.name}{v.minecraftVersion ? ` (MC ${v.minecraftVersion})` : ""}</option>
+                {/each}
+              </select>
+              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2.5">
+                <svg class="w-4 h-4 text-cubelit-muted" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                </svg>
+              </div>
+            </div>
             <p class="text-xs text-cubelit-muted">Latest version selected by default. The modpack will be downloaded on first server start.</p>
           </div>
         {/if}

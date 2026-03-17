@@ -6,6 +6,8 @@
   import { getServersStore } from "$lib/stores/servers.svelte";
   import DockerOnboarding from "$lib/components/DockerOnboarding.svelte";
   import Spinner from "$lib/components/Spinner.svelte";
+  import { check } from "@tauri-apps/plugin-updater";
+  import { relaunch } from "@tauri-apps/plugin-process";
 
   let { children } = $props();
 
@@ -14,6 +16,8 @@
 
   let initialized = $state(false);
   let refreshInterval: ReturnType<typeof setInterval> | null = null;
+  let updateAvailable = $state<{ version: string; download: () => Promise<void> } | null>(null);
+  let updateLoading = $state(false);
 
   onMount(async () => {
     await docker.check();
@@ -22,6 +26,21 @@
       refreshInterval = setInterval(() => servers.load(), 30_000);
     }
     initialized = true;
+
+    // Silently check for app updates in the background
+    try {
+      const update = await check();
+      if (update?.available) {
+        updateAvailable = {
+          version: update.version,
+          download: async () => {
+            updateLoading = true;
+            await update.downloadAndInstall();
+            await relaunch();
+          },
+        };
+      }
+    } catch { /* ignore — update check should never break the app */ }
   });
 
   onDestroy(() => {
@@ -94,4 +113,29 @@
       {@render children()}
     </main>
   </div>
+
+  <!-- Update available banner -->
+  {#if updateAvailable}
+    <div class="fixed bottom-4 right-4 z-50 flex items-center gap-3 bg-cubelit-surface border border-cubelit-accent/40 rounded-xl px-4 py-3 shadow-lg">
+      <div>
+        <p class="text-sm font-medium text-cubelit-text">Update available</p>
+        <p class="text-xs text-cubelit-muted">v{updateAvailable.version} is ready to install</p>
+      </div>
+      <button
+        class="text-xs font-medium text-cubelit-accent hover:text-cubelit-accent-hover transition-colors disabled:opacity-50"
+        onclick={updateAvailable.download}
+        disabled={updateLoading}
+      >
+        {updateLoading ? "Installing…" : "Update"}
+      </button>
+      <button
+        class="text-cubelit-muted hover:text-cubelit-text transition-colors"
+        onclick={() => updateAvailable = null}
+      >
+        <svg class="w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+  {/if}
 {/if}

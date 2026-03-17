@@ -8,6 +8,11 @@
   }
 
   let { error, checking, oncheck }: Props = $props();
+
+  const isWindows = navigator.userAgent.includes("Windows");
+  const dockerUrl = isWindows
+    ? "https://apps.microsoft.com/detail/9NBLGGH4P55N"
+    : "https://www.docker.com/products/docker-desktop/";
 </script>
 
 <div class="min-h-screen bg-cubelit-bg flex items-center justify-center p-8">
@@ -39,12 +44,12 @@
         Check Again
       </Button>
       <a
-        href="https://www.docker.com/products/docker-desktop/"
+        href={dockerUrl}
         target="_blank"
         rel="noopener noreferrer"
         class="text-sm text-cubelit-accent hover:text-cubelit-accent-hover transition-colors"
       >
-        Download Docker Desktop
+        {isWindows ? "Get Docker Desktop from Microsoft Store" : "Download Docker Desktop"}
       </a>
     </div>
   </div>

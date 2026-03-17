@@ -2,11 +2,14 @@
   import type { Cubelit } from "$lib/types/server";
   import { updateServerSettings } from "$lib/api/docker";
   import { getRecipeDetail } from "$lib/api/recipes";
+  import { getServerLogs, listServerFiles, copyFileToServer, deleteServerFile } from "$lib/api/files";
   import { parsePorts, parseEnv, STATUS_COLORS } from "$lib/utils/server";
   import type { Recipe } from "$lib/types/recipe";
+  import type { FileEntry } from "$lib/types/files";
   import StatsCards from "$lib/components/StatsCards.svelte";
   import Button from "$lib/components/Button.svelte";
   import Modal from "$lib/components/Modal.svelte";
+  import LogViewer from "$lib/components/LogViewer.svelte";
 
   interface Props {
     server: Cubelit;
@@ -14,7 +17,7 @@
 
   let { server }: Props = $props();
 
-  let activeTab = $state<"overview" | "settings">("overview");
+  let activeTab = $state<"overview" | "files" | "logs" | "settings">("overview");
 
   // ─── Settings state ───────────────────────────────────────────────────────
   let recipe = $state<Recipe | null>(null);
@@ -50,12 +53,92 @@
     }
   }
 
+  // ─── Logs state ───────────────────────────────────────────────────────────
+  let logs = $state<string[]>([]);
+  let logsLoading = $state(false);
+
+  async function loadLogs() {
+    logsLoading = true;
+    try {
+      logs = await getServerLogs(server.id, 200);
+    } catch {
+      logs = [];
+    } finally {
+      logsLoading = false;
+    }
+  }
+
+  // ─── Files state ──────────────────────────────────────────────────────────
+  let files = $state<FileEntry[]>([]);
+  let filesLoading = $state(false);
+  let filesError = $state<string | null>(null);
+  let fileToDelete = $state<string | null>(null);
+  let showDeleteFileModal = $state(false);
+
+  async function loadFiles() {
+    filesLoading = true;
+    filesError = null;
+    try {
+      files = (await listServerFiles(server.id)).filter(f => !f.is_dir);
+    } catch {
+      filesError = "Failed to load files.";
+      files = [];
+    } finally {
+      filesLoading = false;
+    }
+  }
+
+  async function uploadFile() {
+    filesError = null;
+    try {
+      const { open } = await import("@tauri-apps/plugin-dialog");
+      const selected = await open({ title: "Select File" });
+      if (selected) {
+        const filename = (selected as string).split(/[/\\]/).pop()!;
+        await copyFileToServer(server.id, selected as string, filename);
+        await loadFiles();
+      }
+    } catch (e) {
+      filesError = String(e);
+    }
+  }
+
+  async function confirmDeleteFile() {
+    if (!fileToDelete) return;
+    filesError = null;
+    try {
+      await deleteServerFile(server.id, fileToDelete);
+      await loadFiles();
+    } catch (e) {
+      filesError = String(e);
+    } finally {
+      fileToDelete = null;
+      showDeleteFileModal = false;
+    }
+  }
+
   $effect(() => {
     if (activeTab === "settings") loadSettings();
   });
 
+  $effect(() => {
+    if (activeTab === "logs") {
+      loadLogs();
+      if (server.status === "running" || server.status === "starting") {
+        const interval = setInterval(loadLogs, 3000);
+        return () => clearInterval(interval);
+      }
+    }
+  });
+
+  $effect(() => {
+    if (activeTab === "files") loadFiles();
+  });
+
   const tabs = [
     { id: "overview" as const, label: "Overview" },
+    { id: "files" as const, label: "Files" },
+    { id: "logs" as const, label: "Logs" },
     { id: "settings" as const, label: "Settings" },
   ];
 </script>
@@ -68,6 +151,17 @@
   <div class="flex gap-3 justify-end">
     <Button variant="ghost" onclick={() => showApplyModal = false}>Cancel</Button>
     <Button variant="primary" onclick={applySettings}>Apply & Restart</Button>
+  </div>
+</Modal>
+
+<!-- Delete File Modal -->
+<Modal bind:open={showDeleteFileModal} onclose={() => { fileToDelete = null; showDeleteFileModal = false; }} title="Delete File">
+  <p class="text-sm text-cubelit-muted mb-6">
+    Delete <span class="text-cubelit-text font-medium">{fileToDelete}</span>? This cannot be undone.
+  </p>
+  <div class="flex gap-3 justify-end">
+    <Button variant="ghost" onclick={() => { fileToDelete = null; showDeleteFileModal = false; }}>Cancel</Button>
+    <Button variant="danger" onclick={confirmDeleteFile}>Delete</Button>
   </div>
 </Modal>
 
@@ -121,6 +215,47 @@
       <p class="text-cubelit-text text-sm font-mono truncate">{server.volume_path}</p>
     </div>
   </div>
+
+{:else if activeTab === "files"}
+  <div class="space-y-4">
+    <div class="flex items-center justify-between">
+      <h3 class="text-sm font-medium text-cubelit-text">Server Files</h3>
+      <Button size="sm" onclick={uploadFile}>Upload File</Button>
+    </div>
+
+    {#if filesError}
+      <p class="text-xs text-cubelit-error px-3 py-2 bg-cubelit-error/5 border border-cubelit-error/30 rounded-lg">{filesError}</p>
+    {/if}
+
+    {#if filesLoading}
+      <p class="text-cubelit-muted text-sm py-8 text-center">Loading files...</p>
+    {:else if files.length === 0}
+      <div class="text-center py-12 bg-cubelit-surface border border-dashed border-cubelit-border rounded-xl">
+        <p class="text-cubelit-muted text-sm">No files found</p>
+        <p class="text-cubelit-muted/70 text-xs mt-1">Upload files or start the server to generate them</p>
+      </div>
+    {:else}
+      <div class="space-y-2">
+        {#each files as file}
+          <div class="flex items-center justify-between bg-cubelit-surface border border-cubelit-border rounded-xl px-4 py-3">
+            <div>
+              <p class="text-sm text-cubelit-text">{file.name}</p>
+              <p class="text-xs text-cubelit-muted">{(file.size / 1024).toFixed(1)} KB</p>
+            </div>
+            <button
+              class="text-xs text-cubelit-error hover:text-cubelit-error/80 transition-colors"
+              onclick={() => { fileToDelete = file.name; showDeleteFileModal = true; }}
+            >
+              Remove
+            </button>
+          </div>
+        {/each}
+      </div>
+    {/if}
+  </div>
+
+{:else if activeTab === "logs"}
+  <LogViewer lines={logs} loading={logsLoading} onRefresh={loadLogs} />
 
 {:else if activeTab === "settings"}
   <div class="space-y-4">

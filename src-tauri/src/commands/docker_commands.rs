@@ -781,3 +781,44 @@ pub async fn get_server_logs(
 
     Ok(result)
 }
+
+/// Spawns a background task that subscribes to Docker events and emits
+/// `server-status-changed` when a primary managed container stops or dies.
+pub fn spawn_crash_watcher(
+    docker: bollard::Docker,
+    pool: sqlx::SqlitePool,
+    app_handle: tauri::AppHandle,
+) {
+    tokio::spawn(async move {
+        use futures_util::StreamExt;
+        loop {
+            let mut filters = std::collections::HashMap::new();
+            filters.insert("type".to_string(), vec!["container".to_string()]);
+            filters.insert("event".to_string(), vec!["die".to_string(), "stop".to_string()]);
+            filters.insert("label".to_string(), vec!["cubelit.role=primary".to_string()]);
+
+            let opts = bollard::system::EventsOptions::<String> {
+                filters,
+                ..Default::default()
+            };
+
+            let mut stream = docker.events(Some(opts));
+
+            while let Some(Ok(ev)) = stream.next().await {
+                if let Some(actor) = ev.actor {
+                    if let Some(attrs) = actor.attributes {
+                        if let Some(server_id) = attrs.get("cubelit.id").map(String::as_str) {
+                            let _ = crate::db::queries::update_cubelit_status(
+                                &pool, server_id, "stopped", None,
+                            ).await;
+                            let _ = app_handle.emit("server-status-changed", server_id);
+                        }
+                    }
+                }
+            }
+
+            // Stream ended (Docker restarted or disconnected) — wait before reconnecting
+            tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+        }
+    });
+}

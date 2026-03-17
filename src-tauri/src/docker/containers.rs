@@ -52,6 +52,7 @@ pub async fn create_container(docker: &Docker, cubelit: &Cubelit, extra_binds: &
     labels.insert("cubelit.id".to_string(), cubelit.id.clone());
     labels.insert("cubelit.game".to_string(), cubelit.game.clone());
     labels.insert("cubelit.managed".to_string(), "true".to_string());
+    labels.insert("cubelit.role".to_string(), "primary".to_string());
 
     let mut binds = vec![format!("{}:{}", cubelit.volume_path, cubelit.container_mount_path)];
     binds.extend_from_slice(extra_binds);
