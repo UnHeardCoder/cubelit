@@ -41,22 +41,18 @@ jobs:
       - name: Install frontend dependencies
         run: bun install
 
-      - name: Debug signing key
+      - name: Set up signing key
         shell: bash
         run: |
-          if [ -n "$TAURI_SIGNING_PRIVATE_KEY" ]; then
-            echo "TAURI_SIGNING_PRIVATE_KEY is set (length: ${#TAURI_SIGNING_PRIVATE_KEY})"
-          else
-            echo "TAURI_SIGNING_PRIVATE_KEY is NOT set or empty"
-          fi
+          printf '%s' "$TAURI_KEY" > "$RUNNER_TEMP/tauri_signing_key"
+          echo "TAURI_SIGNING_PRIVATE_KEY=$RUNNER_TEMP/tauri_signing_key" >> "$GITHUB_ENV"
         env:
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
 
       - name: Build and release
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
         with:
           tagName: ${{ github.ref_name }}
           releaseName: 'Cubelit ${{ github.ref_name }}'
