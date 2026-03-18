@@ -77,6 +77,12 @@ pub fn run() {
             suggest_port,
             get_public_ip,
             open_folder,
+            #[cfg(target_os = "windows")]
+            check_wsl_status,
+            #[cfg(target_os = "windows")]
+            enable_wsl2,
+            #[cfg(target_os = "windows")]
+            set_wsl_default_version,
             list_server_files,
             copy_file_to_server,
             delete_server_file,

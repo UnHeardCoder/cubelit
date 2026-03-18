@@ -1,6 +1,6 @@
 [package]
 name = "cubelit"
-version = "0.1.0"
+version = "0.1.1"
 description = "A Tauri App"
 authors = ["you"]
 edition = "2021"
@@ -35,4 +35,7 @@ dirs = "6"
 tauri-plugin-dialog = "2"
 rand = "0.8"
 reqwest = { version = "0.12", features = ["rustls-tls"], default-features = false }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+windows-sys = { version = "0.59", features = ["Win32_UI_Shell", "Win32_Foundation"] }
 
