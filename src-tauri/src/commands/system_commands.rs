@@ -79,7 +79,7 @@ pub fn enable_wsl2() -> Result<(), AppError> {
 
     let result = unsafe {
         ShellExecuteW(
-            0,                  // no parent window
+            std::ptr::null_mut(), // no parent window
             verb.as_ptr(),
             file.as_ptr(),
             params.as_ptr(),
