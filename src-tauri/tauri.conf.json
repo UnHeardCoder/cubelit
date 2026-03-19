@@ -40,7 +40,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IERBMThERkEwQkRGRkUwQjcKUldTMzRQKzlvTjhZMmc5dE54UmZzTFZqeGgyaDNBRWhKcGxCRjNMR3lCYWE1UXZkMnhKdEcyNWwK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEU2NzFBMUI1ODJDNUY4OUYKUldTZitNV0N0YUZ4NWdwcDFlcmxiRXZHeXpvT1VrUitRMjR2YlkxMFlGWVhKVHlPNVV6OXlLbjcK",
       "endpoints": [
         "https://github.com/UnHeardCoder/cubelit/releases/latest/download/latest.json"
       ],
