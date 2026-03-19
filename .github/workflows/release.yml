@@ -45,7 +45,7 @@ jobs:
         shell: bash
         run: |
           printf '%s' "$TAURI_KEY" | tr -d '\r' > "$RUNNER_TEMP/tauri_signing_key"
-          echo "TAURI_SIGNING_PRIVATE_KEY_PATH=$RUNNER_TEMP/tauri_signing_key" >> "$GITHUB_ENV"
+          echo "TAURI_SIGNING_PRIVATE_KEY=$RUNNER_TEMP/tauri_signing_key" >> "$GITHUB_ENV"
           echo "TAURI_SIGNING_PRIVATE_KEY_PASSWORD=$TAURI_KEY_PASSWORD" >> "$GITHUB_ENV"
         env:
           TAURI_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
