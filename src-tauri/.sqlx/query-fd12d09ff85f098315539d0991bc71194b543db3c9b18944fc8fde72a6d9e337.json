@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO cubelits (id, name, game, recipe_id, docker_image, container_id, status, port_mappings, environment, volume_path, container_mount_path, sidecar_container_id, sidecar_image, created_at, updated_at)\n         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 15
+    },
+    "nullable": []
+  },
+  "hash": "fd12d09ff85f098315539d0991bc71194b543db3c9b18944fc8fde72a6d9e337"
+}

@@ -1,7 +1,7 @@
 mod commands;
-mod db;
+pub mod db;
 mod docker;
-mod error;
+pub mod error;
 mod ports;
 mod recipes;
 mod state;

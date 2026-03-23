@@ -1,0 +1,104 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id, name, game, recipe_id, docker_image, container_id, status, port_mappings, environment, volume_path, container_mount_path, sidecar_container_id, sidecar_image, created_at, updated_at FROM cubelits ORDER BY created_at DESC",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "game",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "recipe_id",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "docker_image",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "container_id",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "status",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "port_mappings",
+        "ordinal": 7,
+        "type_info": "Text"
+      },
+      {
+        "name": "environment",
+        "ordinal": 8,
+        "type_info": "Text"
+      },
+      {
+        "name": "volume_path",
+        "ordinal": 9,
+        "type_info": "Text"
+      },
+      {
+        "name": "container_mount_path",
+        "ordinal": 10,
+        "type_info": "Text"
+      },
+      {
+        "name": "sidecar_container_id",
+        "ordinal": 11,
+        "type_info": "Text"
+      },
+      {
+        "name": "sidecar_image",
+        "ordinal": 12,
+        "type_info": "Text"
+      },
+      {
+        "name": "created_at",
+        "ordinal": 13,
+        "type_info": "Text"
+      },
+      {
+        "name": "updated_at",
+        "ordinal": 14,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "8f37ee20fe6efc84dfea44014e7f3f95eadc4cc52732f0e55e2f94ac31034f0b"
+}

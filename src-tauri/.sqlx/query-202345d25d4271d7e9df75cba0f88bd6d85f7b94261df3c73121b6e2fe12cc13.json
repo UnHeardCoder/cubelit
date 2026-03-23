@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE cubelits SET status = ?, container_id = ?, updated_at = ? WHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "202345d25d4271d7e9df75cba0f88bd6d85f7b94261df3c73121b6e2fe12cc13"
+}
