@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM cubelits WHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "c716d0f4fb187462a2ea5f9a16892d92e152a09ff2d9ee15177c5bc267d58c9b"
+}

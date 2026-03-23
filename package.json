@@ -1,7 +1,7 @@
 {
   "name": "cubelit",
-  "version": "0.1.1",
-  "description": "",
+  "version": "0.1.2",
+  "description": "Desktop app for managing game servers via Docker",
   "type": "module",
   "scripts": {
     "dev": "vite dev",
@@ -9,6 +9,8 @@
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "tauri": "tauri"
   },
   "license": "MIT",
@@ -26,10 +28,13 @@
     "@sveltejs/vite-plugin-svelte": "^5.0.0",
     "@tailwindcss/vite": "^4.2.1",
     "@tauri-apps/cli": "^2",
+    "@vitest/coverage-v8": "^4.1.1",
+    "jsdom": "^29.0.1",
     "svelte": "^5.0.0",
     "svelte-check": "^4.0.0",
     "tailwindcss": "^4.2.1",
     "typescript": "~5.6.2",
-    "vite": "^6.0.3"
+    "vite": "^6.0.3",
+    "vitest": "^4.1.1"
   }
 }

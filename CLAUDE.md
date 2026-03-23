@@ -20,7 +20,12 @@ cargo build              # Full debug build
 cargo clippy             # Lints
 ```
 
-No test suite exists yet. Verify changes with `cargo check` (Rust) and `bun run check` (TypeScript).
+Verify changes with `cargo check` (Rust) and `bun run check` (TypeScript). Run tests with:
+
+```bash
+cargo test                    # Rust unit + integration tests (from src-tauri/)
+bun run test                  # Svelte/TS component tests
+```
 
 ## Architecture
 
@@ -50,7 +55,7 @@ Frontend (Svelte 5)          Tauri IPC           Rust Backend
 - **`commands/system_commands.rs`** — `check_port`, `suggest_port`.
 - **`commands/file_commands.rs`** — `list_server_files`, `copy_file_to_server`, `delete_server_file`, `get_server_logs`.
 - **`commands/minecraft_commands.rs`** — `send_minecraft_command` (RCON over TCP), `backup_server` (recursive copy to timestamped dir).
-- **`db/`** — SQLite with runtime queries (no compile-time checking). `models.rs` defines the `Cubelit` struct; `queries.rs` contains all DB operations. Single `cubelits` table. WAL mode. DB at `{app_data_dir}/cubelit.db`.
+- **`db/`** — SQLite with compile-time checked queries (`query!` / `query_as!` macros). `models.rs` defines the `Cubelit` struct; `queries.rs` contains all DB operations. Single `cubelits` table. WAL mode. DB at `{app_data_dir}/cubelit.db`. Schema migrations live in `src-tauri/migrations/` and are applied via `sqlx::migrate!()` at startup. The `.sqlx/` offline cache (committed to git) allows builds without a live DB — set `SQLX_OFFLINE=true`. To update the cache after changing queries: `DATABASE_URL=sqlite:///tmp/cubelit-dev.db sqlx migrate run && DATABASE_URL=sqlite:///tmp/cubelit-dev.db cargo sqlx prepare` (from `src-tauri/`).
 - **`docker/containers.rs`** — Maps `Cubelit` fields to bollard `Config`. Containers named `cubelit-{id}`, labeled with `cubelit.id`/`cubelit.managed=true`, restart policy `unless-stopped`.
 - **`docker/images.rs`** — Pulls images with streaming progress via Tauri events.
 - **`docker/health.rs`** — `check_docker_status()` helper: pings Docker and returns version info as `DockerStatus` struct (used by `check_docker_status` IPC command).
@@ -105,6 +110,8 @@ Schema:
 
 Bundled via `tauri.conf.json` → `bundle.resources: ["recipes/*"]`. The `recipes/*` glob **requires at least one file to exist** or the build fails.
 
+**Docker tag pinning**: Always use a specific tag in `default_tag`, never `"latest"`. For `itzg/minecraft-server` use Java-version tags (`java21`). For other images, check Docker Hub for the latest stable tag before enabling a recipe. FiveM (`spritsail/fivem`) uses date-based tags — check Docker Hub for the current stable tag before enabling.
+
 ## Key Patterns
 
 - **Tauri v2 path API**: Use `app.path().app_data_dir()`, NOT `app.path_resolver()`.
@@ -123,3 +130,15 @@ Defined in `src/app.css` via `@theme`. Use `cubelit-*` classes:
 - `text`/`muted` — text colors
 - `accent`/`accent-hover` — primary action color (orange)
 - `success`/`warning`/`error` — status colors
+
+## Git Workflow
+
+Always create a new branch before starting any feature or fix. Never commit directly to `master`.
+
+```bash
+git checkout -b feature/<short-description>   # new feature
+git checkout -b fix/<short-description>        # bug fix
+git checkout -b chore/<short-description>      # maintenance / refactor
+```
+
+Once the work is done, open a PR into `master`. Keep PRs focused — one feature or fix per branch.

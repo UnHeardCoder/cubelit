@@ -710,7 +710,7 @@ dependencies = [
 
 [[package]]
 name = "cubelit"
-version = "0.1.0"
+version = "0.1.2"
 dependencies = [
  "bollard",
  "chrono",
@@ -727,6 +727,7 @@ dependencies = [
  "tauri-plugin-opener",
  "tauri-plugin-process",
  "tauri-plugin-updater",
+ "tempfile",
  "thiserror 2.0.18",
  "tokio",
  "uuid",
