@@ -1,6 +1,6 @@
 {
   "name": "cubelit",
-  "version": "0.1.2",
+  "version": "0.1.4",
   "description": "Desktop app for managing game servers via Docker",
   "type": "module",
   "scripts": {
