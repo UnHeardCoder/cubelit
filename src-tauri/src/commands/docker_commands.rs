@@ -8,6 +8,21 @@ use crate::docker;
 use crate::error::AppError;
 use crate::state::AppState;
 
+fn validate_env_vars(env: &HashMap<String, String>) -> Result<(), AppError> {
+    for (key, value) in env {
+        if key.contains('\0') {
+            return Err(AppError::Validation(format!("Env var key '{}' contains NUL byte", key)));
+        }
+        if value.contains('\0') {
+            return Err(AppError::Validation(format!("Env var '{}' value contains NUL byte", key)));
+        }
+        if value.len() > 4096 {
+            return Err(AppError::Validation(format!("Env var '{}' value exceeds 4096 bytes", key)));
+        }
+    }
+    Ok(())
+}
+
 async fn verify_container_status(docker: &bollard::Docker, container_id: &str) -> &'static str {
     match docker.inspect_container(container_id, None).await {
         Ok(info) => {
@@ -244,17 +259,7 @@ pub async fn create_server(
     }
 
     // Validate env vars before touching Docker
-    for (key, value) in &env {
-        if key.contains('\0') {
-            return Err(AppError::Validation(format!("Env var key '{}' contains NUL byte", key)));
-        }
-        if value.contains('\0') {
-            return Err(AppError::Validation(format!("Env var '{}' value contains NUL byte", key)));
-        }
-        if value.len() > 4096 {
-            return Err(AppError::Validation(format!("Env var '{}' value exceeds 4096 bytes", key)));
-        }
-    }
+    validate_env_vars(&env)?;
 
     // Use protocol-aware port keys: "25565/tcp", "30120/udp"
     let mut ports: HashMap<String, u16> = recipe
@@ -686,17 +691,7 @@ pub async fn update_server_settings(
     let was_running = cubelit.status == "running" || cubelit.status == "starting";
 
     // Validate env vars before persisting
-    for (key, value) in &environment {
-        if key.contains('\0') {
-            return Err(AppError::Validation(format!("Env var key '{}' contains NUL byte", key)));
-        }
-        if value.contains('\0') {
-            return Err(AppError::Validation(format!("Env var '{}' value contains NUL byte", key)));
-        }
-        if value.len() > 4096 {
-            return Err(AppError::Validation(format!("Env var '{}' value exceeds 4096 bytes", key)));
-        }
-    }
+    validate_env_vars(&environment)?;
 
     // Stop and remove the existing container
     if let Some(ref container_id) = cubelit.container_id {
