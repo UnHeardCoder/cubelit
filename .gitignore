@@ -12,4 +12,5 @@ vite.config.ts.timestamp-*
 *.db-shm
 *.db-wal
 nul
+cubelit.key.pub
 echo "*:Zone.Identifier" >> .gitignore

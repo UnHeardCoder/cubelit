@@ -865,3 +865,42 @@ pub fn spawn_crash_watcher(
         }
     });
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn env(pairs: &[(&str, &str)]) -> HashMap<String, String> {
+        pairs.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect()
+    }
+
+    #[test]
+    fn valid_env_passes() {
+        assert!(validate_env_vars(&env(&[("KEY", "value"), ("PORT", "25565")])).is_ok());
+    }
+
+    #[test]
+    fn nul_in_key_rejected() {
+        let err = validate_env_vars(&env(&[("KE\0Y", "value")])).unwrap_err();
+        assert!(err.to_string().contains("NUL byte"));
+    }
+
+    #[test]
+    fn nul_in_value_rejected() {
+        let err = validate_env_vars(&env(&[("KEY", "val\0ue")])).unwrap_err();
+        assert!(err.to_string().contains("NUL byte"));
+    }
+
+    #[test]
+    fn value_too_long_rejected() {
+        let long = "x".repeat(4097);
+        let err = validate_env_vars(&env(&[("KEY", &long)])).unwrap_err();
+        assert!(err.to_string().contains("4096"));
+    }
+
+    #[test]
+    fn value_exactly_4096_passes() {
+        let max = "x".repeat(4096);
+        assert!(validate_env_vars(&env(&[("KEY", &max)])).is_ok());
+    }
+}
