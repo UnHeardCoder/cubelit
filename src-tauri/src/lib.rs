@@ -30,6 +30,18 @@ pub fn run() {
                     .app_data_dir()
                     .expect("failed to resolve app data dir");
 
+                let log_file = data_dir.join("cubelit.log");
+                if let Ok(file) = std::fs::OpenOptions::new()
+                    .create(true)
+                    .append(true)
+                    .open(&log_file)
+                {
+                    let _ = tracing_subscriber::fmt()
+                        .with_writer(std::sync::Mutex::new(file))
+                        .with_env_filter("warn,cubelit=info")
+                        .try_init();
+                }
+
                 let recipes_dir = app_handle
                     .path()
                     .resource_dir()

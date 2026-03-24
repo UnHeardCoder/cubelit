@@ -1,11 +1,27 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tauri::{AppHandle, Emitter, State};
+use tracing::{error, info};
 
 use crate::db::models::Cubelit;
 use crate::docker;
 use crate::error::AppError;
 use crate::state::AppState;
+
+fn validate_env_vars(env: &HashMap<String, String>) -> Result<(), AppError> {
+    for (key, value) in env {
+        if key.contains('\0') {
+            return Err(AppError::Validation(format!("Env var key '{}' contains NUL byte", key)));
+        }
+        if value.contains('\0') {
+            return Err(AppError::Validation(format!("Env var '{}' value contains NUL byte", key)));
+        }
+        if value.len() > 4096 {
+            return Err(AppError::Validation(format!("Env var '{}' value exceeds 4096 bytes", key)));
+        }
+    }
+    Ok(())
+}
 
 async fn verify_container_status(docker: &bollard::Docker, container_id: &str) -> &'static str {
     match docker.inspect_container(container_id, None).await {
@@ -140,8 +156,19 @@ pub async fn sync_all_servers(
     db: &sqlx::SqlitePool,
 ) -> Result<Vec<Cubelit>, AppError> {
     let cubelits = crate::db::queries::list_cubelits(db).await?;
+    info!("Syncing {} server(s) with Docker", cubelits.len());
     for cubelit in &cubelits {
-        sync_single_server(docker, db, cubelit).await?;
+        let old_status = &cubelit.status;
+        let new_status = sync_single_server(docker, db, cubelit).await?;
+        if new_status != *old_status {
+            info!(
+                server_id = %cubelit.id,
+                name = %cubelit.name,
+                old = %old_status,
+                new = %new_status,
+                "Server status corrected"
+            );
+        }
     }
     crate::db::queries::list_cubelits(db).await
 }
@@ -177,6 +204,7 @@ pub async fn create_server(
     app_handle: AppHandle,
     config: CreateServerConfig,
 ) -> Result<Cubelit, AppError> {
+    info!(name = %config.name, recipe = %config.recipe_id, "Creating server");
     let recipe = crate::recipes::get_recipe(&state.recipes_dir, &config.recipe_id)?;
 
     let _ = app_handle.emit(
@@ -204,7 +232,7 @@ pub async fn create_server(
         let base_path = home.join("Cubelit").join(&sanitized);
         if config.recipe_id == "fivem"
             && base_path.exists()
-            && base_path.read_dir().map_or(false, |mut d| d.next().is_some())
+            && base_path.read_dir().is_ok_and(|mut d| d.next().is_some())
         {
             home.join("Cubelit").join(format!("{}-{}", sanitized, &id[..8]))
                 .to_string_lossy().to_string()
@@ -229,6 +257,9 @@ pub async fn create_server(
     if let Some(overrides) = config.env_overrides {
         env.extend(overrides);
     }
+
+    // Validate env vars before touching Docker
+    validate_env_vars(&env)?;
 
     // Use protocol-aware port keys: "25565/tcp", "30120/udp"
     let mut ports: HashMap<String, u16> = recipe
@@ -480,6 +511,12 @@ pub async fn create_server(
         },
     );
 
+    if running {
+        info!(server_id = %id, container_id = %container_id, "Server created and running");
+    } else {
+        error!(server_id = %id, container_id = %container_id, "Server created but container did not start");
+    }
+
     Ok(updated)
 }
 
@@ -489,6 +526,7 @@ pub async fn start_server(
     app_handle: AppHandle,
     id: String,
 ) -> Result<(), AppError> {
+    info!(server_id = %id, "Starting server");
     let cubelit = crate::db::queries::get_cubelit(&state.db, &id).await?;
     let container_id = cubelit
         .container_id
@@ -527,6 +565,7 @@ pub async fn stop_server(
     state: State<'_, AppState>,
     id: String,
 ) -> Result<(), AppError> {
+    info!(server_id = %id, "Stopping server");
     let cubelit = crate::db::queries::get_cubelit(&state.db, &id).await?;
     let container_id = cubelit
         .container_id
@@ -589,6 +628,7 @@ pub async fn delete_server(
     id: String,
     delete_data: bool,
 ) -> Result<(), AppError> {
+    info!(server_id = %id, delete_data = %delete_data, "Deleting server");
     let cubelit = crate::db::queries::get_cubelit(&state.db, &id).await?;
 
     if let Some(container_id) = &cubelit.container_id {
@@ -649,6 +689,9 @@ pub async fn update_server_settings(
 ) -> Result<Cubelit, AppError> {
     let cubelit = crate::db::queries::get_cubelit(&state.db, &id).await?;
     let was_running = cubelit.status == "running" || cubelit.status == "starting";
+
+    // Validate env vars before persisting
+    validate_env_vars(&environment)?;
 
     // Stop and remove the existing container
     if let Some(ref container_id) = cubelit.container_id {
