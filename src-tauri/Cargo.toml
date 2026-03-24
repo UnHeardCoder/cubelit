@@ -2,7 +2,7 @@
 name = "cubelit"
 version = "0.1.2"
 description = "A Tauri App"
-authors = ["you"]
+authors = ["Cubelit Contributors"]
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -35,6 +35,8 @@ dirs = "6"
 tauri-plugin-dialog = "2"
 rand = "0.8"
 reqwest = { version = "0.12", features = ["rustls-tls"], default-features = false }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 [dev-dependencies]
 tempfile = "3"

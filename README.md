@@ -41,6 +41,8 @@ Built with a Rust backend for performance and reliability, and a Svelte 5 fronte
 
 ## Supported Games
 
+> **Note:** Only Minecraft Java and FiveM are fully supported in v0.1. The remaining games are listed as roadmap targets. Coming Soon entries appear in the UI but cannot be configured yet.
+
 | Game | Docker Image | Mods | Status |
 |:-----|:-------------|:----:|:------:|
 | Minecraft Java | `itzg/minecraft-server` | Yes | Available |
@@ -202,6 +204,28 @@ All Docker operations, database access, recipe parsing, and port management happ
 3. Restart the app — your game appears in the creation wizard with the generic setup form.
 
 **Complex games** (sidecars, special env handling, custom UI): also require Svelte components (`*Setup` for the create wizard, `*Dashboard` for the server detail page) and potentially backend changes in `src-tauri/src/docker/containers.rs`. See the FiveM implementation as a reference.
+
+## Troubleshooting
+
+### Docker not detected
+- Ensure Docker Desktop is running before launching Cubelit
+- On Linux: verify the `docker` daemon is running (`systemctl status docker`)
+- On Windows: Docker Desktop requires WSL2 — Cubelit will guide you through setup
+
+### Server stuck in "Starting" state
+- Check the server logs tab for startup errors
+- Some games take several minutes on first launch (image download)
+- If stuck indefinitely, try stopping and restarting the server
+
+### Port already in use
+- Cubelit will suggest an available port automatically
+- You can also specify a custom port during server creation
+
+### App data location
+- Linux: `~/.config/cubelit/`
+- Windows: `%APPDATA%\cubelit\`
+- macOS: `~/Library/Application Support/cubelit/`
+- Logs: `cubelit.log` in the above directory
 
 ## Roadmap
 

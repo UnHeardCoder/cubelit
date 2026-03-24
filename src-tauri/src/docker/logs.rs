@@ -3,6 +3,7 @@ use bollard::Docker;
 use futures_util::StreamExt;
 use tauri::{AppHandle, Emitter};
 
+#[allow(dead_code)]
 pub async fn stream_container_logs(
     docker: &Docker,
     container_id: &str,
