@@ -8,7 +8,9 @@
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in Cubelit, please open a GitHub issue and label it **"security"**. For sensitive disclosures, you may also contact the maintainers directly via the contact details on the GitHub profile.
+If you discover a security vulnerability in Cubelit, please report it privately using GitHub's [Security Advisory feature](https://github.com/UnHeardCoder/cubelit/security/advisories/new). This allows us to coordinate a fix before public disclosure.
+
+Alternatively, contact the maintainers directly via the contact details on the GitHub profile.
 
 Please include:
 - A description of the vulnerability

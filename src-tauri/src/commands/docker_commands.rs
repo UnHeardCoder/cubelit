@@ -245,8 +245,14 @@ pub async fn create_server(
 
     // Validate env vars before touching Docker
     for (key, value) in &env {
-        if value.len() > 4096 || value.contains('\0') || key.contains('\0') {
-            return Err(AppError::Validation(format!("Invalid env var: {}", key)));
+        if key.contains('\0') {
+            return Err(AppError::Validation(format!("Env var key '{}' contains NUL byte", key)));
+        }
+        if value.contains('\0') {
+            return Err(AppError::Validation(format!("Env var '{}' value contains NUL byte", key)));
+        }
+        if value.len() > 4096 {
+            return Err(AppError::Validation(format!("Env var '{}' value exceeds 4096 bytes", key)));
         }
     }
 
@@ -678,6 +684,19 @@ pub async fn update_server_settings(
 ) -> Result<Cubelit, AppError> {
     let cubelit = crate::db::queries::get_cubelit(&state.db, &id).await?;
     let was_running = cubelit.status == "running" || cubelit.status == "starting";
+
+    // Validate env vars before persisting
+    for (key, value) in &environment {
+        if key.contains('\0') {
+            return Err(AppError::Validation(format!("Env var key '{}' contains NUL byte", key)));
+        }
+        if value.contains('\0') {
+            return Err(AppError::Validation(format!("Env var '{}' value contains NUL byte", key)));
+        }
+        if value.len() > 4096 {
+            return Err(AppError::Validation(format!("Env var '{}' value exceeds 4096 bytes", key)));
+        }
+    }
 
     // Stop and remove the existing container
     if let Some(ref container_id) = cubelit.container_id {

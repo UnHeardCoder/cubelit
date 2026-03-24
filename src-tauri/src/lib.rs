@@ -38,7 +38,7 @@ pub fn run() {
                 {
                     let _ = tracing_subscriber::fmt()
                         .with_writer(std::sync::Mutex::new(file))
-                        .with_env_filter("cubelit=info,warn")
+                        .with_env_filter("warn,cubelit=info")
                         .try_init();
                 }
 

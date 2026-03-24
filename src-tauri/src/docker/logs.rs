@@ -3,6 +3,7 @@ use bollard::Docker;
 use futures_util::StreamExt;
 use tauri::{AppHandle, Emitter};
 
+// Kept for future real-time log streaming feature (currently logs are fetched via get_server_logs polling)
 #[allow(dead_code)]
 pub async fn stream_container_logs(
     docker: &Docker,
