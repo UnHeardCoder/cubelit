@@ -11,6 +11,55 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.1.5] — 2026-03-25
+
+### Added
+- CI/CD pipeline: website builds on tag push, pushes Docker image to GHCR, deploys to VPS via SSH
+- Version check CI — release workflow fails fast if tag doesn't match all three version files
+- `deploy-website.yml` workflow: bun build → GHCR push → SSH deploy to production host
+
+### Changed
+- `website/deploy/Dockerfile`: now COPYs `dist/` into the image instead of relying on a volume mount
+- `website/deploy/compose.yml`: switched from local build to `ghcr.io/unheardcoder/cubelit-website:latest`
+- README clone URL fixed (`yourusername` → `UnHeardCoder`)
+- CLAUDE.md: added CI/CD section, CHANGELOG requirement, and commit message rules
+
+---
+
+## [0.1.4] — 2026-03-25
+
+### Fixed
+- Installer filenames now correctly labelled 0.1.4 (version was not bumped before the v0.1.3 tag)
+- `.gitignore` line 16 was a literal shell command, not a pattern — replaced with `*:Zone.Identifier`
+- `cubelit.key.pub` added to `.gitignore` permanently
+
+### Changed
+- Bump Cargo patch deps: tauri 2.10.3, tauri-build 2.5.6, tokio 1.50.0, tempfile 3.27.0
+- Validation error messages now specify which env var failed and why
+
+### Added
+- Unit tests for `validate_env_vars` (5 tests)
+
+---
+
+## [0.1.3] — 2026-03-25
+
+### Added
+- File-based logging to `cubelit.log` in app data directory (tracing + tracing-subscriber)
+- PR CI workflow (`.github/workflows/ci.yml`) — cargo check/clippy/test + bun check/test on every PR
+- macOS Apple Silicon (aarch64) builds in release workflow
+- `SECURITY.md` with supported versions, private vulnerability reporting, and threat model
+- Troubleshooting section in README
+- Game support clarification in README (only Minecraft Java + FiveM fully supported in v0.1)
+- `validate_env_vars` helper — env var length and NUL byte validation on server create/update
+
+### Changed
+- Fixed 3 pre-existing clippy warnings
+- Authors field in Cargo.toml: `"you"` → `"Cubelit Contributors"`
+- Env filter order corrected to `"warn,cubelit=info"`
+
+---
+
 ## [0.1.2] — 2026-03-23
 
 ### Added

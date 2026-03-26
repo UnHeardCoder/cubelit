@@ -20,11 +20,19 @@ cargo build              # Full debug build
 cargo clippy             # Lints
 ```
 
-Verify changes with `cargo check` (Rust) and `bun run check` (TypeScript). Run tests with:
+Always run with `SQLX_OFFLINE=true` — the `.sqlx/` offline query cache is committed and required for builds without a live DB:
 
 ```bash
-cargo test                    # Rust unit + integration tests (from src-tauri/)
-bun run test                  # Svelte/TS component tests
+SQLX_OFFLINE=true cargo check
+SQLX_OFFLINE=true cargo clippy -- -D warnings
+SQLX_OFFLINE=true cargo test
+bun run check
+bun run test
+```
+
+To run a single Rust test by name:
+```bash
+SQLX_OFFLINE=true cargo test <test_name>
 ```
 
 ## Architecture
@@ -130,6 +138,76 @@ Defined in `src/app.css` via `@theme`. Use `cubelit-*` classes:
 - `text`/`muted` — text colors
 - `accent`/`accent-hover` — primary action color (orange)
 - `success`/`warning`/`error` — status colors
+
+## Versioning
+
+Version must be bumped in **three files simultaneously** before tagging a release, or installer filenames won't match the tag:
+- `src-tauri/Cargo.toml` — `version = "x.y.z"`
+- `package.json` — `"version": "x.y.z"`
+- `src-tauri/tauri.conf.json` — `"version": "x.y.z"`
+
+## Logging
+
+The app writes structured logs to `cubelit.log` in the platform app data dir:
+- Linux: `~/.config/cubelit/cubelit.log`
+- Windows: `%APPDATA%\cubelit\cubelit.log`
+- macOS: `~/Library/Application Support/cubelit/cubelit.log`
+
+Filter level is `warn,cubelit=info` by default. Tracing calls use `tracing::info!` / `tracing::error!` from the `tracing` crate.
+
+## CI/CD
+
+Two workflows trigger on `v*` tag pushes:
+
+- **`release.yml`** — runs a version check first, then builds the Tauri app for Windows, Linux, and macOS (ARM), and uploads a draft GitHub Release
+- **`deploy-website.yml`** — builds the website, pushes a Docker image to GHCR, and deploys to the VPS via SSH
+
+**`ci.yml`** runs on every PR: cargo check, clippy (-D warnings), test, bun check, bun test.
+
+### Version check
+
+`release.yml` has a `check-version` job that runs before the build matrix. It strips the `v` prefix from the tag and compares it against `src-tauri/Cargo.toml`, `package.json`, and `src-tauri/tauri.conf.json`. If any file doesn't match, the entire workflow fails immediately.
+
+### Required GitHub Secrets
+
+| Secret | Used by |
+|--------|---------|
+| `TAURI_SIGNING_PRIVATE_KEY` | release.yml — signs updater artifacts |
+| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | release.yml |
+| `VPS_SSH_KEY` | deploy-website.yml — SSH key for `unheard@benlundy.com` |
+| `GITHUB_TOKEN` | deploy-website.yml — GHCR login (automatic) |
+
+### Deploying the website manually
+
+```bash
+cd website && bun run build
+docker build -t ghcr.io/unheardcoder/cubelit-website:latest -f deploy/Dockerfile .
+docker push ghcr.io/unheardcoder/cubelit-website:latest
+ssh unheard@benlundy.com "cd /opt/stacks/cubelit && docker compose pull && docker compose up -d"
+```
+
+### CHANGELOG.md is required on every release
+
+Before tagging a new version, `CHANGELOG.md` **must** be updated with an entry for that version. Format:
+
+```markdown
+## [x.y.z] — YYYY-MM-DD
+
+### Added
+- ...
+
+### Changed
+- ...
+
+### Fixed
+- ...
+```
+
+Never tag a release with `[Unreleased]` as the only entry. The version check CI will catch mismatched versions, but CHANGELOG accuracy is a human responsibility.
+
+## Commit Messages
+
+Never include `Co-Authored-By:` lines or any AI attribution in commit messages.
 
 ## Git Workflow
 
