@@ -85,7 +85,7 @@ Each game is defined as a JSON recipe in `src-tauri/recipes/`. Adding a new game
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/yourusername/cubelit.git
+git clone https://github.com/UnHeardCoder/Cubelit.git
 cd cubelit
 ```
 

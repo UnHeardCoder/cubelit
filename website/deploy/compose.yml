@@ -1,0 +1,23 @@
+services:
+  cubelit-website:
+    image: ghcr.io/unheardcoder/cubelit-website:latest
+    restart: unless-stopped
+    networks:
+      - proxy_net
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.cubelit.rule=Host(`cubelit.app`) || Host(`www.cubelit.app`)
+      - traefik.http.routers.cubelit.entrypoints=websecure
+      - traefik.http.routers.cubelit.tls=true
+      - traefik.http.routers.cubelit.tls.certresolver=myresolver
+      - traefik.http.routers.cubelit.tls.domains[0].main=cubelit.app
+      - traefik.http.routers.cubelit.tls.domains[0].sans=www.cubelit.app
+      - traefik.http.routers.cubelit-http.rule=Host(`cubelit.app`) || Host(`www.cubelit.app`)
+      - traefik.http.routers.cubelit-http.entrypoints=web
+      - traefik.http.routers.cubelit-http.middlewares=redirect-https
+      - traefik.http.middlewares.redirect-https.redirectscheme.scheme=https
+      - traefik.http.middlewares.redirect-https.redirectscheme.permanent=true
+
+networks:
+  proxy_net:
+    external: true
