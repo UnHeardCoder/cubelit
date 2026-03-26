@@ -1,11 +1,5 @@
-const rawWindows = import.meta.env.VITE_DOWNLOAD_WINDOWS_URL
-const rawLinux = import.meta.env.VITE_DOWNLOAD_LINUX_URL
-
-if (!rawWindows) throw new Error('VITE_DOWNLOAD_WINDOWS_URL is not set')
-if (!rawLinux) throw new Error('VITE_DOWNLOAD_LINUX_URL is not set')
-
-export const WINDOWS_URL: string = rawWindows
-export const LINUX_URL: string = rawLinux
+export const WINDOWS_URL: string = import.meta.env.VITE_DOWNLOAD_WINDOWS_URL ?? ''
+export const LINUX_URL: string = import.meta.env.VITE_DOWNLOAD_LINUX_URL ?? ''
 
 export type OS = 'windows' | 'linux' | 'mac' | 'unknown'
 
