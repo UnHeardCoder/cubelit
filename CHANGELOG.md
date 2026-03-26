@@ -16,7 +16,7 @@ Versions follow [Semantic Versioning](https://semver.org/).
 ### Added
 - CI/CD pipeline: website builds on tag push, pushes Docker image to GHCR, deploys to VPS via SSH
 - Version check CI — release workflow fails fast if tag doesn't match all three version files
-- `deploy-website.yml` workflow: bun build → GHCR push → SSH deploy to `unheard@benlundy.com`
+- `deploy-website.yml` workflow: bun build → GHCR push → SSH deploy to production host
 
 ### Changed
 - `website/deploy/Dockerfile`: now COPYs `dist/` into the image instead of relying on a volume mount

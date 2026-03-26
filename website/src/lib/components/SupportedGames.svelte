@@ -22,7 +22,7 @@
 <section class="games-section" id="games">
   <div class="container">
     <div class="section-header">
-      <div class="count-badge">10 Games</div>
+      <div class="count-badge">{games.length} Games</div>
       <h2 class="section-title">Supported Games</h2>
       <p class="section-sub">More recipes are added with every release. Request a game on GitHub.</p>
     </div>

@@ -107,7 +107,6 @@
   }
 
   .step-number {
-    display: inline-block;
     width: 48px;
     height: 48px;
     background: var(--accent);

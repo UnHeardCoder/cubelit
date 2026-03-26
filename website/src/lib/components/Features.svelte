@@ -139,6 +139,14 @@
     border-radius: 12px;
     padding: 28px 24px;
     cursor: default;
+    opacity: 0;
+    transform: translateY(16px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+  }
+
+  .feature-card.visible {
+    opacity: 1;
+    transform: translateY(0);
   }
 
   .card-icon {

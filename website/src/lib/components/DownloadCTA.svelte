@@ -78,7 +78,7 @@
       </div>
 
       <p class="fine-print">
-        Requires Docker Desktop &nbsp;·&nbsp; Windows 10/11 &nbsp;·&nbsp; Free &amp; Open Source &nbsp;·&nbsp; MIT License
+        Requires Docker Desktop &nbsp;·&nbsp; Windows 10/11 &amp; Linux &nbsp;·&nbsp; Free &amp; Open Source &nbsp;·&nbsp; MIT License
       </p>
     </div>
   </div>
