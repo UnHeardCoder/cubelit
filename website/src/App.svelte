@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from 'svelte'
   import Navbar from './lib/components/Navbar.svelte'
   import Hero from './lib/components/Hero.svelte'
   import Features from './lib/components/Features.svelte'
@@ -7,17 +8,40 @@
   import TechStack from './lib/components/TechStack.svelte'
   import DownloadCTA from './lib/components/DownloadCTA.svelte'
   import Footer from './lib/components/Footer.svelte'
+  import Audits from './lib/components/Audits.svelte'
+
+  let page = $state<'home' | 'audits'>('home')
+
+  function navigate(path: string) {
+    history.pushState({}, '', path)
+    page = path.startsWith('/audits') ? 'audits' : 'home'
+  }
+
+  onMount(() => {
+    page = window.location.pathname.startsWith('/audits') ? 'audits' : 'home'
+    const handlePopState = () => {
+      page = window.location.pathname.startsWith('/audits') ? 'audits' : 'home'
+    }
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  })
 </script>
 
-<Navbar />
-<main>
-  <Hero />
-  <Features />
-  <SupportedGames />
-  <HowItWorks />
-  <TechStack />
-  <DownloadCTA />
-</main>
+<Navbar {navigate} currentPage={page} />
+
+{#if page === 'home'}
+  <main>
+    <Hero />
+    <Features />
+    <SupportedGames />
+    <HowItWorks />
+    <TechStack />
+    <DownloadCTA />
+  </main>
+{:else}
+  <Audits />
+{/if}
+
 <Footer />
 
 <style>

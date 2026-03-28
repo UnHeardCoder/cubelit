@@ -1,0 +1,25 @@
+name: CI Website
+
+on:
+  pull_request:
+    branches: [master]
+    paths: ['website/**', '.github/workflows/ci-website.yml']
+  push:
+    branches: [master]
+    paths: ['website/**', '.github/workflows/ci-website.yml']
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install
+        working-directory: website
+
+      - name: Type-check
+        run: bun run check
+        working-directory: website

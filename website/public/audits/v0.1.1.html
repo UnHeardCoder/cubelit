@@ -1,0 +1,150 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0;}
+  .root{font-family:'Inter',system-ui,sans-serif;background:#0d0d0d;color:#e8e8e8;padding-bottom:48px;}
+  .navbar{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;background:rgba(13,13,13,0.97);border-bottom:1px solid rgba(255,255,255,0.06);position:sticky;top:0;z-index:10;}
+  .nav-brand{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:600;color:#fff;}
+  .nav-badge{background:rgba(234,106,17,0.15);border:1px solid rgba(234,106,17,0.3);color:#ea6a11;font-size:11px;font-weight:600;padding:2px 10px;border-radius:20px;}
+  .hero{text-align:center;padding:48px 24px 36px;background:radial-gradient(ellipse 60% 40% at 50% 0%,rgba(234,106,17,0.07) 0%,transparent 70%);}
+  .version-pill{display:inline-flex;align-items:center;gap:6px;background:rgba(234,106,17,0.12);border:1px solid rgba(234,106,17,0.25);color:#ea6a11;font-size:11px;font-weight:600;padding:4px 12px;border-radius:20px;margin-bottom:18px;}
+  .version-pill::before{content:'●';font-size:7px;}
+  .hero-score{font-size:76px;font-weight:700;color:#fff;line-height:1;letter-spacing:-3px;margin-bottom:6px;}
+  .hero-score span{font-size:38px;color:#444;font-weight:400;}
+  .hero-sublabel{font-size:11px;color:#555;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:16px;}
+  .hero-delta{display:inline-flex;align-items:center;gap:6px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.2);color:#22c55e;font-size:12px;font-weight:600;padding:4px 12px;border-radius:20px;margin-bottom:20px;}
+  .hero-desc{font-size:13px;color:#888;max-width:600px;margin:0 auto;line-height:1.75;}
+  .section{padding:0 24px;margin-bottom:28px;}
+  .section-label{display:flex;align-items:center;gap:8px;font-size:10px;font-weight:600;color:#ea6a11;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:14px;}
+  .section-label::after{content:'';flex:1;height:1px;background:rgba(234,106,17,0.18);}
+  .divider{height:1px;background:rgba(255,255,255,0.04);margin:0 24px 28px;}
+  .score-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .sc{background:#161616;border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:15px 16px;position:relative;overflow:hidden;}
+  .sc::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px;}
+  .sc.g::before{background:#22c55e;}.sc.a::before{background:#ea6a11;}.sc.r::before{background:#ef4444;}
+  .sc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:9px;}
+  .sc-name{font-size:11px;font-weight:500;color:#aaa;line-height:1.4;max-width:160px;}
+  .sc-num{font-size:24px;font-weight:700;line-height:1;}
+  .sc.g .sc-num{color:#22c55e;}.sc.a .sc-num{color:#ea6a11;}.sc.r .sc-num{color:#ef4444;}
+  .sc-track{height:3px;background:rgba(255,255,255,0.05);border-radius:2px;overflow:hidden;margin-bottom:7px;}
+  .sc-fill{height:100%;border-radius:2px;}
+  .sc.g .sc-fill{background:#22c55e;}.sc.a .sc-fill{background:#ea6a11;}.sc.r .sc-fill{background:#ef4444;}
+  .sc-delta{font-size:10px;font-weight:600;margin-bottom:4px;}
+  .sc.g .sc-delta{color:#22c55e;}.sc.a .sc-delta{color:#ea6a11;}.sc.r .sc-delta{color:#777;}
+  .sc-note{font-size:10px;color:#555;line-height:1.5;}
+  .fixed-list{display:flex;flex-direction:column;gap:8px;}
+  .fi{display:flex;gap:12px;align-items:flex-start;background:#161616;border:1px solid rgba(255,255,255,0.05);border-radius:8px;padding:12px 14px;}
+  .fi-icon{width:26px;height:26px;border-radius:6px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;color:#22c55e;font-weight:700;}
+  .fi-title{font-size:12px;font-weight:600;color:#e8e8e8;margin-bottom:2px;}
+  .fi-desc{font-size:11px;color:#555;line-height:1.5;}
+  .gap-list{display:flex;flex-direction:column;gap:8px;}
+  .gi{display:flex;gap:12px;align-items:flex-start;background:#161616;border:1px solid rgba(255,255,255,0.05);border-radius:8px;padding:12px 14px;}
+  .gi-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+  .gi-dot.r{background:#ef4444;box-shadow:0 0 6px rgba(239,68,68,0.4);}
+  .gi-dot.a{background:#ea6a11;box-shadow:0 0 6px rgba(234,106,17,0.4);}
+  .gi-dot.g{background:#22c55e;box-shadow:0 0 5px rgba(34,197,94,0.3);}
+  .gi-title{font-size:12px;font-weight:600;color:#e8e8e8;margin-bottom:2px;}
+  .gi-desc{font-size:11px;color:#555;line-height:1.5;}
+  code{background:rgba(255,255,255,0.07);padding:1px 5px;border-radius:3px;font-size:10px;color:#bbb;font-family:monospace;}
+  .bottom{margin:0 24px;background:linear-gradient(135deg,rgba(234,106,17,0.09) 0%,rgba(13,13,13,0) 60%);border:1px solid rgba(234,106,17,0.2);border-radius:12px;padding:20px 22px;}
+  .bottom-title{font-size:13px;font-weight:600;color:#fff;margin-bottom:8px;}
+  .bottom-body{font-size:12px;color:#777;line-height:1.75;}
+  .bottom-body strong{color:#ea6a11;font-weight:600;}
+</style>
+<div class="root">
+  <div class="navbar">
+    <div class="nav-brand">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2L3 7v10l9 5 9-5V7L12 2z" stroke="#ea6a11" stroke-width="1.5" stroke-linejoin="round"/><path d="M12 2v20M3 7l9 5 9-5" stroke="#ea6a11" stroke-width="1.5" stroke-linejoin="round"/></svg>
+      CubeLit
+    </div>
+    <div class="nav-badge">Production Readiness Audit</div>
+  </div>
+  <div class="hero">
+    <div class="version-pill">v0.1.1 · March 19, 2026</div>
+    <div class="hero-score">55<span>/100</span></div>
+    <div class="hero-sublabel">Overall Production Score</div>
+    <div class="hero-delta">↑ +10 from v0.1.0</div>
+    <div class="hero-desc">A focused bug-fix release that unblocks the two most user-visible failures from v0.1.0: the auto-updater now actually works, and the Windows onboarding flow properly guides users through WSL2 and Docker setup. The deeper gaps — zero tests, no logging, no PR CI — remain entirely open.</div>
+  </div>
+  <div style="height:28px"></div>
+  <div class="section">
+    <div class="section-label">What was fixed in v0.1.1</div>
+    <div class="fixed-list">
+      <div class="fi"><div class="fi-icon">✓</div><div><div class="fi-title">Updater signing fixed and working</div><div class="fi-desc">Switched to the correct <code>TAURI_SIGNING_PRIVATE_KEY</code> env var, strips carriage returns, writes key to temp file to preserve newlines. Auto-update now actually delivers updates to users.</div></div></div>
+      <div class="fi"><div class="fi-icon">✓</div><div><div class="fi-title">Windows onboarding completely rebuilt</div><div class="fi-desc">WSL2 detection, one-click enable via UAC prompt, separate screens for each step (WSL2 → Docker install → Docker running). Users are guided rather than dropped into a broken state.</div></div></div>
+      <div class="fi"><div class="fi-icon">✓</div><div><div class="fi-title">Microsoft Store link fixed</div><div class="fi-desc">Was pointing to the wrong app. Now goes to Docker Desktop directly.</div></div></div>
+      <div class="fi"><div class="fi-icon">✓</div><div><div class="fi-title">Windows null pointer bug fixed</div><div class="fi-desc">Null pointer type for <code>ShellExecuteW</code> HWND parameter corrected — was causing crashes on certain Windows configurations.</div></div></div>
+    </div>
+  </div>
+  <div class="divider"></div>
+  <div class="section">
+    <div class="section-label">Category scores</div>
+    <div class="score-grid">
+      <div class="sc a">
+        <div class="sc-top"><div class="sc-name">Architecture &amp; Code Quality</div><div class="sc-num">74</div></div>
+        <div class="sc-track"><div class="sc-fill" style="width:74%"></div></div>
+        <div class="sc-delta">↑ +2</div>
+        <div class="sc-note">Windows-specific bug fixed. Still inline SQL strings, no migrations, no compile-time query checking.</div>
+      </div>
+      <div class="sc r">
+        <div class="sc-top"><div class="sc-name">CI / Release Pipeline</div><div class="sc-num">42</div></div>
+        <div class="sc-track"><div class="sc-fill" style="width:42%"></div></div>
+        <div class="sc-delta">↑ +14</div>
+        <div class="sc-note">Updater signing now correct and working. Still no PR CI workflow, no version guard, no macOS or Linux builds.</div>
+      </div>
+      <div class="sc r">
+        <div class="sc-top"><div class="sc-name">Testing</div><div class="sc-num">0</div></div>
+        <div class="sc-track"><div class="sc-fill" style="width:0%"></div></div>
+        <div class="sc-delta">— unchanged</div>
+        <div class="sc-note">Still zero tests. Nothing added in this release.</div>
+      </div>
+      <div class="sc r">
+        <div class="sc-top"><div class="sc-name">Feature Completeness</div><div class="sc-num">28</div></div>
+        <div class="sc-track"><div class="sc-fill" style="width:28%"></div></div>
+        <div class="sc-delta">— unchanged</div>
+        <div class="sc-note">Still 2 of 10 games. No new games added.</div>
+      </div>
+      <div class="sc r">
+        <div class="sc-top"><div class="sc-name">Documentation &amp; Presentation</div><div class="sc-num">46</div></div>
+        <div class="sc-track"><div class="sc-fill" style="width:46%"></div></div>
+        <div class="sc-delta">↑ +1</div>
+        <div class="sc-note">Release notes now have actual content describing what changed. Still no CHANGELOG, CONTRIBUTING.md, or clone URL fix.</div>
+      </div>
+      <div class="sc r">
+        <div class="sc-top"><div class="sc-name">Security &amp; Error Handling</div><div class="sc-num">48</div></div>
+        <div class="sc-track"><div class="sc-fill" style="width:48%"></div></div>
+        <div class="sc-delta">↑ +10</div>
+        <div class="sc-note">Updater signing working — a real security improvement. Key file still in repo. No SECURITY.md. No input validation.</div>
+      </div>
+      <div class="sc r">
+        <div class="sc-top"><div class="sc-name">Observability &amp; Ops</div><div class="sc-num">18</div></div>
+        <div class="sc-track"><div class="sc-fill" style="width:18%"></div></div>
+        <div class="sc-delta">— unchanged</div>
+        <div class="sc-note">Still no logging of any kind. Nothing to debug from if a user reports a crash.</div>
+      </div>
+      <div class="sc a">
+        <div class="sc-top"><div class="sc-name">Packaging &amp; Distribution</div><div class="sc-num">46</div></div>
+        <div class="sc-track"><div class="sc-fill" style="width:46%"></div></div>
+        <div class="sc-delta">↑ +4</div>
+        <div class="sc-note">Working updater means users can actually receive new versions. Still Windows-only CI builds. No Linux/macOS. No dedicated download page.</div>
+      </div>
+    </div>
+  </div>
+  <div class="divider"></div>
+  <div class="section">
+    <div class="section-label">Still open after v0.1.1</div>
+    <div class="gap-list">
+      <div class="gi"><div class="gi-dot r"></div><div><div class="gi-title">Zero tests — still nothing</div><div class="gi-desc">The entire codebase ships without a single automated test. Every change to Docker handling, database queries, or IPC commands is completely unverified.</div></div></div>
+      <div class="gi"><div class="gi-dot r"></div><div><div class="gi-title">No logging or observability</div><div class="gi-desc">Crashes still produce nothing. Users can experience silent failures with no way to report what went wrong.</div></div></div>
+      <div class="gi"><div class="gi-dot r"></div><div><div class="gi-title">SQL strings at runtime, no migrations</div><div class="gi-desc">Database queries are still unchecked runtime strings. Schema is still inline code.</div></div></div>
+      <div class="gi"><div class="gi-dot r"></div><div><div class="gi-title">No PR CI workflow</div><div class="gi-desc">Still no automated checks on pull requests. Every merge to master is manual eyeball review only.</div></div></div>
+      <div class="gi"><div class="gi-dot r"></div><div><div class="gi-title">README still implies all 10 games work</div><div class="gi-desc">No "Coming Soon" labels. Game support table is still misleading.</div></div></div>
+      <div class="gi"><div class="gi-dot a"></div><div><div class="gi-title">No Linux or macOS builds</div><div class="gi-desc">CI only produces Windows installers. Linux and macOS users have no official download path.</div></div></div>
+    </div>
+  </div>
+  <div class="divider"></div>
+  <div class="bottom">
+    <div class="bottom-title">v0.1.1 in context</div>
+    <div class="bottom-body">This release fixed the two things that were <strong>broken for real users</strong> — the updater and the Windows onboarding — which is the right priority. The score jump from 45 to 55 reflects that. The deeper production gaps (tests, logging, CI) weren't touched, which is fine for a bug-fix release. The next release would need to start addressing the structural gaps.</div>
+  </div>
+</div>

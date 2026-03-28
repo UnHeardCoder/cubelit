@@ -1,8 +1,10 @@
 <script lang="ts">
   import { onMount } from 'svelte'
 
-  let scrolled = false
-  let mobileOpen = false
+  let { navigate, currentPage }: { navigate: (path: string) => void; currentPage: string } = $props()
+
+  let scrolled = $state(false)
+  let mobileOpen = $state(false)
 
   onMount(() => {
     const onScroll = () => {
@@ -19,12 +21,17 @@
   function closeMobile() {
     mobileOpen = false
   }
+
+  function goTo(path: string) {
+    closeMobile()
+    navigate(path)
+  }
 </script>
 
 <nav class="nav" class:scrolled>
   <div class="nav-inner">
     <!-- Logo -->
-    <a href="#hero" class="logo-link" onclick={closeMobile}>
+    <button class="logo-link" onclick={() => goTo('/')}>
       <svg class="logo-icon" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
         <polygon points="20,2 36,11 36,29 20,38 4,29 4,11" fill="rgba(249,115,22,0.15)" stroke="#f97316" stroke-width="1.5" stroke-linejoin="round" />
         <polygon points="20,2 36,11 20,20 4,11" fill="rgba(249,115,22,0.25)" stroke="#f97316" stroke-width="1.5" stroke-linejoin="round" />
@@ -33,15 +40,22 @@
         <line x1="20" y1="2" x2="20" y2="20" stroke="#f97316" stroke-width="1" stroke-opacity="0.6" />
       </svg>
       <span class="wordmark">CubeLit</span>
-    </a>
+    </button>
 
     <!-- Desktop nav -->
     <div class="desktop-nav">
-      <a href="#features" class="nav-link">Features</a>
-      <a href="#games" class="nav-link">Games</a>
-      <a href="#how-it-works" class="nav-link">How It Works</a>
+      {#if currentPage === 'home'}
+        <a href="#features" class="nav-link">Features</a>
+        <a href="#games" class="nav-link">Games</a>
+        <a href="#how-it-works" class="nav-link">How It Works</a>
+      {/if}
+      <button class="nav-link" class:nav-link-active={currentPage === 'audits'} onclick={() => goTo('/audits')}>Audits</button>
       <a href="https://github.com/UnHeardCoder/cubelit" target="_blank" rel="noopener" class="nav-link">GitHub</a>
-      <a href="#download" class="btn-download">Download</a>
+      {#if currentPage === 'home'}
+        <a href="#download" class="btn-download">Download</a>
+      {:else}
+        <button class="btn-download" onclick={() => goTo('/')}>Download</button>
+      {/if}
     </div>
 
     <!-- Mobile hamburger -->
@@ -55,11 +69,18 @@
   <!-- Mobile drawer -->
   {#if mobileOpen}
     <div class="mobile-drawer">
-      <a href="#features" class="mobile-link" onclick={closeMobile}>Features</a>
-      <a href="#games" class="mobile-link" onclick={closeMobile}>Games</a>
-      <a href="#how-it-works" class="mobile-link" onclick={closeMobile}>How It Works</a>
+      {#if currentPage === 'home'}
+        <a href="#features" class="mobile-link" onclick={closeMobile}>Features</a>
+        <a href="#games" class="mobile-link" onclick={closeMobile}>Games</a>
+        <a href="#how-it-works" class="mobile-link" onclick={closeMobile}>How It Works</a>
+      {/if}
+      <button class="mobile-link" class:mobile-link-active={currentPage === 'audits'} onclick={() => goTo('/audits')}>Audits</button>
       <a href="https://github.com/UnHeardCoder/cubelit" target="_blank" rel="noopener" class="mobile-link" onclick={closeMobile}>GitHub</a>
-      <a href="#download" class="mobile-btn" onclick={closeMobile}>Download</a>
+      {#if currentPage === 'home'}
+        <a href="#download" class="mobile-btn" onclick={closeMobile}>Download</a>
+      {:else}
+        <button class="mobile-btn" onclick={() => goTo('/')}>Download</button>
+      {/if}
     </div>
   {/if}
 </nav>
@@ -97,6 +118,10 @@
     align-items: center;
     gap: 10px;
     text-decoration: none;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
   }
 
   .logo-icon {
@@ -126,10 +151,21 @@
     padding: 6px 12px;
     border-radius: 6px;
     transition: color 0.2s ease;
+    background: none;
+    border: none;
+    cursor: pointer;
   }
 
   .nav-link:hover {
     color: white;
+  }
+
+  .nav-link-active {
+    color: var(--accent);
+  }
+
+  .nav-link-active:hover {
+    color: var(--accent);
   }
 
   .btn-download {
@@ -142,6 +178,8 @@
     border-radius: 8px;
     margin-left: 8px;
     transition: background 0.2s ease, transform 0.15s ease;
+    border: none;
+    cursor: pointer;
   }
 
   .btn-download:hover {
@@ -188,11 +226,17 @@
     font-size: 16px;
     font-weight: 500;
     padding: 12px 8px;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
     transition: color 0.2s ease;
+    background: none;
+    border: none;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    cursor: pointer;
+    text-align: left;
   }
 
   .mobile-link:hover { color: white; }
+
+  .mobile-link-active { color: var(--accent); }
 
   .mobile-btn {
     display: block;
@@ -206,6 +250,9 @@
     border-radius: 8px;
     text-align: center;
     transition: background 0.2s ease;
+    border: none;
+    cursor: pointer;
+    width: 100%;
   }
 
   .mobile-btn:hover { background: var(--accent-dark); }

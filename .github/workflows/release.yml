@@ -75,6 +75,21 @@ jobs:
           TAURI_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
+      - name: Extract changelog
+        id: changelog
+        shell: bash
+        run: |
+          TAG="${{ github.ref_name }}"
+          VERSION="${TAG#v}"
+          BODY=$(awk "/^## \[${VERSION}\]/{found=1; next} found && /^## \[/{exit} found && NF{print}" CHANGELOG.md)
+          if [ -z "$(echo "$BODY" | tr -d '[:space:]')" ]; then
+            echo "ERROR: No CHANGELOG entry found for version $VERSION. Add a '## [$VERSION]' section to CHANGELOG.md before tagging."
+            exit 1
+          fi
+          echo "body<<CHANGELOG_EOF" >> $GITHUB_OUTPUT
+          echo "$BODY" >> $GITHUB_OUTPUT
+          echo "CHANGELOG_EOF" >> $GITHUB_OUTPUT
+
       - name: Build and release
         uses: tauri-apps/tauri-action@v0
         env:
@@ -83,11 +98,7 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: 'Cubelit ${{ github.ref_name }}'
-          releaseBody: |
-            ## What's new
-            See the assets below to download and install Cubelit.
-
-            **Requires Docker Desktop to be installed and running.**
+          releaseBody: '${{ steps.changelog.outputs.body }}'
           releaseDraft: true
           prerelease: false
           updaterJsonPreferNsis: true

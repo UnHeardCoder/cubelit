@@ -3,6 +3,9 @@ name: Deploy Website
 on:
   push:
     tags: ['v*']
+    branches: ['master']
+    paths:
+      - 'website/**'
 
 jobs:
   deploy:
@@ -18,7 +21,12 @@ jobs:
 
       - name: Extract version
         id: version
-        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=$(jq -r .version website/package.json)" >> $GITHUB_OUTPUT
+          fi
 
       - name: Install dependencies
         run: bun install
@@ -28,8 +36,8 @@ jobs:
         run: bun run build
         working-directory: website
         env:
-          VITE_DOWNLOAD_WINDOWS_URL: https://github.com/UnHeardCoder/cubelit/releases/download/${{ github.ref_name }}/Cubelit_${{ steps.version.outputs.VERSION }}_x64-setup.exe
-          VITE_DOWNLOAD_LINUX_URL: https://github.com/UnHeardCoder/cubelit/releases/download/${{ github.ref_name }}/Cubelit_${{ steps.version.outputs.VERSION }}_amd64.AppImage
+          VITE_DOWNLOAD_WINDOWS_URL: https://github.com/UnHeardCoder/cubelit/releases/download/v${{ steps.version.outputs.VERSION }}/Cubelit_${{ steps.version.outputs.VERSION }}_x64-setup.exe
+          VITE_DOWNLOAD_LINUX_URL: https://github.com/UnHeardCoder/cubelit/releases/download/v${{ steps.version.outputs.VERSION }}/Cubelit_${{ steps.version.outputs.VERSION }}_amd64.AppImage
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
