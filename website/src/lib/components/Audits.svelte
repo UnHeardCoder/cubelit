@@ -45,10 +45,10 @@
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const scrollbarCss = `<style>
         ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(100,100,100,0.4); border-radius: 999px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(100,100,100,0.65); }
-        * { scrollbar-width: thin; scrollbar-color: rgba(100,100,100,0.4) transparent; }
+        ::-webkit-scrollbar-track { background: #e5e5e5; border-radius: 999px; }
+        ::-webkit-scrollbar-thumb { background: #a0a0a0; border-radius: 999px; }
+        ::-webkit-scrollbar-thumb:hover { background: #707070; }
+        html { scrollbar-width: thin; scrollbar-color: #a0a0a0 #e5e5e5; }
       </style>`
       const raw = await res.text()
       const injected = raw.replace('</head>', scrollbarCss + '</head>') || raw + scrollbarCss
