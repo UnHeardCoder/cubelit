@@ -43,8 +43,16 @@
     try {
       const res = await fetch(`/audits/v${v}.html`, { signal: controller.signal })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const next = await res.text()
-      if (currentFetchController === controller) content = next
+      const scrollbarCss = `<style>
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(100,100,100,0.4); border-radius: 999px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(100,100,100,0.65); }
+        * { scrollbar-width: thin; scrollbar-color: rgba(100,100,100,0.4) transparent; }
+      </style>`
+      const raw = await res.text()
+      const injected = raw.replace('</head>', scrollbarCss + '</head>') || raw + scrollbarCss
+      if (currentFetchController === controller) content = injected
     } catch (err) {
       if (!(err instanceof DOMException && err.name === 'AbortError')) {
         contentError = true
@@ -291,6 +299,26 @@
     color: #ef4444;
   }
 
+  /* Custom scrollbar — version sidebar (desktop sticky scroll) */
+  .version-list {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(249,115,22,0.3) transparent;
+  }
+  .version-list::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  .version-list::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .version-list::-webkit-scrollbar-thumb {
+    background: rgba(249,115,22,0.3);
+    border-radius: 999px;
+  }
+  .version-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(249,115,22,0.55);
+  }
+
   @media (max-width: 768px) {
     .audits-layout {
       grid-template-columns: 1fr;
@@ -300,7 +328,7 @@
       flex-direction: row;
       overflow-x: auto;
       gap: 8px;
-      padding-bottom: 4px;
+      padding-bottom: 6px;
     }
 
     .version-card {
