@@ -45,13 +45,15 @@
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const scrollbarCss = `<style>
         ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #e5e5e5; border-radius: 999px; }
-        ::-webkit-scrollbar-thumb { background: #a0a0a0; border-radius: 999px; }
-        ::-webkit-scrollbar-thumb:hover { background: #707070; }
-        html { scrollbar-width: thin; scrollbar-color: #a0a0a0 #e5e5e5; }
+        ::-webkit-scrollbar-track { background: #1a1a1a; border-radius: 999px; }
+        ::-webkit-scrollbar-thumb { background: rgba(249,115,22,0.4); border-radius: 999px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(249,115,22,0.7); }
+        html { scrollbar-width: thin; scrollbar-color: rgba(249,115,22,0.4) #1a1a1a; }
       </style>`
       const raw = await res.text()
-      const injected = raw.replace('</head>', scrollbarCss + '</head>') || raw + scrollbarCss
+      const injected = raw.includes('</head>')
+        ? raw.replace('</head>', scrollbarCss + '</head>')
+        : raw + scrollbarCss
       if (currentFetchController === controller) content = injected
     } catch (err) {
       if (!(err instanceof DOMException && err.name === 'AbortError')) {
@@ -267,9 +269,9 @@
   .audit-frame {
     width: 100%;
     min-height: 800px;
-    border: none;
+    border: 2px solid rgba(249,115,22,0.4);
     border-radius: 12px;
-    background: white;
+    background: #0d0d0d;
     display: block;
   }
 
