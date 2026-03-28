@@ -548,13 +548,19 @@ pub async fn start_server(
             state.docker.clone(),
             state.db.clone(),
             app_handle,
-            id,
-            container_id,
+            id.clone(),
+            container_id.clone(),
             pattern,
         );
     } else {
         let status = if running { "running" } else { "error" };
         crate::db::queries::update_cubelit_status(&state.db, &id, status, None).await?;
+    }
+
+    if running {
+        info!(server_id = %id, container_id = %container_id, "Server started");
+    } else {
+        error!(server_id = %id, container_id = %container_id, "Server started but container did not come up");
     }
 
     Ok(())
@@ -579,6 +585,7 @@ pub async fn stop_server(
     }
 
     crate::db::queries::update_cubelit_status(&state.db, &id, "stopped", None).await?;
+    info!(server_id = %id, "Server stopped");
 
     Ok(())
 }
@@ -589,6 +596,7 @@ pub async fn restart_server(
     app_handle: AppHandle,
     id: String,
 ) -> Result<(), AppError> {
+    info!(server_id = %id, "Restarting server");
     let cubelit = crate::db::queries::get_cubelit(&state.db, &id).await?;
     let container_id = cubelit
         .container_id
@@ -610,13 +618,19 @@ pub async fn restart_server(
             state.docker.clone(),
             state.db.clone(),
             app_handle,
-            id,
-            container_id,
+            id.clone(),
+            container_id.clone(),
             pattern,
         );
     } else {
         let status = if running { "running" } else { "error" };
         crate::db::queries::update_cubelit_status(&state.db, &id, status, None).await?;
+    }
+
+    if running {
+        info!(server_id = %id, container_id = %container_id, "Server restarted");
+    } else {
+        error!(server_id = %id, container_id = %container_id, "Server restarted but container did not come back up");
     }
 
     Ok(())
@@ -657,6 +671,7 @@ pub async fn delete_server(
         let _ = std::fs::remove_dir_all(&server_data_dir);
     }
 
+    info!(server_id = %id, delete_data = %delete_data, "Server deleted");
     Ok(())
 }
 
@@ -687,6 +702,7 @@ pub async fn update_server_settings(
     id: String,
     environment: HashMap<String, String>,
 ) -> Result<Cubelit, AppError> {
+    info!(server_id = %id, "Updating server settings");
     let cubelit = crate::db::queries::get_cubelit(&state.db, &id).await?;
     let was_running = cubelit.status == "running" || cubelit.status == "starting";
 
@@ -768,6 +784,7 @@ pub async fn update_server_settings(
     }
 
     let updated = crate::db::queries::get_cubelit(&state.db, &id).await?;
+    info!(server_id = %id, container_id = %new_container_id, "Server settings updated");
     let _ = app_handle.emit("server-status-changed", &id);
     Ok(updated)
 }
@@ -902,5 +919,22 @@ mod tests {
     fn value_exactly_4096_passes() {
         let max = "x".repeat(4096);
         assert!(validate_env_vars(&env(&[("KEY", &max)])).is_ok());
+    }
+
+    #[test]
+    fn empty_env_passes() {
+        assert!(validate_env_vars(&env(&[])).is_ok());
+    }
+
+    #[test]
+    fn readiness_pattern_minecraft_java() {
+        assert_eq!(readiness_pattern("minecraft-java"), Some(r#"! For help, type "help""#));
+    }
+
+    #[test]
+    fn readiness_pattern_unknown_returns_none() {
+        assert_eq!(readiness_pattern("valheim"), None);
+        assert_eq!(readiness_pattern("fivem"), None);
+        assert_eq!(readiness_pattern(""), None);
     }
 }

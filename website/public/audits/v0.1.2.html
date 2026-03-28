@@ -1,0 +1,169 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0;}
+  .root{font-family:'Inter',system-ui,sans-serif;background:#0d0d0d;color:#e8e8e8;padding-bottom:48px;}
+  .navbar{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;background:rgba(13,13,13,0.97);border-bottom:1px solid rgba(255,255,255,0.06);position:sticky;top:0;z-index:10;}
+  .nav-brand{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:600;color:#fff;}
+  .nav-badge{background:rgba(234,106,17,0.15);border:1px solid rgba(234,106,17,0.3);color:#ea6a11;font-size:11px;font-weight:600;padding:2px 10px;border-radius:20px;}
+  .hero{text-align:center;padding:48px 24px 36px;background:radial-gradient(ellipse 60% 40% at 50% 0%,rgba(234,106,17,0.08) 0%,transparent 70%);}
+  .version-pill{display:inline-flex;align-items:center;gap:6px;background:rgba(234,106,17,0.12);border:1px solid rgba(234,106,17,0.25);color:#ea6a11;font-size:11px;font-weight:600;padding:4px 12px;border-radius:20px;margin-bottom:18px;}
+  .version-pill::before{content:'●';font-size:7px;}
+  .hero-score{font-size:76px;font-weight:700;color:#fff;line-height:1;letter-spacing:-3px;margin-bottom:6px;}
+  .hero-score span{font-size:38px;color:#444;font-weight:400;}
+  .hero-sublabel{font-size:11px;color:#555;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:16px;}
+  .hero-delta{display:inline-flex;align-items:center;gap:6px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.2);color:#22c55e;font-size:12px;font-weight:600;padding:4px 12px;border-radius:20px;margin-bottom:20px;}
+  .hero-desc{font-size:13px;color:#888;max-width:600px;margin:0 auto;line-height:1.75;}
+  .section{padding:0 24px;margin-bottom:28px;}
+  .section-label{display:flex;align-items:center;gap:8px;font-size:10px;font-weight:600;color:#ea6a11;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:14px;}
+  .section-label::after{content:'';flex:1;height:1px;background:rgba(234,106,17,0.18);}
+  .divider{height:1px;background:rgba(255,255,255,0.04);margin:0 24px 28px;}
+  .score-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .sc{background:#161616;border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:15px 16px;position:relative;overflow:hidden;}
+  .sc::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px;}
+  .sc.g::before{background:#22c55e;}.sc.a::before{background:#ea6a11;}.sc.r::before{background:#ef4444;}
+  .sc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:9px;}
+  .sc-name{font-size:11px;font-weight:500;color:#aaa;line-height:1.4;max-width:160px;}
+  .sc-num{font-size:24px;font-weight:700;line-height:1;}
+  .sc.g .sc-num{color:#22c55e;}.sc.a .sc-num{color:#ea6a11;}.sc.r .sc-num{color:#ef4444;}
+  .sc-track{height:3px;background:rgba(255,255,255,0.05);border-radius:2px;overflow:hidden;margin-bottom:7px;}
+  .sc-fill{height:100%;border-radius:2px;}
+  .sc.g .sc-fill{background:#22c55e;}.sc.a .sc-fill{background:#ea6a11;}.sc.r .sc-fill{background:#ef4444;}
+  .sc-delta{font-size:10px;font-weight:600;margin-bottom:4px;}
+  .sc.g .sc-delta{color:#22c55e;}.sc.a .sc-delta{color:#ea6a11;}.sc.r .sc-delta{color:#777;}
+  .sc-note{font-size:10px;color:#555;line-height:1.5;}
+  .highlight{background:linear-gradient(135deg,rgba(234,106,17,0.1) 0%,rgba(13,13,13,0) 55%);border:1px solid rgba(234,106,17,0.25);border-radius:10px;padding:16px 18px;margin-bottom:10px;}
+  .hl-title{font-size:13px;font-weight:600;color:#fff;margin-bottom:6px;display:flex;align-items:center;gap:8px;}
+  .hl-badge{background:rgba(234,106,17,0.15);color:#ea6a11;font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;}
+  .hl-body{font-size:12px;color:#777;line-height:1.65;}
+  .fixed-list{display:flex;flex-direction:column;gap:8px;}
+  .fi{display:flex;gap:12px;align-items:flex-start;background:#161616;border:1px solid rgba(255,255,255,0.05);border-radius:8px;padding:12px 14px;}
+  .fi-icon{width:26px;height:26px;border-radius:6px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;color:#22c55e;font-weight:700;}
+  .fi-title{font-size:12px;font-weight:600;color:#e8e8e8;margin-bottom:2px;}
+  .fi-desc{font-size:11px;color:#555;line-height:1.5;}
+  .gap-list{display:flex;flex-direction:column;gap:8px;}
+  .gi{display:flex;gap:12px;align-items:flex-start;background:#161616;border:1px solid rgba(255,255,255,0.05);border-radius:8px;padding:12px 14px;}
+  .gi-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+  .gi-dot.r{background:#ef4444;box-shadow:0 0 6px rgba(239,68,68,0.4);}
+  .gi-dot.a{background:#ea6a11;box-shadow:0 0 6px rgba(234,106,17,0.4);}
+  .gi-dot.g{background:#22c55e;box-shadow:0 0 5px rgba(34,197,94,0.3);}
+  .gi-title{font-size:12px;font-weight:600;color:#e8e8e8;margin-bottom:2px;}
+  .gi-desc{font-size:11px;color:#555;line-height:1.5;}
+  code{background:rgba(255,255,255,0.07);padding:1px 5px;border-radius:3px;font-size:10px;color:#bbb;font-family:monospace;}
+  .bottom{margin:0 24px;background:linear-gradient(135deg,rgba(234,106,17,0.09) 0%,rgba(13,13,13,0) 60%);border:1px solid rgba(234,106,17,0.2);border-radius:12px;padding:20px 22px;}
+  .bottom-title{font-size:13px;font-weight:600;color:#fff;margin-bottom:8px;}
+  .bottom-body{font-size:12px;color:#777;line-height:1.75;}
+  .bottom-body strong{color:#ea6a11;font-weight:600;}
+</style>
+<div class="root">
+  <div class="navbar">
+    <div class="nav-brand">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2L3 7v10l9 5 9-5V7L12 2z" stroke="#ea6a11" stroke-width="1.5" stroke-linejoin="round"/><path d="M12 2v20M3 7l9 5 9-5" stroke="#ea6a11" stroke-width="1.5" stroke-linejoin="round"/></svg>
+      CubeLit
+    </div>
+    <div class="nav-badge">Production Readiness Audit</div>
+  </div>
+  <div class="hero">
+    <div class="version-pill">v0.1.2 · March 23, 2026</div>
+    <div class="hero-score">63<span>/100</span></div>
+    <div class="hero-sublabel">Overall Production Score</div>
+    <div class="hero-delta">↑ +8 from v0.1.1</div>
+    <div class="hero-desc">The biggest quality-of-engineering release so far. 34 automated tests appear from nothing, database queries move to compile-time verification, migrations replace inline SQL, and contributor infrastructure (CHANGELOG, CONTRIBUTING.md, Dependabot) lands all at once. The biggest remaining gaps are logging/observability, a PR CI workflow, macOS/Linux builds, and the misleading games table.</div>
+  </div>
+  <div style="height:28px"></div>
+  <div class="section">
+    <div class="section-label">Standout additions in v0.1.2</div>
+    <div class="highlight">
+      <div class="hl-title">Compile-time SQL safety via sqlx macros <span class="hl-badge">NEW</span></div>
+      <div class="hl-body">All database queries migrated from runtime strings to <code>query!</code> / <code>query_as!</code> macros. SQL errors now surface at compile time, not in production. Combined with the <code>cargo sqlx prepare</code> offline cache, CI builds no longer require a live database connection. This is a sophisticated production-engineering choice.</div>
+    </div>
+    <div class="highlight" style="margin-top:10px;">
+      <div class="hl-title">34 tests from zero <span class="hl-badge">NEW</span></div>
+      <div class="hl-body">12 Rust unit tests (ports, recipes, error serialization), 9 SQLite DB integration tests running against an in-memory database, and 13 TypeScript/Svelte API tests via Vitest. Going from zero to a meaningful test suite in a single release is a strong signal of discipline.</div>
+    </div>
+  </div>
+  <div class="divider"></div>
+  <div class="section">
+    <div class="section-label">What was fixed in v0.1.2</div>
+    <div class="fixed-list">
+      <div class="fi"><div class="fi-icon">✓</div><div><div class="fi-title">34 automated tests added</div><div class="fi-desc">Rust unit + DB integration + TypeScript. The project goes from 0% to a meaningful baseline of test coverage.</div></div></div>
+      <div class="fi"><div class="fi-icon">✓</div><div><div class="fi-title">Compile-time SQL — no bad queries reach production</div><div class="fi-desc"><code>query!</code> / <code>query_as!</code> macros replace all runtime strings. Offline query cache means CI never needs a live DB.</div></div></div>
+      <div class="fi"><div class="fi-icon">✓</div><div><div class="fi-title">Formal database migrations</div><div class="fi-desc"><code>migrations/001_init.sql</code> replaces inline <code>CREATE TABLE</code> in Rust code. Schema is now versioned and auditable.</div></div></div>
+      <div class="fi"><div class="fi-icon">✓</div><div><div class="fi-title">Minecraft Java image tag pinned</div><div class="fi-desc">Switched from <code>latest</code> to <code>java21</code> — prevents silent upstream breakage from Docker Hub image updates.</div></div></div>
+      <div class="fi"><div class="fi-icon">✓</div><div><div class="fi-title">CHANGELOG.md and CONTRIBUTING.md added</div><div class="fi-desc">First record of what changed between versions. Contributor setup guide and recipe checklist now documented.</div></div></div>
+      <div class="fi"><div class="fi-icon">✓</div><div><div class="fi-title">Dependabot enabled</div><div class="fi-desc">Weekly automated dependency updates for both Cargo and npm. Starts generating PRs immediately.</div></div></div>
+      <div class="fi"><div class="fi-icon">✓</div><div><div class="fi-title"><code>cubelit.key.pub</code> removed from repo</div><div class="fi-desc">The stale public key is deleted from the repository. (It will reappear in v0.1.3 — the .gitignore fix comes in v0.1.4.)</div></div></div>
+    </div>
+  </div>
+  <div class="divider"></div>
+  <div class="section">
+    <div class="section-label">Category scores</div>
+    <div class="score-grid">
+      <div class="sc g">
+        <div class="sc-top"><div class="sc-name">Architecture &amp; Code Quality</div><div class="sc-num">85</div></div>
+        <div class="sc-track"><div class="sc-fill" style="width:85%"></div></div>
+        <div class="sc-delta">↑ +11</div>
+        <div class="sc-note">Compile-time SQL, formal migrations, WAL mode — architecture is now genuinely solid.</div>
+      </div>
+      <div class="sc a">
+        <div class="sc-top"><div class="sc-name">CI / Release Pipeline</div><div class="sc-num">55</div></div>
+        <div class="sc-track"><div class="sc-fill" style="width:55%"></div></div>
+        <div class="sc-delta">↑ +13</div>
+        <div class="sc-note">Dependabot active, SQLX_OFFLINE enables clean CI. Still no PR CI workflow. No macOS/Linux. No version guard.</div>
+      </div>
+      <div class="sc a">
+        <div class="sc-top"><div class="sc-name">Testing</div><div class="sc-num">55</div></div>
+        <div class="sc-track"><div class="sc-fill" style="width:55%"></div></div>
+        <div class="sc-delta">↑ +55 (from 0)</div>
+        <div class="sc-note">34 tests covering ports, recipes, error handling, DB operations, and TS API wrappers. Docker command handlers still untested.</div>
+      </div>
+      <div class="sc r">
+        <div class="sc-top"><div class="sc-name">Feature Completeness</div><div class="sc-num">30</div></div>
+        <div class="sc-track"><div class="sc-fill" style="width:30%"></div></div>
+        <div class="sc-delta">↑ +2</div>
+        <div class="sc-note">Still 2 of 10 games. README table still doesn't clearly mark Coming Soon games.</div>
+      </div>
+      <div class="sc a">
+        <div class="sc-top"><div class="sc-name">Documentation &amp; Presentation</div><div class="sc-num">62</div></div>
+        <div class="sc-track"><div class="sc-fill" style="width:62%"></div></div>
+        <div class="sc-delta">↑ +16</div>
+        <div class="sc-note">CHANGELOG, CONTRIBUTING.md, CLAUDE.md added. Clone URL still a placeholder. No troubleshooting section. No website yet.</div>
+      </div>
+      <div class="sc a">
+        <div class="sc-top"><div class="sc-name">Security &amp; Error Handling</div><div class="sc-num">52</div></div>
+        <div class="sc-track"><div class="sc-fill" style="width:52%"></div></div>
+        <div class="sc-delta">↑ +4</div>
+        <div class="sc-note">Key removed from repo. Still no SECURITY.md, no input validation on env vars.</div>
+      </div>
+      <div class="sc r">
+        <div class="sc-top"><div class="sc-name">Observability &amp; Ops</div><div class="sc-num">18</div></div>
+        <div class="sc-track"><div class="sc-fill" style="width:18%"></div></div>
+        <div class="sc-delta">— unchanged</div>
+        <div class="sc-note">Still no logging. No tracing crate. Crashes still produce nothing to debug from.</div>
+      </div>
+      <div class="sc a">
+        <div class="sc-top"><div class="sc-name">Packaging &amp; Distribution</div><div class="sc-num">48</div></div>
+        <div class="sc-track"><div class="sc-fill" style="width:48%"></div></div>
+        <div class="sc-delta">↑ +2</div>
+        <div class="sc-note">No changes to distribution. Still Windows-only CI builds, no website or custom domain.</div>
+      </div>
+    </div>
+  </div>
+  <div class="divider"></div>
+  <div class="section">
+    <div class="section-label">Still open after v0.1.2</div>
+    <div class="gap-list">
+      <div class="gi"><div class="gi-dot r"></div><div><div class="gi-title">No logging — still completely dark</div><div class="gi-desc">Despite major improvements elsewhere, there is still no logging crate, no log file, and no way to diagnose a crash from a user report.</div></div></div>
+      <div class="gi"><div class="gi-dot r"></div><div><div class="gi-title">No PR CI workflow</div><div class="gi-desc">Tests now exist but there's nothing running them automatically on pull requests. The test suite is passive, not active.</div></div></div>
+      <div class="gi"><div class="gi-dot r"></div><div><div class="gi-title">No macOS or Linux builds in CI</div><div class="gi-desc">Still Windows-only in the release matrix. macOS and Linux users have no official installer.</div></div></div>
+      <div class="gi"><div class="gi-dot r"></div><div><div class="gi-title">8 Dependabot PRs now accumulating</div><div class="gi-desc">Dependabot was just enabled and immediately opened 8 PRs including major version bumps. These need to be reviewed and merged or they become noise.</div></div></div>
+      <div class="gi"><div class="gi-dot a"></div><div><div class="gi-title">README games table still misleading</div><div class="gi-desc">No "Coming Soon" distinction. A user trying ARK or CS2 will hit a silent failure.</div></div></div>
+      <div class="gi"><div class="gi-dot a"></div><div><div class="gi-title">Clone URL still a placeholder</div><div class="gi-desc">Getting Started still says <code>yourusername</code>. Small but embarrassing.</div></div></div>
+    </div>
+  </div>
+  <div class="divider"></div>
+  <div class="bottom">
+    <div class="bottom-title">v0.1.2 in context</div>
+    <div class="bottom-body">This is the release where Cubelit starts looking like a <strong>seriously maintained project</strong> rather than a weekend build. Going from zero tests to 34, from runtime SQL to compile-time verification, and from no contributor docs to a full CHANGELOG + CONTRIBUTING in a single release is a significant leap. The score jump from 55 to 63 understates the qualitative shift — the foundations are now solid enough to build on confidently.</div>
+  </div>
+</div>

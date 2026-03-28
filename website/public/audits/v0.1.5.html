@@ -1,0 +1,368 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  .root { font-family: 'Inter', system-ui, sans-serif; background: #0d0d0d; color: #e8e8e8; padding-bottom: 48px; }
+
+  /* NAV */
+  .navbar { display:flex; align-items:center; justify-content:space-between; padding:14px 28px; background:rgba(13,13,13,0.97); border-bottom:1px solid rgba(255,255,255,0.06); position:sticky; top:0; z-index:10; }
+  .nav-brand { display:flex; align-items:center; gap:8px; font-size:15px; font-weight:600; color:#fff; }
+  .nav-badge { background:rgba(234,106,17,0.15); border:1px solid rgba(234,106,17,0.3); color:#ea6a11; font-size:11px; font-weight:600; padding:2px 10px; border-radius:20px; }
+
+  /* HERO */
+  .hero { text-align:center; padding:48px 24px 36px; background:radial-gradient(ellipse 60% 40% at 50% 0%, rgba(234,106,17,0.08) 0%, transparent 70%); }
+  .version-pill { display:inline-flex; align-items:center; gap:6px; background:rgba(234,106,17,0.12); border:1px solid rgba(234,106,17,0.25); color:#ea6a11; font-size:11px; font-weight:600; padding:4px 12px; border-radius:20px; margin-bottom:18px; }
+  .version-pill::before { content:'●'; font-size:7px; }
+  .hero-score { font-size:76px; font-weight:700; color:#fff; line-height:1; letter-spacing:-3px; margin-bottom:6px; }
+  .hero-score span { font-size:38px; color:#444; font-weight:400; }
+  .hero-sublabel { font-size:11px; color:#555; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:16px; }
+  .hero-delta { display:inline-flex; align-items:center; gap:6px; background:rgba(34,197,94,0.1); border:1px solid rgba(34,197,94,0.2); color:#22c55e; font-size:12px; font-weight:600; padding:4px 12px; border-radius:20px; margin-bottom:20px; }
+  .hero-desc { font-size:13px; color:#888; max-width:600px; margin:0 auto; line-height:1.75; }
+
+  /* SECTION */
+  .section { padding:0 24px; margin-bottom:28px; }
+  .section-label { display:flex; align-items:center; gap:8px; font-size:10px; font-weight:600; color:#ea6a11; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:14px; }
+  .section-label::after { content:''; flex:1; height:1px; background:rgba(234,106,17,0.18); }
+  .divider { height:1px; background:rgba(255,255,255,0.04); margin:0 24px 28px; }
+
+  /* SCORE GRID */
+  .score-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .sc { background:#161616; border:1px solid rgba(255,255,255,0.06); border-radius:10px; padding:15px 16px; position:relative; overflow:hidden; }
+  .sc::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; border-radius:3px 0 0 3px; }
+  .sc.g::before { background:#22c55e; }
+  .sc.a::before { background:#ea6a11; }
+  .sc.r::before { background:#ef4444; }
+  .sc-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:9px; }
+  .sc-name { font-size:11px; font-weight:500; color:#aaa; line-height:1.4; max-width:160px; }
+  .sc-num { font-size:24px; font-weight:700; line-height:1; }
+  .sc.g .sc-num { color:#22c55e; } .sc.a .sc-num { color:#ea6a11; } .sc.r .sc-num { color:#ef4444; }
+  .sc-track { height:3px; background:rgba(255,255,255,0.05); border-radius:2px; overflow:hidden; margin-bottom:7px; }
+  .sc-fill { height:100%; border-radius:2px; }
+  .sc.g .sc-fill { background:#22c55e; } .sc.a .sc-fill { background:#ea6a11; } .sc.r .sc-fill { background:#ef4444; }
+  .sc-delta { font-size:10px; font-weight:600; margin-bottom:4px; }
+  .sc.g .sc-delta { color:#22c55e; } .sc.a .sc-delta { color:#ea6a11; } .sc.r .sc-delta { color:#777; }
+  .sc-note { font-size:10px; color:#555; line-height:1.5; }
+
+  /* HIGHLIGHT CARD — version guard */
+  .highlight { background:linear-gradient(135deg,rgba(234,106,17,0.1) 0%,rgba(13,13,13,0) 55%); border:1px solid rgba(234,106,17,0.25); border-radius:10px; padding:16px 18px; margin-bottom:10px; }
+  .hl-title { font-size:13px; font-weight:600; color:#fff; margin-bottom:6px; display:flex; align-items:center; gap:8px; }
+  .hl-badge { background:rgba(234,106,17,0.15); color:#ea6a11; font-size:10px; font-weight:600; padding:2px 7px; border-radius:20px; }
+  .hl-body { font-size:12px; color:#777; line-height:1.65; }
+  code { background:rgba(255,255,255,0.07); padding:1px 5px; border-radius:3px; font-size:10px; color:#bbb; font-family:monospace; }
+
+  /* FIXED LIST */
+  .fixed-list { display:flex; flex-direction:column; gap:8px; }
+  .fi { display:flex; gap:12px; align-items:flex-start; background:#161616; border:1px solid rgba(255,255,255,0.05); border-radius:8px; padding:12px 14px; }
+  .fi-icon { width:26px; height:26px; border-radius:6px; background:rgba(34,197,94,0.1); border:1px solid rgba(34,197,94,0.2); display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:12px; color:#22c55e; font-weight:700; }
+  .fi-title { font-size:12px; font-weight:600; color:#e8e8e8; margin-bottom:2px; }
+  .fi-desc { font-size:11px; color:#555; line-height:1.5; }
+
+  /* GAP LIST */
+  .gap-list { display:flex; flex-direction:column; gap:8px; }
+  .gi { display:flex; gap:12px; align-items:flex-start; background:#161616; border:1px solid rgba(255,255,255,0.05); border-radius:8px; padding:12px 14px; }
+  .gi-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; margin-top:4px; }
+  .gi-dot.r { background:#ef4444; box-shadow:0 0 6px rgba(239,68,68,0.4); }
+  .gi-dot.a { background:#ea6a11; box-shadow:0 0 6px rgba(234,106,17,0.4); }
+  .gi-dot.g { background:#22c55e; box-shadow:0 0 5px rgba(34,197,94,0.3); }
+  .gi-title { font-size:12px; font-weight:600; color:#e8e8e8; margin-bottom:2px; }
+  .gi-desc { font-size:11px; color:#555; line-height:1.5; }
+
+  /* TRAJECTORY */
+  .traj { background:#161616; border:1px solid rgba(255,255,255,0.05); border-radius:10px; padding:20px; }
+  .traj-bars { display:flex; align-items:flex-end; gap:6px; height:72px; margin-bottom:8px; }
+  .traj-col { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; }
+  .traj-bar { width:100%; border-radius:3px 3px 0 0; min-height:4px; }
+  .traj-v { font-size:10px; font-weight:600; color:#555; }
+  .traj-v.hi { color:#ea6a11; }
+  .traj-l { font-size:9px; color:#444; margin-top:2px; }
+  .traj-l.hi { color:#ea6a11; font-weight:600; }
+  .traj-caption { font-size:11px; color:#444; text-align:center; border-top:1px solid rgba(255,255,255,0.04); padding-top:10px; line-height:1.6; }
+
+  /* BOTTOM */
+  .bottom { margin:0 24px; background:linear-gradient(135deg,rgba(234,106,17,0.09) 0%,rgba(13,13,13,0) 60%); border:1px solid rgba(234,106,17,0.2); border-radius:12px; padding:20px 22px; }
+  .bottom-title { font-size:13px; font-weight:600; color:#fff; margin-bottom:8px; }
+  .bottom-body { font-size:12px; color:#777; line-height:1.75; }
+  .bottom-body strong { color:#ea6a11; font-weight:600; }
+</style>
+
+<div class="root">
+
+  <!-- NAV -->
+  <div class="navbar">
+    <div class="nav-brand">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+        <path d="M12 2L3 7v10l9 5 9-5V7L12 2z" stroke="#ea6a11" stroke-width="1.5" stroke-linejoin="round"/>
+        <path d="M12 2v20M3 7l9 5 9-5" stroke="#ea6a11" stroke-width="1.5" stroke-linejoin="round"/>
+      </svg>
+      CubeLit
+    </div>
+    <div class="nav-badge">Production Readiness Audit</div>
+  </div>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="version-pill">v0.1.5 · March 26, 2026</div>
+    <div class="hero-score">84<span>/100</span></div>
+    <div class="hero-sublabel">Overall Production Score</div>
+    <div class="hero-delta">↑ +5 from v0.1.4</div>
+    <div class="hero-desc">
+      v0.1.5 is the biggest infrastructure release yet. The pipeline is now genuinely airtight — a version guard blocks mismatched tags from ever reaching CI, the website auto-deploys on every release, and the CHANGELOG is fully caught up through all five versions. Both red-flag issues from v0.1.4 were fixed. At 84, you're one meaningful step away from a proper v0.2 milestone.
+    </div>
+  </div>
+
+  <div style="height:28px"></div>
+
+  <!-- WHAT'S NEW HIGHLIGHT -->
+  <div class="section">
+    <div class="section-label">Standout addition in v0.1.5</div>
+    <div class="highlight">
+      <div class="hl-title">Version guard in CI <span class="hl-badge">NEW</span></div>
+      <div class="hl-body">
+        The release workflow now runs a <code>check-version</code> job before any builds start. It reads <code>Cargo.toml</code>, <code>package.json</code>, and <code>tauri.conf.json</code>, compares all three against the git tag, and hard-fails if anything doesn't match. This makes the v0.1.3 filename mismatch literally impossible to repeat — the pipeline won't even attempt a build if versions are out of sync. This is a professional-grade release engineering practice.
+      </div>
+    </div>
+    <div class="highlight" style="margin-top:10px">
+      <div class="hl-title">Automated website deploy <span class="hl-badge">NEW</span></div>
+      <div class="hl-body">
+        A new <code>deploy-website.yml</code> workflow builds the site, pushes a Docker image to GHCR, and SSH-deploys to a VPS on every release tag. The site now tracks releases automatically — no manual deploy step. The website source lives in a <code>website/</code> directory in the repo, making the whole stack self-contained and auditable.
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- SCORES -->
+  <div class="section">
+    <div class="section-label">Category scores</div>
+    <div class="score-grid">
+
+      <div class="sc g">
+        <div class="sc-top">
+          <div class="sc-name">CI / Release Pipeline</div>
+          <div class="sc-num">97</div>
+        </div>
+        <div class="sc-track"><div class="sc-fill" style="width:97%"></div></div>
+        <div class="sc-delta">↑ +7 from v0.1.4</div>
+        <div class="sc-note">Version guard, auto-deploy, 3 workflows. The pipeline is now a genuine strength.</div>
+      </div>
+
+      <div class="sc g">
+        <div class="sc-top">
+          <div class="sc-name">Documentation &amp; Presentation</div>
+          <div class="sc-num">95</div>
+        </div>
+        <div class="sc-track"><div class="sc-fill" style="width:95%"></div></div>
+        <div class="sc-delta">↑ +3 from v0.1.4</div>
+        <div class="sc-note">CHANGELOG fully up to date through v0.1.5. Clone URL fixed. CLAUDE.md updated with CI/CD rules and commit conventions.</div>
+      </div>
+
+      <div class="sc g">
+        <div class="sc-top">
+          <div class="sc-name">Packaging &amp; Distribution</div>
+          <div class="sc-num">88</div>
+        </div>
+        <div class="sc-track"><div class="sc-fill" style="width:88%"></div></div>
+        <div class="sc-delta">↑ +6 from v0.1.4</div>
+        <div class="sc-note">Website auto-deploys on tag. All platforms present, filenames correct, version guard prevents future mismatches.</div>
+      </div>
+
+      <div class="sc g">
+        <div class="sc-top">
+          <div class="sc-name">Architecture &amp; Code Quality</div>
+          <div class="sc-num">87</div>
+        </div>
+        <div class="sc-track"><div class="sc-fill" style="width:87%"></div></div>
+        <div class="sc-delta">↑ +1 from v0.1.4</div>
+        <div class="sc-note">Env filter order corrected. Cargo.toml authors field fixed. Incremental improvements holding steady.</div>
+      </div>
+
+      <div class="sc g">
+        <div class="sc-top">
+          <div class="sc-name">Security &amp; Error Handling</div>
+          <div class="sc-num">76</div>
+        </div>
+        <div class="sc-track"><div class="sc-fill" style="width:76%"></div></div>
+        <div class="sc-delta">↑ +1 from v0.1.4</div>
+        <div class="sc-note">No regressions. SECURITY.md, input validation, and signing all remain solid.</div>
+      </div>
+
+      <div class="sc a">
+        <div class="sc-top">
+          <div class="sc-name">Observability &amp; Ops</div>
+          <div class="sc-num">65</div>
+        </div>
+        <div class="sc-track"><div class="sc-fill" style="width:65%"></div></div>
+        <div class="sc-delta">↑ +1 from v0.1.4</div>
+        <div class="sc-note">Log levels corrected to <code>warn,cubelit=info</code>. Still no external crash reporting or structured spans.</div>
+      </div>
+
+      <div class="sc a">
+        <div class="sc-top">
+          <div class="sc-name">Testing</div>
+          <div class="sc-num">62</div>
+        </div>
+        <div class="sc-track"><div class="sc-fill" style="width:62%"></div></div>
+        <div class="sc-delta">— unchanged</div>
+        <div class="sc-note">No new tests in v0.1.5. Docker command handlers remain the biggest untested surface.</div>
+      </div>
+
+      <div class="sc r">
+        <div class="sc-top">
+          <div class="sc-name">Feature Completeness</div>
+          <div class="sc-num">42</div>
+        </div>
+        <div class="sc-track"><div class="sc-fill" style="width:42%"></div></div>
+        <div class="sc-delta">— unchanged</div>
+        <div class="sc-note">Still 2 of 10 games. Infrastructure-only release — no new games shipped.</div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- FIXED -->
+  <div class="section">
+    <div class="section-label">Fixed from v0.1.4 report</div>
+    <div class="fixed-list">
+      <div class="fi">
+        <div class="fi-icon">✓</div>
+        <div>
+          <div class="fi-title">CHANGELOG fully caught up</div>
+          <div class="fi-desc">Now covers all 6 versions from v0.1.0 through v0.1.5, with proper Added/Changed/Fixed sections. The top red-flag from v0.1.4 is gone.</div>
+        </div>
+      </div>
+      <div class="fi">
+        <div class="fi-icon">✓</div>
+        <div>
+          <div class="fi-title">Clone URL fixed permanently</div>
+          <div class="fi-desc">README Getting Started now correctly shows <code>github.com/UnHeardCoder/Cubelit.git</code>. The placeholder that survived 4 releases is finally gone.</div>
+        </div>
+      </div>
+      <div class="fi">
+        <div class="fi-icon">✓</div>
+        <div>
+          <div class="fi-title">Version mismatch made impossible</div>
+          <div class="fi-desc">The <code>check-version</code> CI job fails the entire pipeline if <code>Cargo.toml</code>, <code>package.json</code>, and <code>tauri.conf.json</code> don't all match the git tag. Future mismatches are blocked at the source.</div>
+        </div>
+      </div>
+      <div class="fi">
+        <div class="fi-icon">✓</div>
+        <div>
+          <div class="fi-title">Website now auto-deploys</div>
+          <div class="fi-desc">New <code>deploy-website.yml</code>: builds site → pushes to GHCR → SSH deploys to VPS on every release tag. No more manual deploys needed.</div>
+        </div>
+      </div>
+      <div class="fi">
+        <div class="fi-icon">✓</div>
+        <div>
+          <div class="fi-title">CLAUDE.md updated with CI/CD conventions</div>
+          <div class="fi-desc">CI/CD section, CHANGELOG requirement, and commit message rules added. Contributor guidance is now complete and enforceable.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- GAPS -->
+  <div class="section">
+    <div class="section-label">Remaining gaps</div>
+    <div class="gap-list">
+
+      <div class="gi">
+        <div class="gi-dot a"></div>
+        <div>
+          <div class="gi-title">Docker command handlers still untested</div>
+          <div class="gi-desc"><code>create_server</code>, <code>start_server</code>, <code>stop_server</code>, and <code>delete_server</code> have zero test coverage. These are the highest-risk paths in the app — the ones most likely to break when Docker changes or a user hits an edge case. A mock Docker client with happy-path + error-path tests per command is the next meaningful testing milestone.</div>
+        </div>
+      </div>
+
+      <div class="gi">
+        <div class="gi-dot a"></div>
+        <div>
+          <div class="gi-title">Still 2 of 10 games available</div>
+          <div class="gi-desc">Feature completeness is the lowest-scoring category by far. Every new game added moves this significantly. Even one more "Available" game (Valheim or Terraria are the simplest Docker images to wire up) would shift the overall score.</div>
+        </div>
+      </div>
+
+      <div class="gi">
+        <div class="gi-dot a"></div>
+        <div>
+          <div class="gi-title">No structured log spans</div>
+          <div class="gi-desc">Log levels exist and the filter is correctly set to <code>warn,cubelit=info</code>, but there are no <code>tracing::info!</code> / <code>tracing::error!</code> call sites in the Docker command handlers where failures actually happen. The log file exists but doesn't capture the events you'd actually need to debug a user-reported crash.</div>
+        </div>
+      </div>
+
+      <div class="gi">
+        <div class="gi-dot g"></div>
+        <div>
+          <div class="gi-title">Release notes body is still the default template</div>
+          <div class="gi-desc">The <code>releaseBody</code> in <code>release.yml</code> still outputs the generic "See the assets below to download and install Cubelit" text. It doesn't pull from the CHANGELOG. Now that the CHANGELOG is maintained, wiring it into the release body would make the GitHub releases much more informative.</div>
+        </div>
+      </div>
+
+      <div class="gi">
+        <div class="gi-dot g"></div>
+        <div>
+          <div class="gi-title">No Intel Mac build</div>
+          <div class="gi-desc">Only <code>aarch64</code> (Apple Silicon) macOS is built. x86_64 Mac is declining in market share but still a real user base. Low priority but worth noting.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- TRAJECTORY -->
+  <div class="section">
+    <div class="section-label">Score trajectory — all versions</div>
+    <div class="traj">
+      <div class="traj-bars">
+        <div class="traj-col">
+          <div class="traj-v">45</div>
+          <div class="traj-bar" style="height:32px;background:#2a2a2a"></div>
+          <div class="traj-l">v0.1.0</div>
+        </div>
+        <div class="traj-col">
+          <div class="traj-v">55</div>
+          <div class="traj-bar" style="height:39px;background:#333"></div>
+          <div class="traj-l">v0.1.1</div>
+        </div>
+        <div class="traj-col">
+          <div class="traj-v">63</div>
+          <div class="traj-bar" style="height:45px;background:#3d3d3d"></div>
+          <div class="traj-l">v0.1.2</div>
+        </div>
+        <div class="traj-col">
+          <div class="traj-v">74</div>
+          <div class="traj-bar" style="height:53px;background:#555"></div>
+          <div class="traj-l">v0.1.3</div>
+        </div>
+        <div class="traj-col">
+          <div class="traj-v">79</div>
+          <div class="traj-bar" style="height:57px;background:#777"></div>
+          <div class="traj-l">v0.1.4</div>
+        </div>
+        <div class="traj-col">
+          <div class="traj-v hi">84</div>
+          <div class="traj-bar" style="height:60px;background:linear-gradient(180deg,#ea6a11,#c45500)"></div>
+          <div class="traj-l hi">v0.1.5</div>
+        </div>
+      </div>
+      <div class="traj-caption">+39 points across 6 releases in 10 days · every release has closed more gaps than it introduced</div>
+    </div>
+  </div>
+
+  <div style="height:4px"></div>
+
+  <!-- BOTTOM -->
+  <div class="bottom">
+    <div class="bottom-title">What gets you to 90+</div>
+    <div class="bottom-body">
+      At 84 you're in genuinely solid territory. The two things that matter most now are <strong>testing the Docker command handlers</strong> and <strong>shipping a third game</strong>. The pipeline, docs, and distribution story are essentially done — those categories are at 88–97 and there's diminishing return in improving them further. All the remaining score is in the lower half: testing (62) and feature completeness (42). Shipping even one more game and adding mock-Docker tests to the three core commands would push you past 90.
+    </div>
+  </div>
+
+</div>

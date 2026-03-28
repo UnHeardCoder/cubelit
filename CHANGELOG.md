@@ -11,6 +11,21 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.1.6] — 2026-03-28
+
+### Added
+- Audits page at `/audits` — version switcher with scores, deep-linkable via `?v=X.X.X`, renders HTML audit reports inline
+- Structured tracing spans in all Docker command handlers (`restart_server`, `update_server_settings`, `start_server`, `stop_server`, `delete_server`)
+- Unit tests for `readiness_pattern` helper
+
+### Changed
+- `deploy-website.yml` now also triggers on pushes to `master` when `website/**` files change — website deploys without needing a new release tag
+- `ci.yml` scoped to app files only (`src/**`, `src-tauri/**`, etc.)
+- New `ci-website.yml` type-checks the website on `website/**` changes
+- GitHub release notes now auto-populated from `CHANGELOG.md` instead of a hardcoded template
+
+---
+
 ## [0.1.5] — 2026-03-25
 
 ### Added

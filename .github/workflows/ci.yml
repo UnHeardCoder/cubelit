@@ -3,8 +3,10 @@ name: CI
 on:
   pull_request:
     branches: [master]
+    paths: ['src/**', 'src-tauri/**', 'static/**', 'package.json', 'bun.lock']
   push:
     branches: [master]
+    paths: ['src/**', 'src-tauri/**', 'static/**', 'package.json', 'bun.lock']
 
 jobs:
   ci:

@@ -1,0 +1,189 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0;}
+  .root{font-family:'Inter',system-ui,sans-serif;background:#0d0d0d;color:#e8e8e8;padding-bottom:48px;}
+  .navbar{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;background:rgba(13,13,13,0.97);border-bottom:1px solid rgba(255,255,255,0.06);position:sticky;top:0;z-index:10;}
+  .nav-brand{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:600;color:#fff;}
+  .nav-badge{background:rgba(234,106,17,0.15);border:1px solid rgba(234,106,17,0.3);color:#ea6a11;font-size:11px;font-weight:600;padding:2px 10px;border-radius:20px;}
+  .hero{text-align:center;padding:48px 24px 36px;background:radial-gradient(ellipse 60% 40% at 50% 0%,rgba(234,106,17,0.08) 0%,transparent 70%);}
+  .version-pill{display:inline-flex;align-items:center;gap:6px;background:rgba(234,106,17,0.12);border:1px solid rgba(234,106,17,0.25);color:#ea6a11;font-size:11px;font-weight:600;padding:4px 12px;border-radius:20px;margin-bottom:18px;}
+  .version-pill::before{content:'●';font-size:7px;}
+  .hero-score{font-size:76px;font-weight:700;color:#fff;line-height:1;letter-spacing:-3px;margin-bottom:6px;}
+  .hero-score span{font-size:38px;color:#444;font-weight:400;}
+  .hero-sublabel{font-size:11px;color:#555;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:16px;}
+  .hero-delta{display:inline-flex;align-items:center;gap:6px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.2);color:#22c55e;font-size:12px;font-weight:600;padding:4px 12px;border-radius:20px;margin-bottom:20px;}
+  .hero-desc{font-size:13px;color:#888;max-width:600px;margin:0 auto;line-height:1.75;}
+  .section{padding:0 24px;margin-bottom:28px;}
+  .section-label{display:flex;align-items:center;gap:8px;font-size:10px;font-weight:600;color:#ea6a11;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:14px;}
+  .section-label::after{content:'';flex:1;height:1px;background:rgba(234,106,17,0.18);}
+  .divider{height:1px;background:rgba(255,255,255,0.04);margin:0 24px 28px;}
+  .score-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .sc{background:#161616;border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:15px 16px;position:relative;overflow:hidden;}
+  .sc::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px;}
+  .sc.g::before{background:#22c55e;}.sc.a::before{background:#ea6a11;}.sc.r::before{background:#ef4444;}
+  .sc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:9px;}
+  .sc-name{font-size:11px;font-weight:500;color:#aaa;line-height:1.4;max-width:160px;}
+  .sc-num{font-size:24px;font-weight:700;line-height:1;}
+  .sc.g .sc-num{color:#22c55e;}.sc.a .sc-num{color:#ea6a11;}.sc.r .sc-num{color:#ef4444;}
+  .sc-track{height:3px;background:rgba(255,255,255,0.05);border-radius:2px;overflow:hidden;margin-bottom:7px;}
+  .sc-fill{height:100%;border-radius:2px;}
+  .sc.g .sc-fill{background:#22c55e;}.sc.a .sc-fill{background:#ea6a11;}.sc.r .sc-fill{background:#ef4444;}
+  .sc-delta{font-size:10px;font-weight:600;margin-bottom:4px;}
+  .sc.g .sc-delta{color:#22c55e;}.sc.a .sc-delta{color:#ea6a11;}.sc.r .sc-delta{color:#777;}
+  .sc-note{font-size:10px;color:#555;line-height:1.5;}
+  .alert-box{background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.2);border-radius:10px;padding:14px 16px;margin-bottom:10px;}
+  .alert-title{font-size:12px;font-weight:600;color:#f87171;margin-bottom:4px;}
+  .alert-body{font-size:11px;color:#666;line-height:1.6;}
+  .fixed-list{display:flex;flex-direction:column;gap:8px;}
+  .fi{display:flex;gap:12px;align-items:flex-start;background:#161616;border:1px solid rgba(255,255,255,0.05);border-radius:8px;padding:12px 14px;}
+  .fi-icon{width:26px;height:26px;border-radius:6px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;color:#22c55e;font-weight:700;}
+  .fi-title{font-size:12px;font-weight:600;color:#e8e8e8;margin-bottom:2px;}
+  .fi-desc{font-size:11px;color:#555;line-height:1.5;}
+  .gap-list{display:flex;flex-direction:column;gap:8px;}
+  .gi{display:flex;gap:12px;align-items:flex-start;background:#161616;border:1px solid rgba(255,255,255,0.05);border-radius:8px;padding:12px 14px;}
+  .gi-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+  .gi-dot.r{background:#ef4444;box-shadow:0 0 6px rgba(239,68,68,0.4);}
+  .gi-dot.a{background:#ea6a11;box-shadow:0 0 6px rgba(234,106,17,0.4);}
+  .gi-dot.g{background:#22c55e;box-shadow:0 0 5px rgba(34,197,94,0.3);}
+  .gi-title{font-size:12px;font-weight:600;color:#e8e8e8;margin-bottom:2px;}
+  .gi-desc{font-size:11px;color:#555;line-height:1.5;}
+  code{background:rgba(255,255,255,0.07);padding:1px 5px;border-radius:3px;font-size:10px;color:#bbb;font-family:monospace;}
+  .traj{background:#161616;border:1px solid rgba(255,255,255,0.05);border-radius:10px;padding:20px;}
+  .traj-bars{display:flex;align-items:flex-end;gap:6px;height:72px;margin-bottom:8px;}
+  .traj-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;}
+  .traj-bar{width:100%;border-radius:3px 3px 0 0;min-height:4px;}
+  .traj-v{font-size:10px;font-weight:600;color:#555;}
+  .traj-v.hi{color:#ea6a11;}
+  .traj-l{font-size:9px;color:#444;margin-top:2px;}
+  .traj-l.hi{color:#ea6a11;font-weight:600;}
+  .traj-caption{font-size:11px;color:#444;text-align:center;border-top:1px solid rgba(255,255,255,0.04);padding-top:10px;line-height:1.6;}
+  .bottom{margin:0 24px;background:linear-gradient(135deg,rgba(234,106,17,0.09) 0%,rgba(13,13,13,0) 60%);border:1px solid rgba(234,106,17,0.2);border-radius:12px;padding:20px 22px;}
+  .bottom-title{font-size:13px;font-weight:600;color:#fff;margin-bottom:8px;}
+  .bottom-body{font-size:12px;color:#777;line-height:1.75;}
+  .bottom-body strong{color:#ea6a11;font-weight:600;}
+</style>
+<div class="root">
+  <div class="navbar">
+    <div class="nav-brand">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2L3 7v10l9 5 9-5V7L12 2z" stroke="#ea6a11" stroke-width="1.5" stroke-linejoin="round"/><path d="M12 2v20M3 7l9 5 9-5" stroke="#ea6a11" stroke-width="1.5" stroke-linejoin="round"/></svg>
+      CubeLit
+    </div>
+    <div class="nav-badge">Production Readiness Audit</div>
+  </div>
+  <div class="hero">
+    <div class="version-pill">v0.1.3 · March 24, 2026</div>
+    <div class="hero-score">74<span>/100</span></div>
+    <div class="hero-sublabel">Overall Production Score</div>
+    <div class="hero-delta">↑ +11 from v0.1.2</div>
+    <div class="hero-desc">Five major gaps closed in one release: file-based logging, a PR CI workflow, macOS builds, a security policy, and input validation. This is the release where the production scaffolding catches up to the quality of the core codebase. Two new issues also appear — the version filename mismatch and <code>cubelit.key.pub</code> returning to the repo.</div>
+  </div>
+  <div style="height:28px"></div>
+  <div class="section">
+    <div class="section-label">New issues introduced in v0.1.3</div>
+    <div class="alert-box">
+      <div class="alert-title">⚠ Release asset filenames show v0.1.2 not v0.1.3</div>
+      <div class="alert-body">All installer assets are labelled <code>0.1.2</code> in their filenames. The version was not bumped in <code>Cargo.toml</code> and <code>package.json</code> before tagging, so Tauri named the builds after the old version. Users downloading the installer see the wrong version number.</div>
+    </div>
+    <div class="alert-box" style="margin-top:8px;">
+      <div class="alert-title">⚠ <code>cubelit.key.pub</code> is back in the repo</div>
+      <div class="alert-body">The public key that was explicitly deleted in v0.1.2 has reappeared on master. It's a public key so not a secret, but it's confusing and suggests the root cause wasn't fixed. The permanent .gitignore fix comes in v0.1.4.</div>
+    </div>
+  </div>
+  <div class="divider"></div>
+  <div class="section">
+    <div class="section-label">What was fixed in v0.1.3</div>
+    <div class="fixed-list">
+      <div class="fi"><div class="fi-icon">✓</div><div><div class="fi-title">File-based logging added</div><div class="fi-desc">App activity now logs to <code>cubelit.log</code> via the <code>tracing</code> crate. The biggest operational gap since launch is now closed. Crashes leave breadcrumbs for the first time.</div></div></div>
+      <div class="fi"><div class="fi-icon">✓</div><div><div class="fi-title">PR CI workflow added</div><div class="fi-desc"><code>cargo check</code>, <code>cargo clippy</code>, <code>cargo test</code>, <code>bun check</code>, and <code>bun test</code> now run on every pull request. The test suite is now active, not passive.</div></div></div>
+      <div class="fi"><div class="fi-icon">✓</div><div><div class="fi-title">macOS Apple Silicon builds in CI</div><div class="fi-desc"><code>aarch64.dmg</code> now ships with every release. macOS users have an official installer for the first time.</div></div></div>
+      <div class="fi"><div class="fi-icon">✓</div><div><div class="fi-title">SECURITY.md added</div><div class="fi-desc">Supported versions, private vulnerability reporting channel, and a threat model. Proper security disclosure process now documented.</div></div></div>
+      <div class="fi"><div class="fi-icon">✓</div><div><div class="fi-title">Input validation on env vars</div><div class="fi-desc"><code>validate_env_vars</code> helper checks length and NUL bytes before server creation and settings updates. Injection surface reduced.</div></div></div>
+      <div class="fi"><div class="fi-icon">✓</div><div><div class="fi-title">README game support clarified</div><div class="fi-desc">Troubleshooting section added. Game support note added: "Only Minecraft Java and FiveM are fully supported in v0.1." The misleading table is finally fixed.</div></div></div>
+      <div class="fi"><div class="fi-icon">✓</div><div><div class="fi-title">3 pre-existing Clippy warnings fixed</div><div class="fi-desc">Code quality cleaned up. <code>authors</code> field in Cargo.toml changed from <code>"you"</code> to <code>"Cubelit Contributors"</code>.</div></div></div>
+    </div>
+  </div>
+  <div class="divider"></div>
+  <div class="section">
+    <div class="section-label">Category scores</div>
+    <div class="score-grid">
+      <div class="sc g">
+        <div class="sc-top"><div class="sc-name">Architecture &amp; Code Quality</div><div class="sc-num">86</div></div>
+        <div class="sc-track"><div class="sc-fill" style="width:86%"></div></div>
+        <div class="sc-delta">↑ +1</div>
+        <div class="sc-note">Clippy warnings fixed, authors filled in. Incrementally cleaner.</div>
+      </div>
+      <div class="sc g">
+        <div class="sc-top"><div class="sc-name">CI / Release Pipeline</div><div class="sc-num">80</div></div>
+        <div class="sc-track"><div class="sc-fill" style="width:80%"></div></div>
+        <div class="sc-delta">↑ +25</div>
+        <div class="sc-note">PR CI live, macOS in matrix, Dependabot active. Held back by the 8 open Dependabot PRs and the version mismatch bug.</div>
+      </div>
+      <div class="sc a">
+        <div class="sc-top"><div class="sc-name">Testing</div><div class="sc-num">55</div></div>
+        <div class="sc-track"><div class="sc-fill" style="width:55%"></div></div>
+        <div class="sc-delta">— unchanged</div>
+        <div class="sc-note">No new tests added in this release. Test suite from v0.1.2 is now actively run on PRs.</div>
+      </div>
+      <div class="sc a">
+        <div class="sc-top"><div class="sc-name">Feature Completeness</div><div class="sc-num">42</div></div>
+        <div class="sc-track"><div class="sc-fill" style="width:42%"></div></div>
+        <div class="sc-delta">↑ +12</div>
+        <div class="sc-note">README now honestly labels Coming Soon games. Score reflects documentation honesty, not new games.</div>
+      </div>
+      <div class="sc g">
+        <div class="sc-top"><div class="sc-name">Documentation &amp; Presentation</div><div class="sc-num">87</div></div>
+        <div class="sc-track"><div class="sc-fill" style="width:87%"></div></div>
+        <div class="sc-delta">↑ +25</div>
+        <div class="sc-note">Troubleshooting section, game support note, app data paths. CHANGELOG not yet updated to include v0.1.3 entries.</div>
+      </div>
+      <div class="sc a">
+        <div class="sc-top"><div class="sc-name">Security &amp; Error Handling</div><div class="sc-num">72</div></div>
+        <div class="sc-track"><div class="sc-fill" style="width:72%"></div></div>
+        <div class="sc-delta">↑ +20</div>
+        <div class="sc-note">SECURITY.md, input validation added. Key.pub returned to repo (not yet .gitignored — fixed in v0.1.4).</div>
+      </div>
+      <div class="sc a">
+        <div class="sc-top"><div class="sc-name">Observability &amp; Ops</div><div class="sc-num">55</div></div>
+        <div class="sc-track"><div class="sc-fill" style="width:55%"></div></div>
+        <div class="sc-delta">↑ +37</div>
+        <div class="sc-note">File-based logging is a major leap from zero. Log filter initially set incorrectly (fixed in v0.1.5). No external crash reporting yet.</div>
+      </div>
+      <div class="sc g">
+        <div class="sc-top"><div class="sc-name">Packaging &amp; Distribution</div><div class="sc-num">72</div></div>
+        <div class="sc-track"><div class="sc-fill" style="width:72%"></div></div>
+        <div class="sc-delta">↑ +24</div>
+        <div class="sc-note">macOS ARM builds live. cubelit.app live with correct Coming Soon labels. Filenames show wrong version number — fixed in v0.1.4.</div>
+      </div>
+    </div>
+  </div>
+  <div class="divider"></div>
+  <div class="section">
+    <div class="section-label">Still open after v0.1.3</div>
+    <div class="gap-list">
+      <div class="gi"><div class="gi-dot r"></div><div><div class="gi-title">Installer filenames show v0.1.2 — version was not bumped</div><div class="gi-desc">All v0.1.3 assets have <code>0.1.2</code> in the filename. The tag was pushed before bumping the version in <code>Cargo.toml</code> and <code>package.json</code>. Fixed in v0.1.4.</div></div></div>
+      <div class="gi"><div class="gi-dot r"></div><div><div class="gi-title">8 Dependabot PRs piling up unmerged</div><div class="gi-desc">Several major version bumps (Vite 6→8, TypeScript 5→6) sitting open since v0.1.2. An automated tool generating ignored PRs reads as a neglected repo.</div></div></div>
+      <div class="gi"><div class="gi-dot r"></div><div><div class="gi-title">CHANGELOG still stops at v0.1.2</div><div class="gi-desc">v0.1.3 shipped major changes with no CHANGELOG entry. Not updated until v0.1.5.</div></div></div>
+      <div class="gi"><div class="gi-dot a"></div><div><div class="gi-title">Docker command handlers still untested</div><div class="gi-desc">The highest-risk code paths — <code>create_server</code>, <code>start_server</code>, <code>delete_server</code> — have zero test coverage.</div></div></div>
+      <div class="gi"><div class="gi-dot a"></div><div><div class="gi-title">Log filter set in wrong order</div><div class="gi-desc">Env filter order was incorrect. Fixed in v0.1.5 to <code>warn,cubelit=info</code>.</div></div></div>
+    </div>
+  </div>
+  <div class="divider"></div>
+  <div class="section">
+    <div class="section-label">Score trajectory to date</div>
+    <div class="traj">
+      <div class="traj-bars">
+        <div class="traj-col"><div class="traj-v">45</div><div class="traj-bar" style="height:32px;background:#2a2a2a"></div><div class="traj-l">v0.1.0</div></div>
+        <div class="traj-col"><div class="traj-v">55</div><div class="traj-bar" style="height:39px;background:#333"></div><div class="traj-l">v0.1.1</div></div>
+        <div class="traj-col"><div class="traj-v">63</div><div class="traj-bar" style="height:45px;background:#3d3d3d"></div><div class="traj-l">v0.1.2</div></div>
+        <div class="traj-col"><div class="traj-v hi">74</div><div class="traj-bar" style="height:53px;background:linear-gradient(180deg,#ea6a11,#c45500)"></div><div class="traj-l hi">v0.1.3</div></div>
+      </div>
+      <div class="traj-caption">+29 points across 4 releases in 6 days</div>
+    </div>
+  </div>
+  <div class="divider"></div>
+  <div class="bottom">
+    <div class="bottom-title">v0.1.3 in context</div>
+    <div class="bottom-body">v0.1.3 is the release where <strong>all five of the biggest gaps flagged since v0.1.0</strong> get addressed in one go: logging, PR CI, macOS builds, security policy, and input validation. The score jumps 11 points and the qualitative shift is even larger. The two regressions (version mismatch, key.pub returning) are real issues but both get fixed in the very next release, which is itself a good sign about how the project is being maintained.</div>
+  </div>
+</div>

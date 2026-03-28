@@ -1,0 +1,429 @@
+
+<!DOCTYPE html>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body, .root {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: #0d0d0d;
+    color: #e8e8e8;
+  }
+
+  .root { padding: 0 0 40px 0; }
+
+  /* ── NAV BAR ── */
+  .navbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 28px;
+    background: rgba(13,13,13,0.95);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    position: sticky; top: 0; z-index: 10;
+  }
+  .nav-brand { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; color: #fff; }
+  .cube-icon { width: 24px; height: 24px; }
+  .nav-badge {
+    background: rgba(234,106,17,0.15); border: 1px solid rgba(234,106,17,0.3);
+    color: #ea6a11; font-size: 11px; font-weight: 600; padding: 2px 9px; border-radius: 20px;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    text-align: center; padding: 52px 24px 40px;
+    background: radial-gradient(ellipse 60% 40% at 50% 0%, rgba(234,106,17,0.08) 0%, transparent 70%);
+    position: relative; overflow: hidden;
+  }
+  .hero::before {
+    content: ''; position: absolute; top: -60px; right: -60px;
+    width: 200px; height: 200px;
+    border: 1px solid rgba(234,106,17,0.08); border-radius: 50%;
+    transform: rotate(15deg);
+  }
+  .version-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(234,106,17,0.12); border: 1px solid rgba(234,106,17,0.25);
+    color: #ea6a11; font-size: 11px; font-weight: 600;
+    padding: 4px 12px; border-radius: 20px; margin-bottom: 20px; letter-spacing: 0.03em;
+  }
+  .version-pill::before { content: '●'; font-size: 7px; }
+  .hero-score-row { display: flex; align-items: center; justify-content: center; gap: 20px; margin-bottom: 10px; }
+  .hero-score { font-size: 72px; font-weight: 700; color: #fff; line-height: 1; letter-spacing: -2px; }
+  .hero-score span { font-size: 36px; color: #555; font-weight: 400; }
+  .hero-label { font-size: 13px; color: #666; margin-bottom: 18px; letter-spacing: 0.05em; text-transform: uppercase; }
+  .hero-desc { font-size: 14px; color: #999; max-width: 580px; margin: 0 auto; line-height: 1.7; }
+
+  /* ── SECTION ── */
+  .section { padding: 0 24px; margin-bottom: 28px; }
+  .section-label {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 10px; font-weight: 600; color: #ea6a11;
+    text-transform: uppercase; letter-spacing: 0.1em;
+    margin-bottom: 16px;
+  }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: rgba(234,106,17,0.2); }
+
+  /* ── SCORE CARDS ── */
+  .score-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .score-card {
+    background: #161616;
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px; padding: 16px 18px;
+    position: relative; overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .score-card::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+    width: 3px; border-radius: 3px 0 0 3px;
+  }
+  .score-card.green::before { background: #22c55e; }
+  .score-card.amber::before { background: #ea6a11; }
+  .score-card.red::before { background: #ef4444; }
+  .score-card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+  .score-card-name { font-size: 12px; font-weight: 500; color: #ccc; line-height: 1.4; max-width: 150px; }
+  .score-card-num { font-size: 22px; font-weight: 700; }
+  .score-card.green .score-card-num { color: #22c55e; }
+  .score-card.amber .score-card-num { color: #ea6a11; }
+  .score-card.red .score-card-num { color: #ef4444; }
+  .score-bar-track { height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; }
+  .score-bar-fill { height: 100%; border-radius: 2px; }
+  .score-card.green .score-bar-fill { background: #22c55e; }
+  .score-card.amber .score-bar-fill { background: #ea6a11; }
+  .score-card.red .score-bar-fill { background: #ef4444; }
+  .score-card-delta { font-size: 10px; font-weight: 600; margin-top: 6px; }
+  .score-card.green .score-card-delta { color: #22c55e; }
+  .score-card.amber .score-card-delta { color: #ea6a11; }
+  .score-card-note { font-size: 11px; color: #555; margin-top: 5px; line-height: 1.5; }
+
+  /* ── FIXED ITEMS ── */
+  .fixed-list { display: flex; flex-direction: column; gap: 8px; }
+  .fixed-item {
+    display: flex; gap: 12px; align-items: flex-start;
+    background: #161616; border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 8px; padding: 12px 14px;
+  }
+  .fixed-icon {
+    width: 28px; height: 28px; border-radius: 6px;
+    background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.2);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; font-size: 13px;
+  }
+  .fixed-text { flex: 1; }
+  .fixed-title { font-size: 12px; font-weight: 600; color: #e8e8e8; margin-bottom: 2px; }
+  .fixed-desc { font-size: 11px; color: #666; line-height: 1.5; }
+
+  /* ── REMAINING GAPS ── */
+  .gap-list { display: flex; flex-direction: column; gap: 8px; }
+  .gap-item {
+    display: flex; gap: 12px; align-items: flex-start;
+    background: #161616; border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 8px; padding: 12px 14px;
+  }
+  .gap-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 4px;
+  }
+  .gap-dot.red { background: #ef4444; box-shadow: 0 0 6px rgba(239,68,68,0.4); }
+  .gap-dot.amber { background: #ea6a11; box-shadow: 0 0 6px rgba(234,106,17,0.4); }
+  .gap-dot.green { background: #22c55e; box-shadow: 0 0 6px rgba(34,197,94,0.3); }
+  .gap-text { flex: 1; }
+  .gap-title { font-size: 12px; font-weight: 600; color: #e8e8e8; margin-bottom: 2px; }
+  .gap-desc { font-size: 11px; color: #666; line-height: 1.5; }
+  code { background: rgba(255,255,255,0.07); padding: 1px 5px; border-radius: 3px; font-size: 10px; color: #ccc; font-family: monospace; }
+
+  /* ── TRAJECTORY ── */
+  .trajectory {
+    background: #161616; border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px; padding: 20px;
+  }
+  .traj-bars { display: flex; align-items: flex-end; gap: 8px; height: 70px; margin-bottom: 10px; }
+  .traj-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+  .traj-bar { width: 100%; border-radius: 3px 3px 0 0; min-height: 4px; }
+  .traj-val { font-size: 10px; font-weight: 600; color: #aaa; }
+  .traj-val.active { color: #ea6a11; }
+  .traj-ver { font-size: 9px; color: #444; }
+  .traj-ver.active { color: #ea6a11; font-weight: 600; }
+  .traj-caption { font-size: 11px; color: #555; text-align: center; line-height: 1.6; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 10px; }
+
+  /* ── BOTTOM CARD ── */
+  .bottom-card {
+    margin: 0 24px;
+    background: linear-gradient(135deg, rgba(234,106,17,0.08) 0%, rgba(13,13,13,0) 60%);
+    border: 1px solid rgba(234,106,17,0.2);
+    border-radius: 12px; padding: 20px 22px;
+    position: relative; overflow: hidden;
+  }
+  .bottom-card::after {
+    content: ''; position: absolute; right: -30px; top: -30px;
+    width: 120px; height: 120px;
+    border: 1px solid rgba(234,106,17,0.08); border-radius: 50%;
+  }
+  .bottom-card-title { font-size: 13px; font-weight: 600; color: #fff; margin-bottom: 8px; }
+  .bottom-card-text { font-size: 12px; color: #888; line-height: 1.7; }
+  .bottom-card-text strong { color: #ea6a11; font-weight: 600; }
+
+  /* ── DIVIDER ── */
+  .divider { height: 1px; background: rgba(255,255,255,0.04); margin: 0 24px 28px; }
+</style>
+
+<div class="root">
+
+  <!-- NAV -->
+  <div class="navbar">
+    <div class="nav-brand">
+      <svg class="cube-icon" viewBox="0 0 24 24" fill="none">
+        <path d="M12 2L3 7v10l9 5 9-5V7L12 2z" stroke="#ea6a11" stroke-width="1.5" stroke-linejoin="round"/>
+        <path d="M12 2v20M3 7l9 5 9-5" stroke="#ea6a11" stroke-width="1.5" stroke-linejoin="round"/>
+      </svg>
+      CubeLit
+    </div>
+    <div class="nav-badge">Production Readiness Report</div>
+  </div>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="version-pill">v0.1.4 · March 24, 2026</div>
+    <div class="hero-score-row">
+      <div class="hero-score">79<span>/100</span></div>
+    </div>
+    <div class="hero-label">Overall Production Score</div>
+    <div class="hero-desc">
+      v0.1.4 is the cleanest release yet — correcting the version filename mismatch, merging all 8 Dependabot PRs, fixing the signing key gitignore, and adding a Troubleshooting section to the README. Five of six flagged issues from v0.1.3 were resolved in a single release.
+    </div>
+  </div>
+
+  <div style="height:32px"></div>
+
+  <!-- CATEGORY SCORES -->
+  <div class="section">
+    <div class="section-label">Category Scores</div>
+    <div class="score-grid">
+
+      <div class="score-card green">
+        <div class="score-card-top">
+          <div class="score-card-name">CI / Release Pipeline</div>
+          <div class="score-card-num">90</div>
+        </div>
+        <div class="score-bar-track"><div class="score-bar-fill" style="width:90%"></div></div>
+        <div class="score-card-delta">↑ +2 from v0.1.3</div>
+        <div class="score-card-note">Dependabot backlog cleared, version stamping fixed, PR CI running.</div>
+      </div>
+
+      <div class="score-card green">
+        <div class="score-card-top">
+          <div class="score-card-name">Documentation &amp; Presentation</div>
+          <div class="score-card-num">92</div>
+        </div>
+        <div class="score-bar-track"><div class="score-bar-fill" style="width:92%"></div></div>
+        <div class="score-card-delta">↑ +5 from v0.1.3</div>
+        <div class="score-card-note">Troubleshooting section, game support note, app data paths all added.</div>
+      </div>
+
+      <div class="score-card green">
+        <div class="score-card-top">
+          <div class="score-card-name">Architecture &amp; Code Quality</div>
+          <div class="score-card-num">86</div>
+        </div>
+        <div class="score-bar-track"><div class="score-bar-fill" style="width:86%"></div></div>
+        <div class="score-card-delta">↑ +1 from v0.1.3</div>
+        <div class="score-card-note">Clippy warnings fixed. Still no structured log levels.</div>
+      </div>
+
+      <div class="score-card green">
+        <div class="score-card-top">
+          <div class="score-card-name">Packaging &amp; Distribution</div>
+          <div class="score-card-num">82</div>
+        </div>
+        <div class="score-bar-track"><div class="score-bar-fill" style="width:82%"></div></div>
+        <div class="score-card-delta">↑ +8 from v0.1.3</div>
+        <div class="score-card-note">Windows, Linux, macOS aarch64 all present. Filenames finally correct.</div>
+      </div>
+
+      <div class="score-card green">
+        <div class="score-card-top">
+          <div class="score-card-name">Security &amp; Error Handling</div>
+          <div class="score-card-num">75</div>
+        </div>
+        <div class="score-bar-track"><div class="score-bar-fill" style="width:75%"></div></div>
+        <div class="score-card-delta">↑ +3 from v0.1.3</div>
+        <div class="score-card-note">Key excluded via .gitignore permanently. Better validation error messages.</div>
+      </div>
+
+      <div class="score-card amber">
+        <div class="score-card-top">
+          <div class="score-card-name">Observability &amp; Ops</div>
+          <div class="score-card-num">64</div>
+        </div>
+        <div class="score-bar-track"><div class="score-bar-fill" style="width:64%"></div></div>
+        <div class="score-card-delta">↑ +2 from v0.1.3</div>
+        <div class="score-card-note">Log file exists, paths documented. Still no log levels or crash reporting.</div>
+      </div>
+
+      <div class="score-card amber">
+        <div class="score-card-top">
+          <div class="score-card-name">Testing</div>
+          <div class="score-card-num">62</div>
+        </div>
+        <div class="score-bar-track"><div class="score-bar-fill" style="width:62%"></div></div>
+        <div class="score-card-delta">↑ +7 from v0.1.3</div>
+        <div class="score-card-note">Validation tests added. Docker command handlers still untested.</div>
+      </div>
+
+      <div class="score-card red">
+        <div class="score-card-top">
+          <div class="score-card-name">Feature Completeness</div>
+          <div class="score-card-num">42</div>
+        </div>
+        <div class="score-bar-track"><div class="score-bar-fill" style="width:42%"></div></div>
+        <div class="score-card-delta" style="color:#ef4444">— unchanged</div>
+        <div class="score-card-note">2 of 10 games available. README is now honest about it.</div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- WHAT WAS FIXED -->
+  <div class="section">
+    <div class="section-label">Fixed in v0.1.4</div>
+    <div class="fixed-list">
+      <div class="fixed-item">
+        <div class="fixed-icon">✓</div>
+        <div class="fixed-text">
+          <div class="fixed-title">Version filename mismatch resolved</div>
+          <div class="fixed-desc">All assets now correctly labelled <code>0.1.4</code>. The top-priority issue from v0.1.3 is gone.</div>
+        </div>
+      </div>
+      <div class="fixed-item">
+        <div class="fixed-icon">✓</div>
+        <div class="fixed-text">
+          <div class="fixed-title">All 8 Dependabot PRs merged</div>
+          <div class="fixed-desc">Dependency backlog cleared including major bumps: Vite 6→8, TypeScript 5→6, bollard 0.18→0.20. Zero open PRs.</div>
+        </div>
+      </div>
+      <div class="fixed-item">
+        <div class="fixed-icon">✓</div>
+        <div class="fixed-text">
+          <div class="fixed-title"><code>cubelit.key.pub</code> excluded permanently</div>
+          <div class="fixed-desc">Fixed at the root via <code>.gitignore</code> — can't creep back in again.</div>
+        </div>
+      </div>
+      <div class="fixed-item">
+        <div class="fixed-icon">✓</div>
+        <div class="fixed-text">
+          <div class="fixed-title">Validation errors now tell you exactly what failed</div>
+          <div class="fixed-desc">Error messages now name the specific env var and the reason. Unit tests added for validation logic.</div>
+        </div>
+      </div>
+      <div class="fixed-item">
+        <div class="fixed-icon">✓</div>
+        <div class="fixed-text">
+          <div class="fixed-title">Troubleshooting section added to README</div>
+          <div class="fixed-desc">Covers Docker not detected, server stuck in Starting, port conflicts, and app data locations per platform.</div>
+        </div>
+      </div>
+      <div class="fixed-item">
+        <div class="fixed-icon">✓</div>
+        <div class="fixed-text">
+          <div class="fixed-title">README now honest about which games work</div>
+          <div class="fixed-desc">"Only Minecraft Java and FiveM are fully supported in v0.1" — clearly stated. Honesty gap from v0.1.0 finally closed.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- REMAINING GAPS -->
+  <div class="section">
+    <div class="section-label">Remaining Gaps</div>
+    <div class="gap-list">
+      <div class="gap-item">
+        <div class="gap-dot red"></div>
+        <div class="gap-text">
+          <div class="gap-title">CHANGELOG.md stops at v0.1.2</div>
+          <div class="gap-desc">v0.1.3 and v0.1.4 both shipped significant changes with no CHANGELOG entry. Update it to match the last two releases — it's what contributors and tooling read.</div>
+        </div>
+      </div>
+      <div class="gap-item">
+        <div class="gap-dot red"></div>
+        <div class="gap-text">
+          <div class="gap-title">Placeholder clone URL in README</div>
+          <div class="gap-desc">Getting Started still says <code>git clone https://github.com/yourusername/cubelit.git</code>. One-line fix that's been there since v0.1.0.</div>
+        </div>
+      </div>
+      <div class="gap-item">
+        <div class="gap-dot amber"></div>
+        <div class="gap-text">
+          <div class="gap-title">Docker command handlers untested</div>
+          <div class="gap-desc"><code>create_server</code>, <code>start_server</code>, <code>stop_server</code> have zero test coverage — the highest-risk code paths in the app. Even one happy-path mock test per command would help significantly.</div>
+        </div>
+      </div>
+      <div class="gap-item">
+        <div class="gap-dot amber"></div>
+        <div class="gap-text">
+          <div class="gap-title">Flat log file, no levels</div>
+          <div class="gap-desc">The log file exists but has no <code>info/warn/error</code> levels, making it hard to filter signal from noise. One afternoon of adding <code>tracing::error!</code> calls to key paths would close this.</div>
+        </div>
+      </div>
+      <div class="gap-item">
+        <div class="gap-dot green"></div>
+        <div class="gap-text">
+          <div class="gap-title">Still 2 of 10 games available</div>
+          <div class="gap-desc">Every game added shrinks the feature completeness gap. Even one more "Available" game would move the needle on the lowest-scoring category.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- TRAJECTORY -->
+  <div class="section">
+    <div class="section-label">Score trajectory</div>
+    <div class="trajectory">
+      <div class="traj-bars">
+        <div class="traj-col">
+          <div class="traj-val">45</div>
+          <div class="traj-bar" style="height:32px;background:#333"></div>
+          <div class="traj-ver">v0.1.0</div>
+        </div>
+        <div class="traj-col">
+          <div class="traj-val">55</div>
+          <div class="traj-bar" style="height:39px;background:#444"></div>
+          <div class="traj-ver">v0.1.1</div>
+        </div>
+        <div class="traj-col">
+          <div class="traj-val">63</div>
+          <div class="traj-bar" style="height:45px;background:#555"></div>
+          <div class="traj-ver">v0.1.2</div>
+        </div>
+        <div class="traj-col">
+          <div class="traj-val">68</div>
+          <div class="traj-bar" style="height:48px;background:#666"></div>
+          <div class="traj-ver">v0.1.3</div>
+        </div>
+        <div class="traj-col">
+          <div class="traj-val">74</div>
+          <div class="traj-bar" style="height:53px;background:#888"></div>
+          <div class="traj-ver">+site</div>
+        </div>
+        <div class="traj-col">
+          <div class="traj-val active">79</div>
+          <div class="traj-bar" style="height:57px;background:linear-gradient(180deg,#ea6a11,#c45500)"></div>
+          <div class="traj-ver active">v0.1.4</div>
+        </div>
+      </div>
+      <div class="traj-caption">+34 points across 5 releases in 6 days — consistent upward trajectory with no backsliding</div>
+    </div>
+  </div>
+
+  <!-- BOTTOM -->
+  <div class="bottom-card">
+    <div class="bottom-card-title">What gets you to 85+</div>
+    <div class="bottom-card-text">
+      The two red gaps are <strong>10-minute fixes</strong>: update CHANGELOG.md and change one line in the README. Those alone push you past 82. Getting to <strong>85+ means Docker command handler tests and one more working game</strong>. The project is demonstrably improving with every release — that discipline is itself the most important production-readiness signal.
+    </div>
+  </div>
+
+</div>
