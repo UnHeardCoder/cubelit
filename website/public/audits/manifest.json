@@ -1,6 +1,7 @@
 {
   "audits": [
-    { "version": "0.1.5", "date": "2026-03-26", "score": 84, "label": "Latest" },
+    { "version": "0.1.6", "date": "2026-03-28", "score": 84, "label": "Latest" },
+    { "version": "0.1.5", "date": "2026-03-26", "score": 84 },
     { "version": "0.1.4", "date": "2026-03-24", "score": 79 },
     { "version": "0.1.3", "date": "2026-03-24", "score": 74 },
     { "version": "0.1.2", "date": "2026-03-23", "score": 63 },
