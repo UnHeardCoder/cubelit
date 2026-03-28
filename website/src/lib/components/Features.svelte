@@ -144,7 +144,7 @@
     transition: opacity 0.4s ease, transform 0.4s ease;
   }
 
-  .feature-card.visible {
+  .feature-card:global(.visible) {
     opacity: 1;
     transform: translateY(0);
   }
