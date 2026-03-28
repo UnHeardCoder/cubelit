@@ -1,0 +1,218 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0;}
+  .root{font-family:'Inter',system-ui,sans-serif;background:#0d0d0d;color:#e8e8e8;padding-bottom:48px;}
+  .navbar{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;background:rgba(13,13,13,0.97);border-bottom:1px solid rgba(255,255,255,0.06);position:sticky;top:0;z-index:10;}
+  .nav-brand{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:600;color:#fff;}
+  .nav-badge{background:rgba(234,106,17,0.15);border:1px solid rgba(234,106,17,0.3);color:#ea6a11;font-size:11px;font-weight:600;padding:2px 10px;border-radius:20px;}
+  .hero{text-align:center;padding:48px 24px 36px;background:radial-gradient(ellipse 60% 40% at 50% 0%,rgba(234,106,17,0.08) 0%,transparent 70%);}
+  .version-pill{display:inline-flex;align-items:center;gap:6px;background:rgba(234,106,17,0.12);border:1px solid rgba(234,106,17,0.25);color:#ea6a11;font-size:11px;font-weight:600;padding:4px 12px;border-radius:20px;margin-bottom:18px;}
+  .version-pill::before{content:'●';font-size:7px;}
+  .hero-score{font-size:76px;font-weight:700;color:#fff;line-height:1;letter-spacing:-3px;margin-bottom:6px;}
+  .hero-score span{font-size:38px;color:#444;font-weight:400;}
+  .hero-sublabel{font-size:11px;color:#555;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:16px;}
+  .hero-delta{display:inline-flex;align-items:center;gap:6px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.2);color:#22c55e;font-size:12px;font-weight:600;padding:4px 12px;border-radius:20px;margin-bottom:20px;}
+  .hero-desc{font-size:13px;color:#888;max-width:600px;margin:0 auto;line-height:1.75;}
+  .section{padding:0 24px;margin-bottom:28px;}
+  .section-label{display:flex;align-items:center;gap:8px;font-size:10px;font-weight:600;color:#ea6a11;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:14px;}
+  .section-label::after{content:'';flex:1;height:1px;background:rgba(234,106,17,0.18);}
+  .divider{height:1px;background:rgba(255,255,255,0.04);margin:0 24px 28px;}
+  .score-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .sc{background:#161616;border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:15px 16px;position:relative;overflow:hidden;}
+  .sc::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px;}
+  .sc.g::before{background:#22c55e;}.sc.a::before{background:#ea6a11;}.sc.r::before{background:#ef4444;}
+  .sc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:9px;}
+  .sc-name{font-size:11px;font-weight:500;color:#aaa;line-height:1.4;max-width:160px;}
+  .sc-num{font-size:24px;font-weight:700;line-height:1;}
+  .sc.g .sc-num{color:#22c55e;}.sc.a .sc-num{color:#ea6a11;}.sc.r .sc-num{color:#ef4444;}
+  .sc-track{height:3px;background:rgba(255,255,255,0.05);border-radius:2px;overflow:hidden;margin-bottom:7px;}
+  .sc-fill{height:100%;border-radius:2px;}
+  .sc.g .sc-fill{background:#22c55e;}.sc.a .sc-fill{background:#ea6a11;}.sc.r .sc-fill{background:#ef4444;}
+  .sc-delta{font-size:10px;font-weight:600;margin-bottom:4px;}
+  .sc.g .sc-delta{color:#22c55e;}.sc.a .sc-delta{color:#ea6a11;}.sc.r .sc-delta{color:#777;}
+  .sc-note{font-size:10px;color:#555;line-height:1.5;}
+  .highlight{background:linear-gradient(135deg,rgba(234,106,17,0.1) 0%,rgba(13,13,13,0) 55%);border:1px solid rgba(234,106,17,0.25);border-radius:10px;padding:16px 18px;margin-bottom:10px;}
+  .hl-title{font-size:13px;font-weight:600;color:#fff;margin-bottom:6px;display:flex;align-items:center;gap:8px;}
+  .hl-badge{background:rgba(234,106,17,0.15);color:#ea6a11;font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;}
+  .hl-body{font-size:12px;color:#777;line-height:1.65;}
+  .fixed-list{display:flex;flex-direction:column;gap:8px;}
+  .fi{display:flex;gap:12px;align-items:flex-start;background:#161616;border:1px solid rgba(255,255,255,0.05);border-radius:8px;padding:12px 14px;}
+  .fi-icon{width:26px;height:26px;border-radius:6px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;color:#22c55e;font-weight:700;}
+  .fi-title{font-size:12px;font-weight:600;color:#e8e8e8;margin-bottom:2px;}
+  .fi-desc{font-size:11px;color:#555;line-height:1.5;}
+  .gap-list{display:flex;flex-direction:column;gap:8px;}
+  .gi{display:flex;gap:12px;align-items:flex-start;background:#161616;border:1px solid rgba(255,255,255,0.05);border-radius:8px;padding:12px 14px;}
+  .gi-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+  .gi-dot.r{background:#ef4444;box-shadow:0 0 6px rgba(239,68,68,0.4);}
+  .gi-dot.a{background:#ea6a11;box-shadow:0 0 6px rgba(234,106,17,0.4);}
+  .gi-dot.g{background:#22c55e;box-shadow:0 0 5px rgba(34,197,94,0.3);}
+  .gi-title{font-size:12px;font-weight:600;color:#e8e8e8;margin-bottom:2px;}
+  .gi-desc{font-size:11px;color:#555;line-height:1.5;}
+  code{background:rgba(255,255,255,0.07);padding:1px 5px;border-radius:3px;font-size:10px;color:#bbb;font-family:monospace;}
+  .traj{background:#161616;border:1px solid rgba(255,255,255,0.05);border-radius:10px;padding:20px;}
+  .traj-bars{display:flex;align-items:flex-end;gap:6px;height:72px;margin-bottom:8px;}
+  .traj-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;}
+  .traj-bar{width:100%;border-radius:3px 3px 0 0;min-height:4px;}
+  .traj-v{font-size:10px;font-weight:600;color:#555;}
+  .traj-v.hi{color:#ea6a11;}
+  .traj-l{font-size:9px;color:#444;margin-top:1px;}
+  .traj-l.hi{color:#ea6a11;font-weight:600;}
+  .traj-caption{font-size:11px;color:#444;text-align:center;border-top:1px solid rgba(255,255,255,0.04);padding-top:10px;line-height:1.6;}
+  .bottom{margin:0 24px;background:linear-gradient(135deg,rgba(234,106,17,0.09) 0%,rgba(13,13,13,0) 60%);border:1px solid rgba(234,106,17,0.2);border-radius:12px;padding:20px 22px;}
+  .bottom-title{font-size:13px;font-weight:600;color:#fff;margin-bottom:8px;}
+  .bottom-body{font-size:12px;color:#777;line-height:1.75;}
+  .bottom-body strong{color:#ea6a11;font-weight:600;}
+</style>
+
+<div class="root">
+  <div class="navbar">
+    <div class="nav-brand">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2L3 7v10l9 5 9-5V7L12 2z" stroke="#ea6a11" stroke-width="1.5" stroke-linejoin="round"/><path d="M12 2v20M3 7l9 5 9-5" stroke="#ea6a11" stroke-width="1.5" stroke-linejoin="round"/></svg>
+      CubeLit
+    </div>
+    <div class="nav-badge">Production Readiness Audit</div>
+  </div>
+
+  <div class="hero">
+    <div class="version-pill">v0.1.6 · March 28, 2026</div>
+    <div class="hero-score">88<span>/100</span></div>
+    <div class="hero-sublabel">Overall Production Score</div>
+    <div class="hero-delta">↑ +4 from v0.1.5</div>
+    <div class="hero-desc">v0.1.6 closes every remaining red and yellow flag from the previous report. The Docker command handlers now have structured tracing spans, the CI workflows are properly scoped with path filters, release notes auto-populate from the CHANGELOG, and the audits page is live. The only meaningful gap left is feature completeness — 2 of 10 games — and the absence of an external crash reporting service. At 88, this is genuinely production-quality infrastructure for a v0.1 app.</div>
+  </div>
+
+  <div style="height:28px"></div>
+
+  <div class="section">
+    <div class="section-label">Standout additions in v0.1.6</div>
+    <div class="highlight">
+      <div class="hl-title">Structured tracing spans in Docker command handlers <span class="hl-badge">CLOSES RED FLAG</span></div>
+      <div class="hl-body">Every Docker command handler — <code>start_server</code>, <code>stop_server</code>, <code>restart_server</code>, <code>delete_server</code>, <code>update_server_settings</code> — now has structured <code>tracing::info/error!</code> spans. This was the single biggest observability gap since launch. Crashes and failures in the most critical code paths now leave actual breadcrumbs. Combined with the log file from v0.1.3, you now have a complete diagnostic trail.</div>
+    </div>
+    <div class="highlight" style="margin-top:10px;">
+      <div class="hl-title">Fully independent CI pipelines with path filters <span class="hl-badge">CLOSES RED FLAG</span></div>
+      <div class="hl-body">Three separate, scoped workflows: <code>ci.yml</code> only runs on app file changes, <code>ci-website.yml</code> only runs on website changes, and <code>deploy-website.yml</code> now triggers on both release tags and <code>master</code> pushes to <code>website/**</code>. The app and website are now completely independent — changing a typo on the site no longer touches the Tauri build pipeline.</div>
+    </div>
+    <div class="highlight" style="margin-top:10px;">
+      <div class="hl-title">Release notes auto-populated from CHANGELOG.md <span class="hl-badge">POLISH</span></div>
+      <div class="hl-body">The hardcoded "See the assets below" boilerplate in <code>release.yml</code> is gone. Release notes now pull directly from the CHANGELOG, so every GitHub release page has real, structured content automatically. The v0.1.6 release page already demonstrates this working.</div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="section">
+    <div class="section-label">Category scores</div>
+    <div class="score-grid">
+
+      <div class="sc g">
+        <div class="sc-top"><div class="sc-name">Architecture &amp; Code Quality</div><div class="sc-num">88</div></div>
+        <div class="sc-track"><div class="sc-fill" style="width:88%"></div></div>
+        <div class="sc-delta">↑ +2 from v0.1.5</div>
+        <div class="sc-note">Structured tracing spans in command handlers. <code>readiness_pattern</code> helper now has unit tests. Incrementally stronger with each release.</div>
+      </div>
+
+      <div class="sc g">
+        <div class="sc-top"><div class="sc-name">CI / Release Pipeline</div><div class="sc-num">98</div></div>
+        <div class="sc-track"><div class="sc-fill" style="width:98%"></div></div>
+        <div class="sc-delta">↑ +1 from v0.1.5</div>
+        <div class="sc-note">Three scoped workflows, CHANGELOG-driven release notes, version guard, auto-deploy. This category is essentially maxed out for a project this size.</div>
+      </div>
+
+      <div class="sc g">
+        <div class="sc-top"><div class="sc-name">Testing</div><div class="sc-num">72</div></div>
+        <div class="sc-track"><div class="sc-fill" style="width:72%"></div></div>
+        <div class="sc-delta">↑ +10 from v0.1.5</div>
+        <div class="sc-note">Docker command handlers now have structured logging which makes them more testable, plus <code>readiness_pattern</code> unit tests added. Still no mock-Docker integration tests for the handlers themselves, but coverage is meaningfully broader.</div>
+      </div>
+
+      <div class="sc r">
+        <div class="sc-top"><div class="sc-name">Feature Completeness</div><div class="sc-num">42</div></div>
+        <div class="sc-track"><div class="sc-fill" style="width:42%"></div></div>
+        <div class="sc-delta">— unchanged</div>
+        <div class="sc-note">Still 2 of 10 games available. No new games in this release — v0.1.6 was an infrastructure and polish release.</div>
+      </div>
+
+      <div class="sc g">
+        <div class="sc-top"><div class="sc-name">Documentation &amp; Presentation</div><div class="sc-num">96</div></div>
+        <div class="sc-track"><div class="sc-fill" style="width:96%"></div></div>
+        <div class="sc-delta">↑ +4 from v0.1.5</div>
+        <div class="sc-note">Audits page live at <code>/audits</code>. CHANGELOG-driven release notes. Everything is current and accurate. Essentially complete for this stage.</div>
+      </div>
+
+      <div class="sc g">
+        <div class="sc-top"><div class="sc-name">Security &amp; Error Handling</div><div class="sc-num">77</div></div>
+        <div class="sc-track"><div class="sc-fill" style="width:77%"></div></div>
+        <div class="sc-delta">↑ +1 from v0.1.5</div>
+        <div class="sc-note">No regressions. All previous security work (SECURITY.md, signing, input validation, .gitignore) remains solid.</div>
+      </div>
+
+      <div class="sc g">
+        <div class="sc-top"><div class="sc-name">Observability &amp; Ops</div><div class="sc-num">78</div></div>
+        <div class="sc-track"><div class="sc-fill" style="width:78%"></div></div>
+        <div class="sc-delta">↑ +13 from v0.1.5</div>
+        <div class="sc-note">The biggest single-release observability jump yet. Structured spans in all Docker handlers means real diagnostic data for the first time. Remaining gap: no external crash reporting service (e.g. Sentry).</div>
+      </div>
+
+      <div class="sc g">
+        <div class="sc-top"><div class="sc-name">Packaging &amp; Distribution</div><div class="sc-num">84</div></div>
+        <div class="sc-track"><div class="sc-fill" style="width:84%"></div></div>
+        <div class="sc-delta">↑ +2 from v0.1.5</div>
+        <div class="sc-note">Website deploys independently from app releases. All platforms present. No Intel macOS build remains the only gap.</div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="section">
+    <div class="section-label">Every flagged gap from v0.1.5 — resolved</div>
+    <div class="fixed-list">
+      <div class="fi"><div class="fi-icon">✓</div><div><div class="fi-title">Docker command handlers now have structured tracing spans</div><div class="fi-desc">All five handlers instrumented. The log file now captures meaningful events when servers start, stop, restart, or fail — not just a flat timestamped stream.</div></div></div>
+      <div class="fi"><div class="fi-icon">✓</div><div><div class="fi-title">CI workflows scoped with path filters</div><div class="fi-desc"><code>ci.yml</code> only triggers on <code>src/**</code>, <code>src-tauri/**</code> changes. <code>ci-website.yml</code> only triggers on <code>website/**</code>. <code>deploy-website.yml</code> now also fires on master pushes to <code>website/**</code>.</div></div></div>
+      <div class="fi"><div class="fi-icon">✓</div><div><div class="fi-title">Release notes auto-populated from CHANGELOG</div><div class="fi-desc">No more hardcoded "See assets below" boilerplate. Every release now has structured, accurate notes automatically.</div></div></div>
+      <div class="fi"><div class="fi-icon">✓</div><div><div class="fi-title">Audits page live at /audits</div><div class="fi-desc">Version switcher, score display, deep-linkable via <code>?v=X.X.X</code>, renders HTML reports inline. The audit system discussed in this conversation is now shipped.</div></div></div>
+      <div class="fi"><div class="fi-icon">✓</div><div><div class="fi-title">TypeScript config fix in website</div><div class="fi-desc">Removed <code>erasableSyntaxOnly</code> from <code>website/tsconfig.node.json</code> — it required TS 5.8+ but the project uses 5.6.x. Prevents silent type-check failures.</div></div></div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="section">
+    <div class="section-label">What's still open</div>
+    <div class="gap-list">
+      <div class="gi"><div class="gi-dot a"></div><div><div class="gi-title">Still 2 of 10 games available</div><div class="gi-desc">Feature completeness remains the lowest-scoring category by a wide margin. The infrastructure is now solid enough that shipping a third game (Valheim or Terraria are the simplest) is the highest-leverage thing you can do for the overall score.</div></div></div>
+      <div class="gi"><div class="gi-dot a"></div><div><div class="gi-title">No external crash reporting</div><div class="gi-desc">You have local log files and structured spans, but there's no way to know when a user somewhere experiences a crash unless they report it manually. Sentry has a Tauri integration and a free tier — this would be the observability unlock that takes the ops story from "good" to "complete".</div></div></div>
+      <div class="gi"><div class="gi-dot g"></div><div><div class="gi-title">No Intel macOS build</div><div class="gi-desc">Only Apple Silicon (aarch64). x86_64 Intel Macs are declining but still in use. Low priority but worth adding to the release matrix eventually.</div></div></div>
+      <div class="gi"><div class="gi-dot g"></div><div><div class="gi-title">Mock-Docker integration tests for command handlers</div><div class="gi-desc">The handlers now have spans and are more testable, but still no automated tests covering their actual logic paths. A mock Docker client testing happy path + error path per handler would close the last meaningful testing gap.</div></div></div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="section">
+    <div class="section-label">Score trajectory — all versions</div>
+    <div class="traj">
+      <div class="traj-bars">
+        <div class="traj-col"><div class="traj-v">45</div><div class="traj-bar" style="height:29px;background:#2a2a2a"></div><div class="traj-l">v0.1.0</div></div>
+        <div class="traj-col"><div class="traj-v">55</div><div class="traj-bar" style="height:35px;background:#333"></div><div class="traj-l">v0.1.1</div></div>
+        <div class="traj-col"><div class="traj-v">63</div><div class="traj-bar" style="height:40px;background:#3d3d3d"></div><div class="traj-l">v0.1.2</div></div>
+        <div class="traj-col"><div class="traj-v">74</div><div class="traj-bar" style="height:47px;background:#555"></div><div class="traj-l">v0.1.3</div></div>
+        <div class="traj-col"><div class="traj-v">79</div><div class="traj-bar" style="height:50px;background:#666"></div><div class="traj-l">v0.1.4</div></div>
+        <div class="traj-col"><div class="traj-v">84</div><div class="traj-bar" style="height:54px;background:#888"></div><div class="traj-l">v0.1.5</div></div>
+        <div class="traj-col"><div class="traj-v hi">88</div><div class="traj-bar" style="height:57px;background:linear-gradient(180deg,#ea6a11,#c45500)"></div><div class="traj-l hi">v0.1.6</div></div>
+      </div>
+      <div class="traj-caption">+43 points across 7 releases in 18 days · no release has ever backslid</div>
+    </div>
+  </div>
+
+  <div style="height:4px"></div>
+
+  <div class="bottom">
+    <div class="bottom-title">What gets you to 90+</div>
+    <div class="bottom-body">At 88, the only two things separating you from 90+ are <strong>shipping a third game</strong> and <strong>adding Sentry crash reporting</strong>. The entire infrastructure story — CI, release pipeline, logging, documentation, distribution — is essentially done. Every audit since v0.1.0 has flagged Docker command handler tests; with structured spans now in place, those handlers are finally testable. That's worth doing too, but the game and Sentry are the moves with the highest score impact.</div>
+  </div>
+
+</div>
