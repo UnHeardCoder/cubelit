@@ -19,9 +19,11 @@
 
   onMount(() => {
     page = window.location.pathname.startsWith('/audits') ? 'audits' : 'home'
-    window.addEventListener('popstate', () => {
+    const handlePopState = () => {
       page = window.location.pathname.startsWith('/audits') ? 'audits' : 'home'
-    })
+    }
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
   })
 </script>
 

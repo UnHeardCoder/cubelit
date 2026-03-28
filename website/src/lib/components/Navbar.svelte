@@ -226,7 +226,6 @@
     font-size: 16px;
     font-weight: 500;
     padding: 12px 8px;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
     transition: color 0.2s ease;
     background: none;
     border: none;

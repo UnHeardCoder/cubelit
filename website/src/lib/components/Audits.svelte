@@ -55,6 +55,11 @@
       return
     }
 
+    if (audits.length === 0) {
+      manifestError = true
+      return
+    }
+
     const params = new URLSearchParams(window.location.search)
     const qv = params.get('v')
     const initial = audits.find(a => a.version === qv) ? qv! : audits[0]?.version
@@ -107,7 +112,7 @@
         {:else if contentError}
           <div class="content-placeholder error">Failed to load audit content.</div>
         {:else if content}
-          <div class="audit-content">{@html content}</div>
+          <iframe class="audit-frame" srcdoc={content} title="Audit report for v{selectedVersion}" sandbox="allow-same-origin"></iframe>
         {/if}
       </div>
     </div>
@@ -241,13 +246,13 @@
     min-height: 400px;
   }
 
-  .audit-content {
-    background: white;
+  .audit-frame {
+    width: 100%;
+    min-height: 800px;
+    border: none;
     border-radius: 12px;
-    padding: 32px;
-    color: #111;
-    line-height: 1.7;
-    overflow-y: auto;
+    background: white;
+    display: block;
   }
 
   .content-placeholder {

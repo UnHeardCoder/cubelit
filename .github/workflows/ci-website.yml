@@ -3,10 +3,10 @@ name: CI Website
 on:
   pull_request:
     branches: [master]
-    paths: ['website/**']
+    paths: ['website/**', '.github/workflows/ci-website.yml']
   push:
     branches: [master]
-    paths: ['website/**']
+    paths: ['website/**', '.github/workflows/ci-website.yml']
 
 jobs:
   check:

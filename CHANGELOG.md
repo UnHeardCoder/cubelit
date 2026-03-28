@@ -24,6 +24,9 @@ Versions follow [Semantic Versioning](https://semver.org/).
 - New `ci-website.yml` type-checks the website on `website/**` changes
 - GitHub release notes now auto-populated from `CHANGELOG.md` instead of a hardcoded template
 
+### Fixed
+- `website/tsconfig.node.json`: removed `erasableSyntaxOnly` option (requires TS 5.8+, project uses 5.6.x)
+
 ---
 
 ## [0.1.5] — 2026-03-25

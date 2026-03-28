@@ -82,6 +82,10 @@ jobs:
           TAG="${{ github.ref_name }}"
           VERSION="${TAG#v}"
           BODY=$(awk "/^## \[${VERSION}\]/{found=1; next} found && /^## \[/{exit} found && NF{print}" CHANGELOG.md)
+          if [ -z "$(echo "$BODY" | tr -d '[:space:]')" ]; then
+            echo "ERROR: No CHANGELOG entry found for version $VERSION. Add a '## [$VERSION]' section to CHANGELOG.md before tagging."
+            exit 1
+          fi
           echo "body<<CHANGELOG_EOF" >> $GITHUB_OUTPUT
           echo "$BODY" >> $GITHUB_OUTPUT
           echo "CHANGELOG_EOF" >> $GITHUB_OUTPUT
