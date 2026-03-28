@@ -14,6 +14,7 @@
   let manifestError = $state(false)
   let contentLoading = $state(false)
   let contentError = $state(false)
+  let currentFetchController: AbortController | null = null
 
   function scoreColor(score: number): string {
     if (score >= 80) return '#22c55e'
@@ -29,18 +30,27 @@
 
   async function selectVersion(v: string) {
     selectedVersion = v
-    history.replaceState({}, '', '/audits?v=' + v)
+    const url = new URL(window.location.href)
+    url.pathname = '/audits'
+    url.searchParams.set('v', v)
+    history.replaceState({}, '', url.toString())
     contentLoading = true
     contentError = false
     content = ''
+    currentFetchController?.abort()
+    const controller = new AbortController()
+    currentFetchController = controller
     try {
-      const res = await fetch(`/audits/v${v}.html`)
+      const res = await fetch(`/audits/v${v}.html`, { signal: controller.signal })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      content = await res.text()
-    } catch {
-      contentError = true
+      const next = await res.text()
+      if (currentFetchController === controller) content = next
+    } catch (err) {
+      if (!(err instanceof DOMException && err.name === 'AbortError')) {
+        contentError = true
+      }
     } finally {
-      contentLoading = false
+      if (currentFetchController === controller) contentLoading = false
     }
   }
 
