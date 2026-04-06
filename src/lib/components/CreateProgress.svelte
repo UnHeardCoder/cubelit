@@ -36,7 +36,7 @@
       <div
         class="h-2 rounded-full transition-all duration-500 {step === 'ready' ? 'bg-cubelit-success' : 'bg-cubelit-accent'}"
         style="width: {Math.round(progress * 100)}%"
-      />
+      ></div>
     </div>
   {/if}
 
@@ -46,7 +46,7 @@
       <div class="flex flex-col items-center gap-1">
         <div
           class="w-3 h-3 rounded-full transition-colors {stepIndex(step) >= i ? (step === 'ready' ? 'bg-cubelit-success' : 'bg-cubelit-accent') : 'bg-cubelit-border'}"
-        />
+        ></div>
         <span class="text-xs text-cubelit-muted capitalize">{s}</span>
       </div>
     {/each}

@@ -19,11 +19,16 @@
   let updateAvailable = $state<{ version: string; download: () => Promise<void> } | null>(null);
   let updateLoading = $state(false);
 
+  function startRefreshLoop() {
+    if (refreshInterval !== null) return;
+    refreshInterval = setInterval(() => servers.load(), 30_000);
+  }
+
   onMount(async () => {
     await docker.check();
     if (docker.status.available) {
       await servers.load();
-      refreshInterval = setInterval(() => servers.load(), 30_000);
+      startRefreshLoop();
     }
     initialized = true;
 
@@ -40,7 +45,9 @@
           },
         };
       }
-    } catch { /* ignore — update check should never break the app */ }
+    } catch (error) {
+      console.error("Failed to check for app updates:", error);
+    }
   });
 
   onDestroy(() => {
@@ -48,9 +55,10 @@
   });
 
   function handleDockerCheck() {
-    docker.check().then(() => {
+    docker.check().then(async () => {
       if (docker.status.available) {
-        servers.load();
+        await servers.load();
+        startRefreshLoop();
       }
     });
   }
@@ -69,7 +77,8 @@
   </div>
 {:else if !docker.status.available}
   <DockerOnboarding
-    error={docker.status.error}
+    status={docker.onboarding}
+    statusError={docker.status.error}
     checking={docker.checking}
     oncheck={handleDockerCheck}
   />
@@ -131,6 +140,7 @@
       <button
         class="text-cubelit-muted hover:text-cubelit-text transition-colors"
         onclick={() => updateAvailable = null}
+        aria-label="Dismiss update notice"
       >
         <svg class="w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />

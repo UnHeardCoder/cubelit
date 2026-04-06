@@ -40,6 +40,7 @@
       <li>Copy the generated license key</li>
     </ol>
     <button
+      type="button"
       class="w-full px-4 py-2.5 bg-cubelit-accent text-white rounded-lg hover:bg-cubelit-accent-hover transition-colors text-sm font-medium"
       onclick={openKeymaster}
     >
@@ -48,8 +49,9 @@
   </div>
 
   <div class="space-y-2">
-    <label class="text-sm font-medium text-cubelit-text">Paste your license key</label>
+    <label class="text-sm font-medium text-cubelit-text" for="fivem-license-key">Paste your license key</label>
     <input
+      id="fivem-license-key"
       type="text"
       class="w-full px-3 py-2.5 bg-cubelit-bg border border-cubelit-border rounded-lg text-cubelit-text placeholder:text-cubelit-muted/50 focus:outline-none focus:border-cubelit-accent transition-colors font-mono text-sm"
       bind:value={licenseKey}
@@ -62,6 +64,7 @@
   </div>
 
   <button
+    type="button"
     class="w-full px-4 py-3 bg-cubelit-accent text-white rounded-xl hover:bg-cubelit-accent-hover transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
     disabled={!licenseKey.trim()}
     onclick={oncontinue}

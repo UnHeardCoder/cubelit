@@ -169,6 +169,7 @@
 <div class="flex gap-1 mb-6 border-b border-cubelit-border">
   {#each tabs as tab}
     <button
+      type="button"
       class="px-4 py-2.5 text-sm font-medium transition-colors relative {activeTab === tab.id
         ? 'text-cubelit-accent'
         : 'text-cubelit-muted hover:text-cubelit-text'}"
@@ -176,7 +177,7 @@
     >
       {tab.label}
       {#if activeTab === tab.id}
-        <div class="absolute bottom-0 left-0 right-0 h-0.5 bg-cubelit-accent rounded-t" />
+        <div class="absolute bottom-0 left-0 right-0 h-0.5 bg-cubelit-accent rounded-t"></div>
       {/if}
     </button>
   {/each}
@@ -243,6 +244,7 @@
               <p class="text-xs text-cubelit-muted">{(file.size / 1024).toFixed(1)} KB</p>
             </div>
             <button
+              type="button"
               class="text-xs text-cubelit-error hover:text-cubelit-error/80 transition-colors"
               onclick={() => { fileToDelete = file.name; showDeleteFileModal = true; }}
             >
@@ -276,10 +278,11 @@
       <div class="bg-cubelit-surface border border-cubelit-border rounded-xl p-5 space-y-4">
         {#each recipe.environment as field}
           <div class="space-y-1">
-            <label class="text-xs font-medium text-cubelit-muted">{field.label}</label>
+            <label class="text-xs font-medium text-cubelit-muted" for={`generic-${field.key}`}>{field.label}</label>
             {#if field.type === "boolean"}
               <div class="flex items-center gap-2">
                 <input
+                  id={`generic-${field.key}`}
                   type="checkbox"
                   class="w-4 h-4 accent-cubelit-accent"
                   checked={editEnv[field.key]?.toLowerCase() === "true"}
@@ -290,6 +293,7 @@
             {:else if field.options.length > 0}
               <div class="relative">
                 <select
+                  id={`generic-${field.key}`}
                   class="w-full appearance-none bg-cubelit-bg border border-cubelit-border rounded-lg px-3 py-1.5 pr-8 text-sm text-cubelit-text focus:outline-none focus:border-cubelit-accent"
                   bind:value={editEnv[field.key]}
                 >
@@ -305,6 +309,7 @@
               </div>
             {:else}
               <input
+                id={`generic-${field.key}`}
                 type="text"
                 class="w-full bg-cubelit-bg border border-cubelit-border rounded-lg px-3 py-1.5 text-sm text-cubelit-text focus:outline-none focus:border-cubelit-accent"
                 bind:value={editEnv[field.key]}

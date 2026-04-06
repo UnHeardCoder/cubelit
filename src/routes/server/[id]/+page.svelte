@@ -1,16 +1,14 @@
 <script lang="ts">
   import { page } from "$app/state";
-  import { onMount, onDestroy } from "svelte";
+  import { onMount, onDestroy, tick } from "svelte";
   import { goto } from "$app/navigation";
   import { listen } from "@tauri-apps/api/event";
   import { syncServerStatus, renameServer } from "$lib/api/servers";
+  import { getGameDefinition } from "$lib/games/registry";
   import { getServersStore } from "$lib/stores/servers.svelte";
   import Button from "$lib/components/Button.svelte";
   import Modal from "$lib/components/Modal.svelte";
   import Spinner from "$lib/components/Spinner.svelte";
-  import MinecraftDashboard from "$lib/components/games/minecraft/MinecraftDashboard.svelte";
-  import FivemDashboard from "$lib/components/games/fivem/FivemDashboard.svelte";
-  import GenericDashboard from "$lib/components/games/GenericDashboard.svelte";
   import type { Cubelit } from "$lib/types/server";
 
   const servers = getServersStore();
@@ -24,30 +22,39 @@
   let showRestartModal = $state(false);
 
   let editing = $state(false);
+  let isSavingName = $state(false);
   let editName = $state("");
+  let editNameInput = $state<HTMLInputElement | null>(null);
+  let DashboardComponent = $derived(server ? getGameDefinition(server.recipe_id).dashboardComponent : null);
 
   let statusUnlisten: (() => void) | null = null;
 
-  function startEditing() {
+  async function startEditing() {
     if (!server) return;
     editName = server.name;
     editing = true;
+    await tick();
+    editNameInput?.focus();
+    editNameInput?.select();
   }
 
   async function saveName() {
-    if (!server) return;
+    if (!server || isSavingName) return;
     const trimmed = editName.trim();
     if (!trimmed || trimmed === server.name) {
       editing = false;
       return;
     }
+    isSavingName = true;
     try {
       server = await renameServer(server.id, trimmed);
-      servers.load();
+      await servers.load();
     } catch {
       // revert on error
+    } finally {
+      isSavingName = false;
+      editing = false;
     }
-    editing = false;
   }
 
   function cancelEdit() {
@@ -162,7 +169,7 @@
       </div>
     </label>
 
-    <div class="flex gap-3 justify-end pt-2">
+      <div class="flex gap-3 justify-end pt-2">
       <Button variant="ghost" onclick={() => { showDeleteModal = false; deleteWithData = false; }}>Cancel</Button>
       <Button variant="danger" onclick={handleDelete}>Delete Server</Button>
     </div>
@@ -177,7 +184,7 @@
   <div class="p-8">
     <!-- Header -->
     <div class="flex items-center gap-4 mb-8">
-      <a href="/" class="text-cubelit-muted hover:text-cubelit-text transition-colors">
+      <a href="/" class="text-cubelit-muted hover:text-cubelit-text transition-colors" aria-label="Back to dashboard">
         <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
         </svg>
@@ -185,21 +192,29 @@
       <div class="flex-1 min-w-0">
         {#if editing}
           <input
+            bind:this={editNameInput}
             class="text-2xl font-bold text-cubelit-text bg-transparent border-b-2 border-cubelit-accent outline-none w-full"
             bind:value={editName}
+            aria-label="Server name"
             onkeydown={(e: KeyboardEvent) => {
               if (e.key === "Enter") saveName();
               if (e.key === "Escape") cancelEdit();
             }}
             onblur={saveName}
-            autofocus
           />
         {:else}
-          <h1
-            class="text-2xl font-bold text-cubelit-text cursor-pointer hover:text-cubelit-accent transition-colors"
-            onclick={startEditing}
-            title="Click to rename"
-          >{server.name}</h1>
+          <div class="flex items-center gap-2">
+            <h1 class="text-2xl font-bold text-cubelit-text">{server.name}</h1>
+            <button
+              type="button"
+              class="text-sm text-cubelit-muted hover:text-cubelit-accent transition-colors"
+              onclick={startEditing}
+              aria-label="Rename server"
+              title="Rename server"
+            >
+              Rename
+            </button>
+          </div>
         {/if}
         <p class="text-cubelit-muted">{server.game}</p>
       </div>
@@ -216,12 +231,8 @@
     </div>
 
     <!-- Game-specific dashboard -->
-    {#if server.recipe_id === "minecraft-java"}
-      <MinecraftDashboard {server} />
-    {:else if server.recipe_id === "fivem"}
-      <FivemDashboard {server} />
-    {:else}
-      <GenericDashboard {server} />
+    {#if DashboardComponent}
+      <DashboardComponent {server} />
     {/if}
 
     <!-- Danger zone -->
