@@ -78,6 +78,7 @@
 {:else if !docker.status.available}
   <DockerOnboarding
     status={docker.onboarding}
+    statusError={docker.status.error}
     checking={docker.checking}
     oncheck={handleDockerCheck}
   />

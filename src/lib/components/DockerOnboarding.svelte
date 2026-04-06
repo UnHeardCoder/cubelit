@@ -6,11 +6,12 @@
 
   interface Props {
     status: OnboardingStatus | null;
+    statusError?: string | null;
     checking: boolean;
     oncheck: () => void;
   }
 
-  let { status = null, checking, oncheck }: Props = $props();
+  let { status = null, statusError = null, checking, oncheck }: Props = $props();
 
   type Step =
     | "checking"
@@ -28,7 +29,8 @@
   let actionError = $state<string | null>(null);
   let actionLoading = $state(false);
   let actionStep = $state<"enabling_wsl2" | "setting_default_wsl2" | null>(null);
-  let pollInterval: ReturnType<typeof setInterval> | null = null;
+  let pollTimer: ReturnType<typeof setTimeout> | null = null;
+  let pollGeneration = 0;
   let mounted = true;
 
   const windowsStoreUrl = "https://apps.microsoft.com/detail/xp8cbj40xlbwkx";
@@ -43,7 +45,9 @@
   }
 
   function statusStep(): Step {
-    if (!currentStatus) return "checking";
+    if (!currentStatus) {
+      return checking ? "checking" : "diagnostic_error";
+    }
 
     if (currentStatus.platform === "windows") {
       switch (currentStatus.wsl.state) {
@@ -76,7 +80,9 @@
   }
 
   function diagnosticsMessage(): string {
-    if (!currentStatus) return "Cubelit couldn't verify your Docker setup yet.";
+    if (!currentStatus) {
+      return statusError?.trim() || "Cubelit couldn't verify your Docker setup yet.";
+    }
     const wslError = currentStatus.wsl.error?.trim();
     if (currentStatus.platform === "windows" && currentStatus.wsl.state === "check_failed") {
       return wslError || "Cubelit couldn't verify your WSL setup.";
@@ -92,8 +98,9 @@
   }
 
   function stopPolling() {
-    if (pollInterval !== null) clearInterval(pollInterval);
-    pollInterval = null;
+    pollGeneration++;
+    if (pollTimer !== null) clearTimeout(pollTimer);
+    pollTimer = null;
   }
 
   onDestroy(() => {
@@ -103,36 +110,44 @@
 
   function startPolling(waitForStep: "enable_wsl2" | "set_default_wsl2") {
     stopPolling();
+    const generation = pollGeneration;
     let attempts = 0;
     const maxAttempts = 24;
+    const pollDelayMs = 5000;
 
-    pollInterval = setInterval(async () => {
-      if (!mounted || pollInterval === null) return;
-      attempts++;
+    const pollOnce = async () => {
+      if (!mounted || generation !== pollGeneration) return;
       try {
         await refreshStatus();
-        if (!mounted || pollInterval === null) return;
+        if (!mounted || generation !== pollGeneration) return;
         const step = statusStep();
         if (step !== waitForStep) {
           stopPolling();
-          if (!mounted) return;
+          if (!mounted || generation !== pollGeneration) return;
           actionStep = null;
           oncheck();
           return;
         }
       } catch (e) {
-        if (!mounted) return;
+        if (!mounted || generation !== pollGeneration) return;
         actionError = String(e);
       }
 
+      attempts++;
       if (attempts >= maxAttempts) {
         stopPolling();
-        if (!mounted) return;
+        if (!mounted || generation !== pollGeneration) return;
         actionStep = null;
         actionError = "Setup is taking longer than expected. Click Check Again after the command window closes.";
         oncheck();
+        return;
       }
-    }, 5000);
+
+      if (!mounted || generation !== pollGeneration) return;
+      pollTimer = setTimeout(pollOnce, pollDelayMs);
+    };
+
+    pollTimer = setTimeout(pollOnce, pollDelayMs);
   }
 
   async function handleEnableWsl2() {
