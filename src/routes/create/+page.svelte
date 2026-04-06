@@ -23,6 +23,7 @@
   let envValues = $state<Record<string, string>>({});
   let portValues = $state<Record<string, number>>({});
   let volumePath = $state("");
+  let volumePathDirty = $state(false);
   let imageTagOverride = $state<string | null>(null);
   let creating = $state(false);
   let createStep = $state("preparing");
@@ -55,6 +56,7 @@
     try {
       selectedRecipe = await getRecipeDetail(id);
       serverName = `My ${selectedRecipe.name} Server`;
+      volumePathDirty = false;
       volumePath = getDefaultVolumePath(serverName);
 
       envValues = {};
@@ -214,9 +216,12 @@
         onname={(n) => {
           serverName = n;
           if (selectedRecipeId === "fivem") envValues["SERVER_NAME"] = n;
-          volumePath = getDefaultVolumePath(n);
+          if (!volumePathDirty) volumePath = getDefaultVolumePath(n);
         }}
-        onvolumepath={(p) => { volumePath = p; }}
+        onvolumepath={(p) => {
+          volumePath = p;
+          volumePathDirty = true;
+        }}
         ontagchange={(tag) => { imageTagOverride = tag === "latest" ? null : tag; }}
       />
     {/if}

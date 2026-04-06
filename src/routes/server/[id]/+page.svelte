@@ -22,6 +22,7 @@
   let showRestartModal = $state(false);
 
   let editing = $state(false);
+  let isSavingName = $state(false);
   let editName = $state("");
   let editNameInput = $state<HTMLInputElement | null>(null);
   let DashboardComponent = $derived(server ? getGameDefinition(server.recipe_id).dashboardComponent : null);
@@ -38,19 +39,22 @@
   }
 
   async function saveName() {
-    if (!server) return;
+    if (!server || isSavingName) return;
     const trimmed = editName.trim();
     if (!trimmed || trimmed === server.name) {
       editing = false;
       return;
     }
+    isSavingName = true;
     try {
       server = await renameServer(server.id, trimmed);
-      servers.load();
+      await servers.load();
     } catch {
       // revert on error
+    } finally {
+      isSavingName = false;
+      editing = false;
     }
-    editing = false;
   }
 
   function cancelEdit() {
@@ -191,6 +195,7 @@
             bind:this={editNameInput}
             class="text-2xl font-bold text-cubelit-text bg-transparent border-b-2 border-cubelit-accent outline-none w-full"
             bind:value={editName}
+            aria-label="Server name"
             onkeydown={(e: KeyboardEvent) => {
               if (e.key === "Enter") saveName();
               if (e.key === "Escape") cancelEdit();

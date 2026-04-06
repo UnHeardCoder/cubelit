@@ -6,6 +6,7 @@ use tauri::State;
 
 #[cfg(target_os = "windows")]
 #[derive(Debug, Clone, Serialize)]
+/// Basic WSL readiness status returned to the frontend's legacy Windows check.
 pub struct WslStatus {
     pub wsl_installed: bool,
     pub wsl2_enabled: bool,
@@ -14,6 +15,7 @@ pub struct WslStatus {
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "snake_case")]
+/// High-level Docker availability states used by onboarding diagnostics.
 pub enum DockerState {
     Ready,
     NotInstalled,
@@ -25,6 +27,7 @@ pub enum DockerState {
 #[derive(Debug, Clone, Serialize)]
 #[cfg_attr(not(target_os = "windows"), allow(dead_code))]
 #[serde(rename_all = "snake_case")]
+/// High-level WSL readiness states used by Windows onboarding diagnostics.
 pub enum WslState {
     #[cfg_attr(target_os = "windows", allow(dead_code))]
     NotApplicable,
@@ -36,6 +39,7 @@ pub enum WslState {
 }
 
 #[derive(Debug, Clone, Serialize)]
+/// Docker diagnostic details surfaced to the frontend onboarding UI.
 pub struct DockerDiagnostic {
     pub state: DockerState,
     pub installed: Option<bool>,
@@ -44,6 +48,7 @@ pub struct DockerDiagnostic {
 }
 
 #[derive(Debug, Clone, Serialize)]
+/// WSL diagnostic details surfaced to the frontend onboarding UI.
 pub struct WslDiagnostic {
     pub state: WslState,
     pub wsl_installed: Option<bool>,
@@ -53,6 +58,7 @@ pub struct WslDiagnostic {
 }
 
 #[derive(Debug, Clone, Serialize)]
+/// Combined onboarding status consumed by the desktop app's setup gate.
 pub struct OnboardingStatus {
     pub platform: &'static str,
     pub docker: DockerDiagnostic,
@@ -260,15 +266,19 @@ async fn check_docker_diagnostic(
                 version: version.version,
                 error: None,
             },
-            Err(e) => DockerDiagnostic {
-                state: DockerState::Unknown,
-                installed: Some(true),
-                version: None,
-                error: Some(e.to_string()),
-            },
+            Err(e) => {
+                tracing::error!("Docker version failed after successful ping: {e}");
+                DockerDiagnostic {
+                    state: DockerState::Unknown,
+                    installed: Some(true),
+                    version: None,
+                    error: Some(e.to_string()),
+                }
+            }
         },
         Err(e) => {
             let error = e.to_string();
+            tracing::error!("Docker ping failed: {error}");
             #[cfg(target_os = "windows")]
             let installed = Some(docker_desktop_installed_windows());
             #[cfg(not(target_os = "windows"))]
@@ -286,6 +296,7 @@ async fn check_docker_diagnostic(
 
 #[cfg(target_os = "windows")]
 #[tauri::command]
+/// Returns the legacy Windows-only WSL status used by older onboarding flows.
 pub fn check_wsl_status() -> WslStatus {
     let diagnostic = check_wsl_diagnostic();
     WslStatus {
@@ -297,6 +308,7 @@ pub fn check_wsl_status() -> WslStatus {
 
 #[cfg(target_os = "windows")]
 #[tauri::command]
+/// Launches an elevated PowerShell command to enable the Windows WSL2 features.
 pub fn enable_wsl2() -> Result<(), AppError> {
     use std::ffi::OsStr;
     use std::os::windows::ffi::OsStrExt;
@@ -339,6 +351,7 @@ pub fn enable_wsl2() -> Result<(), AppError> {
 
 #[cfg(target_os = "windows")]
 #[tauri::command]
+/// Sets WSL version 2 as the default for new Linux distributions on Windows.
 pub fn set_wsl_default_version() -> Result<(), AppError> {
     let output = std::process::Command::new(r"C:\Windows\System32\wsl.exe")
         .args(["--set-default-version", "2"])
@@ -365,6 +378,7 @@ pub fn suggest_port(default_port: u16) -> u16 {
 }
 
 #[tauri::command]
+/// Returns a full onboarding snapshot combining Docker and platform diagnostics.
 pub async fn get_onboarding_status(
     state: State<'_, AppState>,
 ) -> Result<OnboardingStatus, AppError> {

@@ -8,6 +8,7 @@ import MinecraftDashboard from "$lib/components/games/minecraft/MinecraftDashboa
 import FivemSetup from "$lib/components/games/fivem/FivemSetup.svelte";
 import FivemDashboard from "$lib/components/games/fivem/FivemDashboard.svelte";
 
+/** Props shared by all game-specific setup components in the create flow. */
 export interface GameSetupProps {
   recipe: Recipe;
   serverName: string;
@@ -21,6 +22,7 @@ export interface GameSetupProps {
   ontagchange?: (tag: string) => void;
 }
 
+/** Props shared by all game-specific dashboard components on the server page. */
 export interface GameDashboardProps {
   server: Cubelit;
 }
@@ -140,6 +142,7 @@ const gameDefinitions: Record<string, GameDefinition> = {
   },
 };
 
+/** Resolves the setup and dashboard components for a recipe id, with a generic fallback. */
 export function getGameDefinition(recipeId: string): GameDefinition {
   return gameDefinitions[recipeId] ?? defaultGameDefinition;
 }

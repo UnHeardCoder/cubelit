@@ -23,21 +23,19 @@
     | "start_docker"
     | "diagnostic_error";
 
+  // Keep a local copy so polling can replace the prop value between parent refreshes.
   let currentStatus = $state<OnboardingStatus | null>(null);
   let actionError = $state<string | null>(null);
   let actionLoading = $state(false);
   let actionStep = $state<"enabling_wsl2" | "setting_default_wsl2" | null>(null);
   let pollInterval: ReturnType<typeof setInterval> | null = null;
+  let mounted = true;
 
   const windowsStoreUrl = "https://apps.microsoft.com/detail/xp8cbj40xlbwkx";
   const dockerDesktopUrl = "https://www.docker.com/products/docker-desktop/";
 
   $effect(() => {
     currentStatus = status;
-  });
-
-  onDestroy(() => {
-    if (pollInterval !== null) clearInterval(pollInterval);
   });
 
   function isWindows(): boolean {
@@ -87,7 +85,10 @@
   }
 
   async function refreshStatus() {
-    currentStatus = await getOnboardingStatus();
+    if (!mounted) return;
+    const nextStatus = await getOnboardingStatus();
+    if (!mounted) return;
+    currentStatus = nextStatus;
   }
 
   function stopPolling() {
@@ -95,28 +96,38 @@
     pollInterval = null;
   }
 
+  onDestroy(() => {
+    mounted = false;
+    stopPolling();
+  });
+
   function startPolling(waitForStep: "enable_wsl2" | "set_default_wsl2") {
     stopPolling();
     let attempts = 0;
     const maxAttempts = 24;
 
     pollInterval = setInterval(async () => {
+      if (!mounted || pollInterval === null) return;
       attempts++;
       try {
         await refreshStatus();
+        if (!mounted || pollInterval === null) return;
         const step = statusStep();
         if (step !== waitForStep) {
           stopPolling();
+          if (!mounted) return;
           actionStep = null;
           oncheck();
           return;
         }
       } catch (e) {
+        if (!mounted) return;
         actionError = String(e);
       }
 
       if (attempts >= maxAttempts) {
         stopPolling();
+        if (!mounted) return;
         actionStep = null;
         actionError = "Setup is taking longer than expected. Click Check Again after the command window closes.";
         oncheck();
@@ -129,11 +140,14 @@
     actionError = null;
     try {
       await enableWsl2();
+      if (!mounted) return;
       actionStep = "enabling_wsl2";
       startPolling("enable_wsl2");
     } catch (e) {
+      if (!mounted) return;
       actionError = String(e);
     } finally {
+      if (!mounted) return;
       actionLoading = false;
     }
   }
@@ -143,8 +157,10 @@
     actionError = null;
     try {
       await setWslDefaultVersion();
+      if (!mounted) return;
       actionStep = "setting_default_wsl2";
       await refreshStatus();
+      if (!mounted) return;
       if (statusStep() === "set_default_wsl2") {
         startPolling("set_default_wsl2");
       } else {
@@ -152,15 +168,18 @@
         oncheck();
       }
     } catch (e) {
+      if (!mounted) return;
       actionError = String(e);
       actionStep = null;
     } finally {
+      if (!mounted) return;
       actionLoading = false;
     }
   }
 
   function handleCheckAgain() {
     stopPolling();
+    if (!mounted) return;
     actionStep = null;
     actionError = null;
     oncheck();

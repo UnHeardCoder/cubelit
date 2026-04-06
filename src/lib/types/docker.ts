@@ -1,9 +1,11 @@
+/** Basic Docker reachability details used by the legacy store state. */
 export interface DockerStatus {
   available: boolean;
   version: string | null;
   error: string | null;
 }
 
+/** Docker availability states returned by the onboarding diagnostics command. */
 export type DockerState =
   | "ready"
   | "not_installed"
@@ -11,6 +13,7 @@ export type DockerState =
   | "permission_denied"
   | "unknown";
 
+/** Windows WSL readiness states returned by the onboarding diagnostics command. */
 export type WslState =
   | "not_applicable"
   | "ok"
@@ -19,12 +22,14 @@ export type WslState =
   | "reboot_required"
   | "check_failed";
 
+/** Legacy Windows WSL status shape used by older onboarding checks. */
 export interface WslStatus {
   wsl_installed: boolean;
   wsl2_enabled: boolean;
   reboot_required: boolean;
 }
 
+/** Full onboarding diagnostics consumed by the Docker setup gate. */
 export interface OnboardingStatus {
   platform: "windows" | "linux" | "macos";
   docker: {
@@ -42,6 +47,7 @@ export interface OnboardingStatus {
   };
 }
 
+/** Container resource usage reported by the live stats stream. */
 export interface ContainerStats {
   cpu_percent: number;
   memory_usage_mb: number;

@@ -370,10 +370,12 @@
     <!-- Modpack Browser -->
     <div class="space-y-4">
       <!-- Source Tabs -->
-      <div class="flex gap-1 border-b border-cubelit-border">
+      <div class="flex gap-1 border-b border-cubelit-border" role="radiogroup" aria-label="Modpack source">
         {#each (["modrinth", "ftb"] as const) as source}
           <button
             type="button"
+            role="radio"
+            aria-checked={modpackSource === source}
             class="px-4 py-2 text-sm font-medium transition-colors relative capitalize {modpackSource === source ? 'text-cubelit-accent' : 'text-cubelit-muted hover:text-cubelit-text'}"
             onclick={() => switchSource(source)}
           >
@@ -446,6 +448,7 @@
             <div class="grid grid-cols-1 gap-2 max-h-72 overflow-y-auto pr-1">
               {#each packs as pack}
                 <button
+                  type="button"
                   class="flex items-center gap-3 px-3 py-2.5 bg-cubelit-surface hover:bg-cubelit-border border border-cubelit-border rounded-lg text-left transition-colors"
                   onclick={() => modpackSource === "ftb" ? selectFtbPack(pack as FtbPack) : selectModrinthPack(pack as ModrinthPack)}
                 >
@@ -485,10 +488,12 @@
     <!-- Server Type -->
     <div class="space-y-2">
       <p class="text-sm font-medium text-cubelit-text">Server Type</p>
-      <div class="grid grid-cols-3 gap-2">
+      <div class="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Server type">
         {#each serverTypes as type}
           <button
             type="button"
+            role="radio"
+            aria-checked={(envValues['TYPE'] ?? 'VANILLA') === type}
             class="px-3 py-2.5 rounded-lg border-2 text-sm font-medium transition-colors {(envValues['TYPE'] ?? 'VANILLA') === type
               ? 'border-cubelit-accent bg-cubelit-accent/10 text-cubelit-accent'
               : 'border-cubelit-border bg-cubelit-surface text-cubelit-muted hover:border-cubelit-accent/40'}"
@@ -519,10 +524,12 @@
   <!-- RAM (always shown) -->
   <div class="space-y-2">
     <p class="text-sm font-medium text-cubelit-text">Server RAM</p>
-    <div class="flex gap-2">
+    <div class="flex gap-2" role="radiogroup" aria-label="Server RAM">
       {#each ramOptions as ram}
         <button
           type="button"
+          role="radio"
+          aria-checked={(envValues['MEMORY'] ?? '2G') === ram}
           class="flex-1 px-3 py-2.5 rounded-lg border-2 text-sm font-medium transition-colors {(envValues['MEMORY'] ?? '2G') === ram
             ? 'border-cubelit-accent bg-cubelit-accent/10 text-cubelit-accent'
             : 'border-cubelit-border bg-cubelit-surface text-cubelit-muted hover:border-cubelit-accent/40'}"
@@ -542,10 +549,12 @@
         <span class="text-xs text-cubelit-accent bg-cubelit-accent/10 px-2 py-0.5 rounded-full">{javaAutoDetected}</span>
       {/if}
     </div>
-    <div class="flex gap-2">
+    <div class="flex gap-2" role="radiogroup" aria-label="Java version">
       {#each javaTags as jt}
         <button
           type="button"
+          role="radio"
+          aria-checked={javaTag === jt.tag}
           class="flex-1 px-3 py-2.5 rounded-lg border-2 text-sm font-medium transition-colors {javaTag === jt.tag
             ? 'border-cubelit-accent bg-cubelit-accent/10 text-cubelit-accent'
             : 'border-cubelit-border bg-cubelit-surface text-cubelit-muted hover:border-cubelit-accent/40'}"
@@ -566,10 +575,12 @@
     <!-- Difficulty -->
     <div class="space-y-2">
       <p class="text-xs text-cubelit-muted">Difficulty</p>
-      <div class="flex gap-2">
+      <div class="flex gap-2" role="radiogroup" aria-label="Difficulty">
         {#each difficulties as diff}
           <button
             type="button"
+            role="radio"
+            aria-checked={(envValues['DIFFICULTY'] ?? 'normal') === diff}
             class="flex-1 px-3 py-2 rounded-lg border text-xs font-medium capitalize transition-colors {(envValues['DIFFICULTY'] ?? 'normal') === diff
               ? 'border-cubelit-accent bg-cubelit-accent/10 text-cubelit-accent'
               : 'border-cubelit-border bg-cubelit-surface text-cubelit-muted hover:border-cubelit-accent/40'}"
