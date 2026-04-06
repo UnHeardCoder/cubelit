@@ -215,7 +215,6 @@
         onportchange={(k, v) => { portValues[k] = v; }}
         onname={(n) => {
           serverName = n;
-          if (selectedRecipeId === "fivem") envValues["SERVER_NAME"] = n;
           if (!volumePathDirty) volumePath = getDefaultVolumePath(n);
         }}
         onvolumepath={(p) => {

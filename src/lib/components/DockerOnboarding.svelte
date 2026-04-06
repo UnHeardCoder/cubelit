@@ -147,8 +147,7 @@
       if (!mounted) return;
       actionError = String(e);
     } finally {
-      if (!mounted) return;
-      actionLoading = false;
+      if (mounted) actionLoading = false;
     }
   }
 
@@ -172,8 +171,7 @@
       actionError = String(e);
       actionStep = null;
     } finally {
-      if (!mounted) return;
-      actionLoading = false;
+      if (mounted) actionLoading = false;
     }
   }
 

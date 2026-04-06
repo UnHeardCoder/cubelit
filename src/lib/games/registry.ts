@@ -70,7 +70,7 @@ const gameDefinitions: Record<string, GameDefinition> = {
     setupComponent: FivemSetup,
     dashboardComponent: FivemDashboard,
     reviewNotes: ["A MariaDB sidecar will be auto-provisioned."],
-    tileMonogram: "V",
+    tileMonogram: "F",
     cardStyle: {
       titleClass: "font-bold tracking-wide",
       subtitle: "GTA V Multiplayer",
