@@ -11,6 +11,24 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.1.7] — 2026-04-06
+
+### Added
+- Expanded Docker and WSL onboarding diagnostics with clearer Windows setup guidance and richer failure states
+- Shared game registry for setup/dashboard selection and card styling across supported games
+
+### Changed
+- Create flow and server detail pages now dispatch game-specific setup and dashboard components through the registry
+- UI controls across setup and dashboard screens received accessibility improvements including labeled inputs, explicit button types, and keyboard-friendly interactions
+- GitHub release workflow now publishes non-draft releases so updater metadata is available to clients
+
+### Fixed
+- Windows onboarding polling now stays in the in-progress state while WSL commands are still running
+- Keyboard activation on server cards no longer steals `Enter`/`Space` events from nested Start/Stop buttons
+- Updater check failures are logged in the frontend instead of failing silently
+
+---
+
 ## [0.1.6] — 2026-03-28
 
 ### Added

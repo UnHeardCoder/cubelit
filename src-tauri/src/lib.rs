@@ -87,6 +87,7 @@ pub fn run() {
             get_recipe_detail,
             check_port,
             suggest_port,
+            get_onboarding_status,
             get_public_ip,
             open_folder,
             #[cfg(target_os = "windows")]

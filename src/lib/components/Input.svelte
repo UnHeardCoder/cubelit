@@ -1,5 +1,6 @@
 <script lang="ts">
   interface Props {
+    id?: string;
     value?: string;
     placeholder?: string;
     label?: string;
@@ -10,6 +11,7 @@
   }
 
   let {
+    id = "",
     value = $bindable(""),
     placeholder = "",
     label = "",
@@ -18,13 +20,20 @@
     oninput,
     class: className = "",
   }: Props = $props();
+
+  const fallbackId = `input-${Math.random().toString(36).slice(2, 10)}`;
+
+  function inputId(): string {
+    return id || fallbackId;
+  }
 </script>
 
 <div class="flex flex-col gap-1.5 {className}">
   {#if label}
-    <label class="text-sm text-cubelit-muted">{label}</label>
+    <label class="text-sm text-cubelit-muted" for={inputId()}>{label}</label>
   {/if}
   <input
+    id={inputId()}
     {type}
     bind:value
     {placeholder}

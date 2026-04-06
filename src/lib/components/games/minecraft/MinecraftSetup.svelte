@@ -1,19 +1,6 @@
 <script lang="ts">
-  import type { Recipe } from "$lib/types/recipe";
+  import type { GameSetupProps } from "$lib/games/registry";
   import PortInput from "$lib/components/PortInput.svelte";
-
-  interface Props {
-    recipe: Recipe;
-    serverName: string;
-    envValues: Record<string, string>;
-    portValues: Record<string, number>;
-    volumePath: string;
-    onenvchange: (key: string, value: string) => void;
-    onportchange: (containerPort: string, hostPort: number) => void;
-    onname: (name: string) => void;
-    onvolumepath: (path: string) => void;
-    ontagchange: (tag: string) => void;
-  }
 
   let {
     recipe,
@@ -24,9 +11,9 @@
     onenvchange,
     onportchange,
     onname,
-    onvolumepath,
-    ontagchange,
-  }: Props = $props();
+    onvolumepath = () => {},
+    ontagchange = () => {},
+  }: GameSetupProps = $props();
 
   let showAdvancedPorts = $state(false);
 
@@ -329,8 +316,9 @@
 
   <!-- Server Name -->
   <div class="space-y-2">
-    <label class="text-sm font-medium text-cubelit-text">Server Name</label>
+    <label class="text-sm font-medium text-cubelit-text" for="minecraft-server-name">Server Name</label>
     <input
+      id="minecraft-server-name"
       type="text"
       class="w-full px-3 py-2.5 bg-cubelit-bg border border-cubelit-border rounded-lg text-cubelit-text placeholder:text-cubelit-muted/50 focus:outline-none focus:border-cubelit-accent transition-colors"
       bind:value={serverName}
@@ -341,16 +329,18 @@
 
   <!-- Server Location -->
   <div class="space-y-2">
-    <label class="text-sm font-medium text-cubelit-text">Server Location</label>
+    <label class="text-sm font-medium text-cubelit-text" for="minecraft-server-location">Server Location</label>
     <p class="text-xs text-cubelit-muted">Where your server files will be stored.</p>
     <div class="flex gap-2">
       <input
+        id="minecraft-server-location"
         type="text"
         class="flex-1 px-3 py-2.5 bg-cubelit-bg border border-cubelit-border rounded-lg text-cubelit-text text-sm font-mono focus:outline-none focus:border-cubelit-accent transition-colors"
         bind:value={volumePath}
         oninput={() => onvolumepath(volumePath)}
       />
       <button
+        type="button"
         class="px-4 py-2.5 bg-cubelit-surface border border-cubelit-border rounded-lg text-cubelit-text text-sm hover:bg-cubelit-border transition-colors shrink-0"
         onclick={browseFolder}
       >
@@ -366,10 +356,13 @@
       <p class="text-xs text-cubelit-muted mt-0.5">Browse FTB and Modrinth modpacks</p>
     </div>
     <button
+      type="button"
       class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors {useModpack ? 'bg-cubelit-accent' : 'bg-cubelit-border'}"
+      aria-label="Toggle modpack mode"
+      aria-pressed={useModpack}
       onclick={handleModpackToggle}
     >
-      <span class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform {useModpack ? 'translate-x-6' : 'translate-x-1'}" />
+      <span class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform {useModpack ? 'translate-x-6' : 'translate-x-1'}"></span>
     </button>
   </div>
 
@@ -380,12 +373,13 @@
       <div class="flex gap-1 border-b border-cubelit-border">
         {#each (["modrinth", "ftb"] as const) as source}
           <button
+            type="button"
             class="px-4 py-2 text-sm font-medium transition-colors relative capitalize {modpackSource === source ? 'text-cubelit-accent' : 'text-cubelit-muted hover:text-cubelit-text'}"
             onclick={() => switchSource(source)}
           >
             {source === "ftb" ? "FTB" : "Modrinth"}
             {#if modpackSource === source}
-              <div class="absolute bottom-0 left-0 right-0 h-0.5 bg-cubelit-accent rounded-t" />
+              <div class="absolute bottom-0 left-0 right-0 h-0.5 bg-cubelit-accent rounded-t"></div>
             {/if}
           </button>
         {/each}
@@ -407,7 +401,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
           </svg>
           <span class="text-sm text-cubelit-accent font-medium">{selectedPackName}</span>
-          <button class="ml-auto text-xs text-cubelit-muted hover:text-cubelit-text" onclick={() => { selectedPackId = null; selectedPackName = ""; packVersions = []; selectedVersionId = ""; clearModpackEnv(); useModpack = false; useModpack = true; loadSource(); }}>
+          <button type="button" class="ml-auto text-xs text-cubelit-muted hover:text-cubelit-text" onclick={() => { selectedPackId = null; selectedPackName = ""; packVersions = []; selectedVersionId = ""; clearModpackEnv(); useModpack = false; useModpack = true; loadSource(); }}>
             Change
           </button>
         </div>
@@ -417,9 +411,10 @@
           <p class="text-xs text-cubelit-muted text-center py-3">Loading versions...</p>
         {:else if packVersions.length > 0}
           <div class="space-y-1.5">
-            <label class="text-xs text-cubelit-muted">Version</label>
+            <label class="text-xs text-cubelit-muted" for="minecraft-modpack-version">Version</label>
             <div class="relative">
               <select
+                id="minecraft-modpack-version"
                 class="w-full appearance-none px-3 py-2.5 pr-8 bg-cubelit-bg border border-cubelit-border rounded-lg text-cubelit-text text-sm focus:outline-none focus:border-cubelit-accent transition-colors"
                 value={selectedVersionId}
                 onchange={(e) => selectVersion((e.target as HTMLSelectElement).value)}
@@ -454,25 +449,25 @@
                   class="flex items-center gap-3 px-3 py-2.5 bg-cubelit-surface hover:bg-cubelit-border border border-cubelit-border rounded-lg text-left transition-colors"
                   onclick={() => modpackSource === "ftb" ? selectFtbPack(pack as FtbPack) : selectModrinthPack(pack as ModrinthPack)}
                 >
-                  {#if modpackSource === "ftb"}
-                    {@const ftb = pack as FtbPack}
-                    {#if ftb.iconUrl}
-                      <img src={ftb.iconUrl} alt={ftb.name} class="w-8 h-8 rounded object-cover shrink-0" />
-                    {:else}
-                      <div class="w-8 h-8 rounded bg-cubelit-border shrink-0" />
-                    {/if}
+                {#if modpackSource === "ftb"}
+                  {@const ftb = pack as FtbPack}
+                  {#if ftb.iconUrl}
+                    <img src={ftb.iconUrl} alt={ftb.name} class="w-8 h-8 rounded object-cover shrink-0" />
+                  {:else}
+                    <div class="w-8 h-8 rounded bg-cubelit-border shrink-0"></div>
+                  {/if}
                     <div class="min-w-0 flex-1">
                       <p class="text-sm font-medium text-cubelit-text truncate">{ftb.name}</p>
                       <p class="text-xs text-cubelit-muted truncate">{ftb.description}</p>
                     </div>
                     <span class="text-xs text-cubelit-muted shrink-0">{ftb.plays.toLocaleString()} plays</span>
                   {:else}
-                    {@const mr = pack as ModrinthPack}
-                    {#if mr.icon_url}
-                      <img src={mr.icon_url} alt={mr.title} class="w-8 h-8 rounded object-cover shrink-0" />
-                    {:else}
-                      <div class="w-8 h-8 rounded bg-cubelit-border shrink-0" />
-                    {/if}
+                  {@const mr = pack as ModrinthPack}
+                  {#if mr.icon_url}
+                    <img src={mr.icon_url} alt={mr.title} class="w-8 h-8 rounded object-cover shrink-0" />
+                  {:else}
+                    <div class="w-8 h-8 rounded bg-cubelit-border shrink-0"></div>
+                  {/if}
                     <div class="min-w-0 flex-1">
                       <p class="text-sm font-medium text-cubelit-text truncate">{mr.title}</p>
                       <p class="text-xs text-cubelit-muted truncate">{mr.description}</p>
@@ -489,10 +484,11 @@
   {:else}
     <!-- Server Type -->
     <div class="space-y-2">
-      <label class="text-sm font-medium text-cubelit-text">Server Type</label>
+      <p class="text-sm font-medium text-cubelit-text">Server Type</p>
       <div class="grid grid-cols-3 gap-2">
         {#each serverTypes as type}
           <button
+            type="button"
             class="px-3 py-2.5 rounded-lg border-2 text-sm font-medium transition-colors {(envValues['TYPE'] ?? 'VANILLA') === type
               ? 'border-cubelit-accent bg-cubelit-accent/10 text-cubelit-accent'
               : 'border-cubelit-border bg-cubelit-surface text-cubelit-muted hover:border-cubelit-accent/40'}"
@@ -506,8 +502,9 @@
 
     <!-- Minecraft Version -->
     <div class="space-y-2">
-      <label class="text-sm font-medium text-cubelit-text">Minecraft Version</label>
+      <label class="text-sm font-medium text-cubelit-text" for="minecraft-version">Minecraft Version</label>
       <input
+        id="minecraft-version"
         type="text"
         class="w-full px-3 py-2.5 bg-cubelit-bg border border-cubelit-border rounded-lg text-cubelit-text placeholder:text-cubelit-muted/50 focus:outline-none focus:border-cubelit-accent transition-colors"
         value={envValues['VERSION'] ?? 'LATEST'}
@@ -521,10 +518,11 @@
 
   <!-- RAM (always shown) -->
   <div class="space-y-2">
-    <label class="text-sm font-medium text-cubelit-text">Server RAM</label>
+    <p class="text-sm font-medium text-cubelit-text">Server RAM</p>
     <div class="flex gap-2">
       {#each ramOptions as ram}
         <button
+          type="button"
           class="flex-1 px-3 py-2.5 rounded-lg border-2 text-sm font-medium transition-colors {(envValues['MEMORY'] ?? '2G') === ram
             ? 'border-cubelit-accent bg-cubelit-accent/10 text-cubelit-accent'
             : 'border-cubelit-border bg-cubelit-surface text-cubelit-muted hover:border-cubelit-accent/40'}"
@@ -539,7 +537,7 @@
   <!-- Java Version (always shown) -->
   <div class="space-y-2">
     <div class="flex items-center gap-2">
-      <label class="text-sm font-medium text-cubelit-text">Java Version</label>
+      <p class="text-sm font-medium text-cubelit-text">Java Version</p>
       {#if javaAutoDetected}
         <span class="text-xs text-cubelit-accent bg-cubelit-accent/10 px-2 py-0.5 rounded-full">{javaAutoDetected}</span>
       {/if}
@@ -547,6 +545,7 @@
     <div class="flex gap-2">
       {#each javaTags as jt}
         <button
+          type="button"
           class="flex-1 px-3 py-2.5 rounded-lg border-2 text-sm font-medium transition-colors {javaTag === jt.tag
             ? 'border-cubelit-accent bg-cubelit-accent/10 text-cubelit-accent'
             : 'border-cubelit-border bg-cubelit-surface text-cubelit-muted hover:border-cubelit-accent/40'}"
@@ -562,14 +561,15 @@
 
   <!-- Game Settings (always shown) -->
   <div class="space-y-4">
-    <label class="text-sm font-medium text-cubelit-text">Game Settings</label>
+    <p class="text-sm font-medium text-cubelit-text">Game Settings</p>
 
     <!-- Difficulty -->
     <div class="space-y-2">
-      <label class="text-xs text-cubelit-muted">Difficulty</label>
+      <p class="text-xs text-cubelit-muted">Difficulty</p>
       <div class="flex gap-2">
         {#each difficulties as diff}
           <button
+            type="button"
             class="flex-1 px-3 py-2 rounded-lg border text-xs font-medium capitalize transition-colors {(envValues['DIFFICULTY'] ?? 'normal') === diff
               ? 'border-cubelit-accent bg-cubelit-accent/10 text-cubelit-accent'
               : 'border-cubelit-border bg-cubelit-surface text-cubelit-muted hover:border-cubelit-accent/40'}"
@@ -583,8 +583,9 @@
 
     <!-- Max Players -->
     <div class="flex items-center justify-between">
-      <label class="text-xs text-cubelit-muted">Max Players</label>
+      <label class="text-xs text-cubelit-muted" for="minecraft-max-players">Max Players</label>
       <input
+        id="minecraft-max-players"
         type="number"
         class="w-20 px-3 py-2 bg-cubelit-bg border border-cubelit-border rounded-lg text-cubelit-text text-sm text-center focus:outline-none focus:border-cubelit-accent transition-colors"
         value={envValues['MAX_PLAYERS'] ?? '20'}
@@ -596,8 +597,9 @@
 
     <!-- MOTD -->
     <div class="space-y-1">
-      <label class="text-xs text-cubelit-muted">Server Message (MOTD)</label>
+      <label class="text-xs text-cubelit-muted" for="minecraft-motd">Server Message (MOTD)</label>
       <input
+        id="minecraft-motd"
         type="text"
         class="w-full px-3 py-2 bg-cubelit-bg border border-cubelit-border rounded-lg text-cubelit-text text-sm focus:outline-none focus:border-cubelit-accent transition-colors"
         value={envValues['MOTD'] ?? 'A Cubelit Minecraft Server'}
@@ -608,24 +610,27 @@
     <!-- Online Mode -->
     <div class="flex items-center justify-between">
       <div>
-        <label class="text-xs text-cubelit-muted">Online Mode</label>
+        <p class="text-xs text-cubelit-muted">Online Mode</p>
         <p class="text-[10px] text-cubelit-muted/70">Verify players with Mojang</p>
       </div>
       <button
+        type="button"
         class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors {(envValues['ONLINE_MODE'] ?? 'TRUE').toUpperCase() === 'TRUE' ? 'bg-cubelit-accent' : 'bg-cubelit-border'}"
+        aria-label="Toggle online mode"
+        aria-pressed={(envValues['ONLINE_MODE'] ?? 'TRUE').toUpperCase() === "TRUE"}
         onclick={() => {
           const current = (envValues['ONLINE_MODE'] ?? 'TRUE').toUpperCase();
           onenvchange('ONLINE_MODE', current === 'TRUE' ? 'FALSE' : 'TRUE');
         }}
       >
-        <span class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform {(envValues['ONLINE_MODE'] ?? 'TRUE').toUpperCase() === 'TRUE' ? 'translate-x-6' : 'translate-x-1'}" />
+        <span class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform {(envValues['ONLINE_MODE'] ?? 'TRUE').toUpperCase() === 'TRUE' ? 'translate-x-6' : 'translate-x-1'}"></span>
       </button>
     </div>
   </div>
-
   <!-- Advanced: Ports (collapsible) -->
   <div>
     <button
+      type="button"
       class="flex items-center gap-2 text-sm text-cubelit-muted hover:text-cubelit-text transition-colors"
       onclick={() => showAdvancedPorts = !showAdvancedPorts}
     >
@@ -639,7 +644,7 @@
       <div class="mt-3 space-y-3">
         {#each recipe.ports as port}
           <PortInput
-            label="{port.label} ({port.protocol.toUpperCase()})"
+            label={`${port.label} (${port.protocol.toUpperCase()})`}
             containerPort={port.container_port}
             value={portValues[`${port.container_port}/${port.protocol}`] ?? port.default_host_port}
             onchange={(v) => onportchange(`${port.container_port}/${port.protocol}`, v)}

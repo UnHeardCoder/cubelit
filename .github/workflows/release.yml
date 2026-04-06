@@ -99,7 +99,7 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: 'Cubelit ${{ github.ref_name }}'
           releaseBody: '${{ steps.changelog.outputs.body }}'
-          releaseDraft: true
+          releaseDraft: false
           prerelease: false
           updaterJsonPreferNsis: true
           args: ${{ matrix.args }}

@@ -6,13 +6,11 @@
   import { getServersStore } from "$lib/stores/servers.svelte";
   import { getRecipeDetail } from "$lib/api/recipes";
   import { createServer } from "$lib/api/servers";
+  import { getGameDefinition } from "$lib/games/registry";
   import type { Recipe } from "$lib/types/recipe";
   import type { ServerCreateProgress } from "$lib/types/server";
   import GameSelector from "$lib/components/GameSelector.svelte";
-  import ServerConfigForm from "$lib/components/ServerConfigForm.svelte";
   import CreateProgress from "$lib/components/CreateProgress.svelte";
-  import MinecraftSetup from "$lib/components/games/minecraft/MinecraftSetup.svelte";
-  import FivemSetup from "$lib/components/games/fivem/FivemSetup.svelte";
   import Button from "$lib/components/Button.svelte";
 
   const recipesStore = getRecipesStore();
@@ -138,6 +136,10 @@
     return step === 3;
   }
 
+  function selectedGameDefinition() {
+    return selectedRecipeId ? getGameDefinition(selectedRecipeId) : null;
+  }
+
   function goBackFromConfig() {
     imageTagOverride = null;
     step = 1;
@@ -151,7 +153,7 @@
 <div class="p-8 max-w-3xl mx-auto">
   <!-- Header -->
   <div class="flex items-center gap-4 mb-8">
-    <a href="/" class="text-cubelit-muted hover:text-cubelit-text transition-colors">
+    <a href="/" class="text-cubelit-muted hover:text-cubelit-text transition-colors" aria-label="Back to dashboard">
       <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
       </svg>
@@ -165,7 +167,7 @@
   <!-- Step indicators -->
   <div class="flex items-center gap-2 mb-8">
     {#each Array(totalSteps()) as _, i}
-      <div class="flex-1 h-1 rounded-full {step >= i + 1 ? 'bg-cubelit-accent' : 'bg-cubelit-border'} transition-colors" />
+      <div class="flex-1 h-1 rounded-full {step >= i + 1 ? 'bg-cubelit-accent' : 'bg-cubelit-border'} transition-colors"></div>
     {/each}
   </div>
 
@@ -198,8 +200,10 @@
     />
   {:else if isConfigStep() && selectedRecipe}
     <!-- Config Step: Game-specific form -->
-    {#if selectedRecipeId === "minecraft-java"}
-      <MinecraftSetup
+    {@const gameDefinition = selectedGameDefinition()}
+    {#if gameDefinition}
+      {@const SetupComponent = gameDefinition.setupComponent}
+      <SetupComponent
         recipe={selectedRecipe}
         bind:serverName
         {envValues}
@@ -207,31 +211,13 @@
         bind:volumePath
         onenvchange={(k, v) => { envValues[k] = v; }}
         onportchange={(k, v) => { portValues[k] = v; }}
-        onname={(n) => { serverName = n; volumePath = getDefaultVolumePath(n); }}
+        onname={(n) => {
+          serverName = n;
+          if (selectedRecipeId === "fivem") envValues["SERVER_NAME"] = n;
+          volumePath = getDefaultVolumePath(n);
+        }}
         onvolumepath={(p) => { volumePath = p; }}
         ontagchange={(tag) => { imageTagOverride = tag === "latest" ? null : tag; }}
-      />
-    {:else if selectedRecipeId === "fivem"}
-      <FivemSetup
-        recipe={selectedRecipe}
-        bind:serverName
-        {envValues}
-        {portValues}
-        bind:volumePath
-        onenvchange={(k, v) => { envValues[k] = v; }}
-        onportchange={(k, v) => { portValues[k] = v; }}
-        onname={(n) => { serverName = n; envValues['SERVER_NAME'] = n; volumePath = getDefaultVolumePath(n); }}
-        onvolumepath={(p) => { volumePath = p; }}
-      />
-    {:else}
-      <ServerConfigForm
-        recipe={selectedRecipe}
-        bind:serverName
-        {envValues}
-        {portValues}
-        onenvchange={(k, v) => { envValues[k] = v; }}
-        onportchange={(k, v) => { portValues[k] = v; }}
-        onname={(n) => { serverName = n; }}
       />
     {/if}
 
@@ -243,6 +229,7 @@
     </div>
   {:else if isReviewStep() && selectedRecipe}
     <!-- Review & Create -->
+    {@const gameDefinition = selectedGameDefinition()}
     <div class="space-y-6">
       <h2 class="text-lg font-semibold text-cubelit-text">Review & Create</h2>
 
@@ -288,10 +275,12 @@
           </div>
         {/if}
 
-        {#if selectedRecipeId === "fivem"}
+        {#if gameDefinition?.reviewNotes}
           <div class="border-t border-cubelit-border pt-4">
-            <p class="text-sm text-cubelit-muted mb-2">Database (MariaDB)</p>
-            <p class="text-xs text-cubelit-muted">A MariaDB sidecar will be auto-provisioned</p>
+            <p class="text-sm text-cubelit-muted mb-2">Notes</p>
+            {#each gameDefinition.reviewNotes as note}
+              <p class="text-xs text-cubelit-muted">{note}</p>
+            {/each}
           </div>
         {/if}
       </div>

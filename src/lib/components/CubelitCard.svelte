@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { getGameDefinition } from "$lib/games/registry";
   import type { Cubelit } from "$lib/types/server";
   import StatusRibbon from "./StatusRibbon.svelte";
 
@@ -29,62 +30,9 @@
     error: "Error",
   };
 
-  const gameStyles: Record<string, { title: string; subtitle: string; gradient: string }> = {
-    "minecraft-java": {
-      title: "font-bold tracking-wider",
-      subtitle: "Java Edition",
-      gradient: "from-green-900/40 to-cubelit-surface",
-    },
-    "minecraft-bedrock": {
-      title: "font-bold tracking-wider",
-      subtitle: "Bedrock Edition",
-      gradient: "from-emerald-900/40 to-cubelit-surface",
-    },
-    "fivem": {
-      title: "font-bold tracking-wide",
-      subtitle: "GTA V Multiplayer",
-      gradient: "from-orange-900/40 to-cubelit-surface",
-    },
-    "rust-game": {
-      title: "font-bold tracking-wider uppercase",
-      subtitle: "Survival Game",
-      gradient: "from-red-900/40 to-cubelit-surface",
-    },
-    "valheim": {
-      title: "font-bold tracking-wide",
-      subtitle: "Viking Survival",
-      gradient: "from-blue-900/40 to-cubelit-surface",
-    },
-    "terraria": {
-      title: "font-bold",
-      subtitle: "2D Sandbox",
-      gradient: "from-cyan-900/40 to-cubelit-surface",
-    },
-    "ark": {
-      title: "font-bold tracking-wider uppercase",
-      subtitle: "Survival Evolved",
-      gradient: "from-purple-900/40 to-cubelit-surface",
-    },
-    "cs2": {
-      title: "font-bold tracking-wider uppercase",
-      subtitle: "Counter-Strike",
-      gradient: "from-yellow-900/40 to-cubelit-surface",
-    },
-    "project-zomboid": {
-      title: "font-bold",
-      subtitle: "Zombie Survival",
-      gradient: "from-lime-900/40 to-cubelit-surface",
-    },
-    "palworld": {
-      title: "font-bold",
-      subtitle: "Creature Survival",
-      gradient: "from-sky-900/40 to-cubelit-surface",
-    },
-  };
-
   function getStyle() {
-    return gameStyles[server.recipe_id] ?? {
-      title: "font-bold",
+    return getGameDefinition(server.recipe_id).cardStyle ?? {
+      titleClass: "font-bold",
       subtitle: server.game,
       gradient: "from-cubelit-border/40 to-cubelit-surface",
     };
@@ -120,16 +68,23 @@
   }
 </script>
 
-<!-- svelte-ignore a11y_click_events_have_key_events -->
-<!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
+  role="button"
+  tabindex="0"
   class="relative rounded-2xl border border-cubelit-border bg-gradient-to-b {getStyle().gradient} cursor-pointer hover:border-cubelit-accent/50 transition-all overflow-hidden group"
   onclick={() => onclick(server.id)}
+  onkeydown={(e: KeyboardEvent) => {
+    if (e.target !== e.currentTarget) return;
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onclick(server.id);
+    }
+  }}
 >
   <StatusRibbon status={server.status} />
 
   <div class="p-6 pb-0">
-    <h3 class="text-2xl text-cubelit-text {getStyle().title}">{server.game}</h3>
+    <h3 class="text-2xl text-cubelit-text {getStyle().titleClass}">{server.game}</h3>
     <p class="text-sm text-cubelit-muted mt-0.5">{getStyle().subtitle}</p>
 
     <div class="flex items-center gap-2 mt-4">
@@ -142,9 +97,10 @@
 
   <div class="border-t border-cubelit-border/50 mt-4 px-6 py-3 flex items-center justify-between">
     <span class="text-xs text-cubelit-muted font-mono">{getAddress()}</span>
-    <div class="flex gap-1.5" onclick={(e: MouseEvent) => e.stopPropagation()}>
+    <div class="flex gap-1.5">
       {#if server.status === "running" || server.status === "starting"}
         <button
+          type="button"
           class="px-3 py-1 text-xs rounded-lg bg-cubelit-error/10 text-cubelit-error border border-cubelit-error/30 hover:bg-cubelit-error/20 transition-colors disabled:opacity-50"
           onclick={handleStop}
           disabled={actionLoading}
@@ -153,6 +109,7 @@
         </button>
       {:else if server.status === "stopped" || server.status === "created"}
         <button
+          type="button"
           class="px-3 py-1 text-xs rounded-lg bg-cubelit-accent/10 text-cubelit-accent border border-cubelit-accent/30 hover:bg-cubelit-accent/20 transition-colors disabled:opacity-50"
           onclick={handleStart}
           disabled={actionLoading}

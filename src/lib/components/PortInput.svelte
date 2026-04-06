@@ -17,6 +17,10 @@
   let suggestion = $state<number | null>(null);
   let suggesting = $state(false);
 
+  function inputId(): string {
+    return `port-${containerPort}-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+  }
+
   async function doCheck(port: number) {
     checking = true;
     suggestion = null;
@@ -64,10 +68,11 @@
 </script>
 
 <div class="flex flex-col gap-1.5">
-  <label class="text-sm text-cubelit-muted">{label}</label>
+  <label class="text-sm text-cubelit-muted" for={inputId()}>{label}</label>
   <div class="flex items-center gap-2">
     <span class="text-xs text-cubelit-muted whitespace-nowrap">{containerPort} &rarr;</span>
     <input
+      id={inputId()}
       type="number"
       class="flex-1 px-3 py-2 bg-cubelit-bg border border-cubelit-border rounded-lg text-cubelit-text focus:outline-none focus:border-cubelit-accent transition-colors"
       {value}
@@ -77,11 +82,11 @@
     />
     <div class="w-5 shrink-0 flex justify-center">
       {#if checking || suggesting}
-        <div class="w-3 h-3 rounded-full border-2 border-cubelit-muted border-t-transparent animate-spin" />
+        <div class="w-3 h-3 rounded-full border-2 border-cubelit-muted border-t-transparent animate-spin"></div>
       {:else if available === true}
-        <div class="w-3 h-3 rounded-full bg-cubelit-success" title="Port available" />
+        <div class="w-3 h-3 rounded-full bg-cubelit-success" title="Port available"></div>
       {:else if available === false}
-        <div class="w-3 h-3 rounded-full bg-cubelit-error" title="Port in use" />
+        <div class="w-3 h-3 rounded-full bg-cubelit-error" title="Port in use"></div>
       {/if}
     </div>
   </div>
@@ -91,8 +96,14 @@
     <p class="text-xs text-cubelit-muted">
       Port in use.
       <button
+        type="button"
         class="text-cubelit-accent underline hover:opacity-80 transition-opacity"
-        onclick={() => { if (suggestion !== null) { onchange(suggestion); suggestion = null; } }}
+        onclick={() => {
+          if (suggestion !== null) {
+            onchange(suggestion);
+            suggestion = null;
+          }
+        }}
       >
         Use {suggestion} instead
       </button>

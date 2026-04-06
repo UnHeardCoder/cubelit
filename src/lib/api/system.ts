@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { WslStatus } from "$lib/types/docker";
+import type { OnboardingStatus, WslStatus } from "$lib/types/docker";
 
 export async function checkPort(port: number): Promise<boolean> {
   return invoke<boolean>("check_port", { port });
@@ -7,6 +7,10 @@ export async function checkPort(port: number): Promise<boolean> {
 
 export async function suggestPort(defaultPort: number): Promise<number> {
   return invoke<number>("suggest_port", { defaultPort });
+}
+
+export async function getOnboardingStatus(): Promise<OnboardingStatus> {
+  return invoke<OnboardingStatus>("get_onboarding_status");
 }
 
 export async function checkWslStatus(): Promise<WslStatus> {
