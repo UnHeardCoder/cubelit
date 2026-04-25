@@ -1,6 +1,16 @@
+//! Tauri shims for filesystem operations within a server's data volume.
+//!
+//! These commands deliberately stay in the desktop crate rather than core
+//! because they're host-side concerns (drag-drop file transfer, "open in
+//! file manager") that don't generalize to the future remote agent
+//! transport. They lean on `state.host.get_server` to resolve the
+//! `volume_path` they should operate on.
+
 use serde::Serialize;
 use std::path::PathBuf;
 use tauri::State;
+
+use cubelit_core::server::ServerLifecycle;
 
 use crate::error::CoreError;
 use crate::state::AppState;
@@ -18,7 +28,7 @@ pub async fn list_server_files(
     id: String,
     subpath: Option<String>,
 ) -> Result<Vec<FileEntry>, CoreError> {
-    let cubelit = crate::db::queries::get_cubelit(&state.db, &id).await?;
+    let cubelit = state.host.get_server(&id).await?;
     let mut base = PathBuf::from(&cubelit.volume_path);
     if let Some(ref sub) = subpath {
         base = base.join(sub);
@@ -39,9 +49,7 @@ pub async fn list_server_files(
         });
     }
 
-    entries.sort_by(|a, b| {
-        b.is_dir.cmp(&a.is_dir).then(a.name.cmp(&b.name))
-    });
+    entries.sort_by(|a, b| b.is_dir.cmp(&a.is_dir).then(a.name.cmp(&b.name)));
 
     Ok(entries)
 }
@@ -53,7 +61,7 @@ pub async fn copy_file_to_server(
     source_path: String,
     dest_subpath: String,
 ) -> Result<(), CoreError> {
-    let cubelit = crate::db::queries::get_cubelit(&state.db, &id).await?;
+    let cubelit = state.host.get_server(&id).await?;
     let dest = PathBuf::from(&cubelit.volume_path).join(&dest_subpath);
 
     if let Some(parent) = dest.parent() {
@@ -70,11 +78,13 @@ pub async fn delete_server_file(
     id: String,
     filepath: String,
 ) -> Result<(), CoreError> {
-    let cubelit = crate::db::queries::get_cubelit(&state.db, &id).await?;
+    let cubelit = state.host.get_server(&id).await?;
     let full_path = PathBuf::from(&cubelit.volume_path).join(&filepath);
 
     // Safety: ensure the path is within the volume
-    let canonical_base = PathBuf::from(&cubelit.volume_path).canonicalize().unwrap_or_else(|_| PathBuf::from(&cubelit.volume_path));
+    let canonical_base = PathBuf::from(&cubelit.volume_path)
+        .canonicalize()
+        .unwrap_or_else(|_| PathBuf::from(&cubelit.volume_path));
     let canonical_target = full_path.canonicalize().unwrap_or(full_path.clone());
     if !canonical_target.starts_with(&canonical_base) {
         return Err(CoreError::Validation("Path traversal not allowed".into()));

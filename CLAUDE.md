@@ -39,8 +39,8 @@ SQLX_OFFLINE=true cargo test --workspace <test_name>
 
 Cargo workspace with two Rust members:
 
-- **`crates/core/`** (`cubelit-core`) — Pure business logic: error type, sqlx schema/queries/migrations, Docker helpers (health, stats), recipe loader, port utilities. No Tauri, no IPC, no UI. The `.sqlx/` offline query cache lives here.
-- **`src-tauri/`** (`cubelit`) — Tauri v2 desktop binary. Owns the IPC command modules, the `AppState`, the bollard-based container/image/log streaming that emits Tauri events, and the desktop wiring. Re-exports `cubelit_core::*` through its `db/` and `docker/` modules so existing `crate::error` / `crate::db::queries` call sites keep compiling without churn.
+- **`crates/core/`** (`cubelit-core`) — All business logic: error type, sqlx schema/queries/migrations, Docker helpers (containers/images/logs/health/stats), recipe loader, port utilities, transport-agnostic event types + `EventSink` trait, and the `ServerRunner` + `ServerLifecycle` traits with the `LocalServerHost` impl that orchestrates create/start/stop/restart/delete/sync/rename/RCON/backup. No Tauri, no IPC, no UI. The `.sqlx/` offline query cache lives here.
+- **`src-tauri/`** (`cubelit`) — Tauri v2 desktop binary. Owns only the transport layer: `#[tauri::command]` shims that delegate to `state.host.<method>(...).await`, `TauriEventSink` (maps `CoreEvent` variants onto Tauri event names byte-for-byte), `AppState` (a one-field wrapper around `LocalServerHost`), and the desktop wiring (`lib.rs`).
 
 Tauri v2 desktop app: Rust backend manages Docker containers and SQLite persistence, SvelteKit 5 frontend communicates via Tauri IPC (`invoke()`/`emit()`).
 
@@ -58,26 +58,37 @@ Frontend (Svelte 5)          Tauri IPC           Rust Backend
 └─────────────────┘                          └──────────────────┘
 ```
 
-### Rust backend (`src-tauri/src/`)
+### Rust backend
 
-- **`lib.rs`** — App setup: initializes `AppState`, registers 26 IPC commands (plus 3 Windows-only), runs `sync_all_servers()` on startup to match DB status with Docker reality, and spawns a background `crash_watcher` task that periodically reconciles container state so unexpected exits flip the DB status without user action.
-- **`state.rs`** — `AppState` holds `Docker` (bollard), `SqlitePool` (sqlx), `data_dir`, `recipes_dir`. Created once in `.setup()` block, injected via `app_handle.manage()`.
-- **`commands/docker_commands.rs`** — Main orchestrator file. `create_server` is the workhorse: loads recipe → creates DB record → pulls image → creates container → starts it. Emits `"server-create-progress"` events at each step. Also hosts: `start_server`, `stop_server`, `restart_server`, `delete_server`, `check_docker_status`, `sync_server_status`, `sync_all_statuses`, `update_server_settings` (recreates the container with new env/ports), `get_server_stats`, `get_server_logs`, plus the `spawn_crash_watcher` background task and the internal `sync_single_server`/`sync_all_servers` helpers.
-- **`commands/server_commands.rs`** — `list_cubelits`, `get_cubelit`, `rename_server` (DB-only metadata operations; no Docker calls).
-- **`commands/recipe_commands.rs`** — `list_recipes`, `get_recipe_detail`.
-- **`commands/system_commands.rs`** — Grab bag for non-Docker host operations: `check_port`, `suggest_port`, `get_onboarding_status` (drives the first-launch DockerOnboarding gate), `get_public_ip` (shown on the server overview so users can share an address), `open_folder` (jumps to server files in the OS file manager), and the Windows-only `check_wsl_status` / `enable_wsl2` / `set_wsl_default_version` (gated by `#[cfg(target_os = "windows")]`).
-- **`commands/file_commands.rs`** — `list_server_files`, `copy_file_to_server`, `delete_server_file`. (Note: `get_server_logs` lives in `docker_commands.rs`, not here, despite the name.)
-- **`commands/minecraft_commands.rs`** — `send_minecraft_command` (RCON over TCP), `backup_server` (recursive copy to timestamped dir).
-- **`db/`** — Re-exports `cubelit_core::db::{models, queries, run_migrations}`. The actual schema/queries/migrations live in `crates/core/src/db/` and `crates/core/migrations/`. Single `cubelits` table, compile-time checked queries (`query!` / `query_as!`). WAL mode. DB at `{app_data_dir}/cubelit.db`. Migrations run via `sqlx::migrate!("./migrations")` from inside `cubelit-core`. The `.sqlx/` offline cache (committed) lives at `crates/core/.sqlx/` — set `SQLX_OFFLINE=true` for offline builds. To update the cache after changing queries: `DATABASE_URL=sqlite:///tmp/cubelit-dev.db sqlx migrate run --source crates/core/migrations && DATABASE_URL=sqlite:///tmp/cubelit-dev.db cargo sqlx prepare --workspace` (from the repo root).
-- **`docker/containers.rs`** — Maps `Cubelit` fields to bollard `Config`. Containers named `cubelit-{id}`, labeled with `cubelit.id`/`cubelit.managed=true`, restart policy `unless-stopped`.
-- **`docker/images.rs`** — Pulls images with streaming progress via Tauri events.
-- **`docker/logs.rs`** — Streams container logs via Tauri events.
-- **`docker/{health, stats}`** — Re-exports of `cubelit_core::docker::health` (DockerStatus + ping) and `cubelit_core::docker::stats` (resource-stats payload types). Streaming uses Tauri events from src-tauri.
+#### Core crate (`crates/core/src/`) — all business logic
 
-Modules now living in `crates/core/src/` (consumed via re-exports):
-- **`error.rs`** — `CoreError` enum with variants: `Docker`, `Database`, `Migration`, `Io`, `NotFound`, `Validation`. Serializes as a plain string for IPC transport (byte-identical to v0.1.7's `AppError`). Re-exported as `cubelit_lib::error::CoreError` for existing IPC commands.
-- **`ports.rs`** — `is_port_available()` / `suggest_port()` utilities (tries up to 100 offsets from the default); used by `system_commands.rs`.
+- **`error.rs`** — `CoreError` enum (`Docker`, `Database`, `Migration`, `Io`, `NotFound`, `Validation`). Serializes as a plain string for IPC transport (byte-identical to v0.1.7's `AppError`).
+- **`events.rs`** — Transport-agnostic event types: `CoreEvent` enum + payload structs (`ServerCreateProgress`, `ImagePullProgress`) + `EventSink` trait (`fn emit(&self, event: CoreEvent)`). `NoopSink` is the default for non-Tauri callers (CLI, tests).
+- **`db/`** — sqlx schema, models (`Cubelit` struct), queries (`list_cubelits`, `get_cubelit`, `insert_cubelit`, `update_cubelit_status`, etc.), and `run_migrations`. Compile-time checked via `query!` / `query_as!`. WAL mode. Single `cubelits` table.
+- **`docker/`** — `containers` (create/start/stop/restart/remove), `images` (pull with `EventSink` progress), `logs` (stream with `EventSink`), `health` (ping + version), `stats` (CPU/mem snapshot).
 - **`recipes.rs`** — Loads JSON recipe files from `recipes_dir`, deserializes into `Recipe` structs.
+- **`ports.rs`** — `is_port_available()` / `suggest_port()` utilities (tries up to 100 offsets from the default).
+- **`server/`** — Server lifecycle, the heart of the app:
+  - `types.rs` — `CreateServerConfig` (the JSON shape the frontend submits to `create_server`).
+  - `runner.rs` — `ServerRunner` trait: narrow runtime ops (pull/create/start/stop/restart/remove/is_running/logs/stats). Future agent transports plug in here.
+  - `lifecycle.rs` — `ServerLifecycle` trait: full DB-touching orchestration (create/start/stop/restart/delete/sync/list/get/rename/server_logs/server_stats/update_server_settings/send_minecraft_command/backup_server). Methods that spawn watcher tasks take `Arc<dyn EventSink>` so the watcher gets its own clone.
+  - `local.rs` — `LocalServerHost`: the only impl in v0.1.8. Owns a `bollard::Docker`, a `sqlx::SqlitePool`, `data_dir`, `recipes_dir`. Implements both traits. `create_server` is the workhorse: loads recipe → persists DB row → pulls image → optional FiveM sidecar (`provision_fivem_sidecar`) → creates + starts container → spawns readiness watcher if applicable. Public free helpers `sync_single_server` / `sync_all_servers` are used by the desktop's startup sync.
+  - `minecraft.rs` — RCON wire format helpers (`send_rcon_packet`, `read_rcon_packet`), `send_minecraft_command`, `backup_server`, `copy_dir_recursive`.
+  - `watchers.rs` — `validate_env_vars`, `verify_container_status`, `readiness_pattern`, `spawn_readiness_watcher` (tails logs until "Done"), `spawn_crash_watcher` (subscribes to Docker events, flips DB status on `die`/`stop`).
+
+To update the sqlx offline cache after changing queries: `DATABASE_URL=sqlite:///tmp/cubelit-dev.db sqlx migrate run --source crates/core/migrations && DATABASE_URL=sqlite:///tmp/cubelit-dev.db cargo sqlx prepare --workspace` (from the repo root).
+
+#### Desktop crate (`src-tauri/src/`) — Tauri transport only
+
+- **`lib.rs`** — App setup: initializes `AppState`, registers 26 IPC commands (plus 3 Windows-only), calls `cubelit_core::server::sync_all_servers` on startup to match DB status with Docker reality, and spawns `cubelit_core::server::spawn_crash_watcher` so unexpected container exits flip the DB status without user action.
+- **`state.rs`** — `AppState { host: LocalServerHost }`. Created once in `.setup()` block, injected via `app_handle.manage()`. The host's `docker` / `db` / `data_dir` / `recipes_dir` are reachable as `state.host.<field>`.
+- **`event_sink.rs`** — `TauriEventSink` implements `EventSink` by matching `CoreEvent` variants onto the historical Tauri event names: `ServerCreateProgress` → `"server-create-progress"`, `ServerStatusChanged` → `"server-status-changed"`, `ImagePullProgress` → `"image-pull-progress"`, `ServerLogLine` → `"server-logs-{server_id}"`. The wire format is preserved byte-for-byte from v0.1.7. `TauriEventSink::shared(app_handle)` returns an `Arc<dyn EventSink>`.
+- **`commands/docker_commands.rs`** — Tauri shims for the 11 server-lifecycle commands. Each is 3–7 lines: build the `Arc<dyn EventSink>`, call `state.host.<method>(...).await`.
+- **`commands/server_commands.rs`** — Shims for `list_cubelits`, `get_cubelit`, `rename_server` (DB-only metadata).
+- **`commands/recipe_commands.rs`** — Shims for `list_recipes`, `get_recipe_detail`.
+- **`commands/minecraft_commands.rs`** — Shims for `send_minecraft_command`, `backup_server`.
+- **`commands/file_commands.rs`** — `list_server_files`, `copy_file_to_server`, `delete_server_file`. Stays in the desktop crate because filesystem drag-drop is a host-side concern that doesn't generalize to the future remote agent.
+- **`commands/system_commands.rs`** — Grab bag for non-Docker host operations: `check_port`, `suggest_port`, `get_onboarding_status` (drives the first-launch DockerOnboarding gate), `get_public_ip`, `open_folder`, and the Windows-only `check_wsl_status` / `enable_wsl2` / `set_wsl_default_version` (gated by `#[cfg(target_os = "windows")]`). Stays here because these are platform diagnostics, not server lifecycle.
 
 ### Frontend (`src/`)
 

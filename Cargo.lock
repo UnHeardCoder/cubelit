@@ -741,8 +741,10 @@ dependencies = [
 name = "cubelit-core"
 version = "0.1.7"
 dependencies = [
+ "async-trait",
  "bollard",
  "chrono",
+ "dirs",
  "futures-util",
  "serde",
  "serde_json",
@@ -750,6 +752,8 @@ dependencies = [
  "tempfile",
  "thiserror 2.0.18",
  "tokio",
+ "tracing",
+ "uuid",
 ]
 
 [[package]]

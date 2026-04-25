@@ -1,6 +1,4 @@
 mod commands;
-pub mod db;
-mod docker;
 mod event_sink;
 mod state;
 
@@ -53,17 +51,21 @@ pub fn run() {
                     .expect("failed to initialize app state");
 
                 // Sync server statuses with Docker reality
-                let _ = sync_all_servers(&state.docker, &state.db).await;
+                let _ = cubelit_core::server::sync_all_servers(
+                    &state.host.docker,
+                    &state.host.db,
+                )
+                .await;
 
                 // Clone handles before moving state into manage()
-                let watcher_docker = state.docker.clone();
-                let watcher_db = state.db.clone();
+                let watcher_docker = state.host.docker.clone();
+                let watcher_db = state.host.db.clone();
                 let watcher_events = event_sink::TauriEventSink::shared(app_handle.clone());
 
                 app_handle.manage(state);
 
                 // Spawn background watcher to detect unexpected container crashes
-                commands::docker_commands::spawn_crash_watcher(
+                cubelit_core::server::spawn_crash_watcher(
                     watcher_docker,
                     watcher_db,
                     watcher_events,

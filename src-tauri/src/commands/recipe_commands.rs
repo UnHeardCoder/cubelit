@@ -7,7 +7,7 @@ use crate::state::AppState;
 
 #[tauri::command]
 pub async fn list_recipes(state: State<'_, AppState>) -> Result<Vec<RecipeSummary>, CoreError> {
-    let recipes = recipes::load_recipes(&state.recipes_dir)?;
+    let recipes = recipes::load_recipes(&state.host.recipes_dir)?;
     Ok(recipes
         .into_iter()
         .map(|r| RecipeSummary {
@@ -26,5 +26,5 @@ pub async fn get_recipe_detail(
     state: State<'_, AppState>,
     id: String,
 ) -> Result<Recipe, CoreError> {
-    recipes::get_recipe(&state.recipes_dir, &id)
+    recipes::get_recipe(&state.host.recipes_dir, &id)
 }

@@ -1,42 +1,24 @@
-use bollard::Docker;
-use sqlx::sqlite::SqlitePoolOptions;
-use sqlx::SqlitePool;
 use std::path::PathBuf;
+
+use cubelit_core::server::LocalServerHost;
 
 use crate::error::CoreError;
 
+/// Tauri-managed application state.
+///
+/// All persistent resources (Docker handle, SQLite pool, data dir, recipes
+/// dir) live on `host`. Earlier versions stored these as separate fields
+/// on `AppState` itself; v0.1.8 collapses them into the same
+/// `LocalServerHost` that implements the `ServerLifecycle` trait, so the
+/// Tauri command shims call `state.host.<method>(...).await` instead of
+/// reaching for individual fields.
 pub struct AppState {
-    pub docker: Docker,
-    pub db: SqlitePool,
-    pub data_dir: PathBuf,
-    pub recipes_dir: PathBuf,
+    pub host: LocalServerHost,
 }
 
 impl AppState {
     pub async fn new(data_dir: PathBuf, recipes_dir: PathBuf) -> Result<Self, CoreError> {
-        let docker = Docker::connect_with_local_defaults()?;
-
-        std::fs::create_dir_all(&data_dir)?;
-
-        let db_path = data_dir.join("cubelit.db");
-        let db_url = format!("sqlite:{}?mode=rwc", db_path.display());
-
-        let db = SqlitePoolOptions::new()
-            .max_connections(5)
-            .connect(&db_url)
-            .await?;
-
-        sqlx::query("PRAGMA journal_mode=WAL;")
-            .execute(&db)
-            .await?;
-
-        crate::db::run_migrations(&db).await?;
-
-        Ok(Self {
-            docker,
-            db,
-            data_dir,
-            recipes_dir,
-        })
+        let host = LocalServerHost::new(data_dir, recipes_dir).await?;
+        Ok(Self { host })
     }
 }

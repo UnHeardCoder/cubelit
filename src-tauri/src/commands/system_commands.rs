@@ -385,7 +385,7 @@ pub async fn get_onboarding_status(
 ) -> Result<OnboardingStatus, CoreError> {
     Ok(OnboardingStatus {
         platform: platform_name(),
-        docker: check_docker_diagnostic(&state.docker).await,
+        docker: check_docker_diagnostic(&state.host.docker).await,
         wsl: check_wsl_diagnostic(),
     })
 }
