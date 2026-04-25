@@ -31,7 +31,15 @@ pub async fn stream_container_logs(
                     line: output.to_string(),
                 });
             }
-            Err(_) => break,
+            Err(e) => {
+                tracing::warn!(
+                    server_id = %server_id,
+                    container_id = %container_id,
+                    error = %e,
+                    "Log stream errored — exiting log forwarder"
+                );
+                break;
+            }
         }
     }
 }

@@ -30,25 +30,36 @@ impl TauriEventSink {
 
 impl EventSink for TauriEventSink {
     fn emit(&self, event: CoreEvent) {
-        match event {
-            CoreEvent::ServerCreateProgress(payload) => {
-                let _ = self
-                    .app_handle
-                    .emit("server-create-progress", &payload);
-            }
-            CoreEvent::ServerStatusChanged { server_id } => {
-                let _ = self
-                    .app_handle
-                    .emit("server-status-changed", &server_id);
-            }
-            CoreEvent::ImagePullProgress(payload) => {
-                let _ = self.app_handle.emit("image-pull-progress", &payload);
-            }
+        // Tauri's `Emitter::emit` returns `Result<()>`; failure means
+        // serialization or the IPC transport broke. Failed emits used to
+        // be discarded with `let _ = ...` — now we log at warn so the
+        // failure shows up in `cubelit.log`. Events are still best-effort
+        // (we don't propagate the error back into core).
+        let (event_name, result) = match &event {
+            CoreEvent::ServerCreateProgress(payload) => (
+                "server-create-progress",
+                self.app_handle.emit("server-create-progress", payload),
+            ),
+            CoreEvent::ServerStatusChanged { server_id } => (
+                "server-status-changed",
+                self.app_handle.emit("server-status-changed", server_id),
+            ),
+            CoreEvent::ImagePullProgress(payload) => (
+                "image-pull-progress",
+                self.app_handle.emit("image-pull-progress", payload),
+            ),
             CoreEvent::ServerLogLine { server_id, line } => {
-                let _ = self
-                    .app_handle
-                    .emit(&format!("server-logs-{}", server_id), &line);
+                let topic = format!("server-logs-{}", server_id);
+                ("server-logs-{id}", self.app_handle.emit(&topic, line))
             }
+        };
+
+        if let Err(e) = result {
+            tracing::warn!(
+                event = event_name,
+                error = %e,
+                "TauriEventSink::emit failed — frontend will not see this event"
+            );
         }
     }
 }

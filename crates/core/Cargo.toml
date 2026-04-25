@@ -14,7 +14,14 @@ path = "src/lib.rs"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 bollard = "0.18"
-tokio = { version = "1.51.0", features = ["full"] }
+# Only the runtime + I/O features actually reachable from the crate:
+#   macros          — `select!`, `pin!`
+#   rt-multi-thread — `tokio::spawn` for the readiness/crash watchers
+#   time            — `tokio::time::sleep`
+#   io-util         — `AsyncReadExt`/`AsyncWriteExt` for RCON
+#   net             — `TcpStream` for RCON
+# Avoids the giant compile-time hit (and surface area) of "full".
+tokio = { version = "1.51.0", features = ["macros", "rt-multi-thread", "time", "io-util", "net"] }
 sqlx = { version = "0.8", features = ["runtime-tokio", "sqlite", "macros", "migrate"] }
 thiserror = "2"
 futures-util = "0.3"

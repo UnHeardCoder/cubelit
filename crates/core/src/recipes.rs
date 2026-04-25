@@ -92,7 +92,11 @@ pub fn load_recipes(recipes_dir: &Path) -> CoreResult<Vec<Recipe>> {
             match serde_json::from_str::<Recipe>(&content) {
                 Ok(recipe) => recipes.push(recipe),
                 Err(e) => {
-                    eprintln!("Failed to parse recipe {:?}: {}", path, e);
+                    tracing::warn!(
+                        recipe_path = %path.display(),
+                        error = %e,
+                        "Failed to parse recipe — skipping"
+                    );
                 }
             }
         }
