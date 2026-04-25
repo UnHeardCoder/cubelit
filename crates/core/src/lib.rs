@@ -5,7 +5,9 @@
 pub mod db;
 pub mod docker;
 pub mod error;
+pub mod events;
 pub mod ports;
 pub mod recipes;
 
 pub use error::{CoreError, CoreResult};
+pub use events::{CoreEvent, EventSink, ImagePullProgress, NoopSink, ServerCreateProgress};

@@ -1,6 +1,7 @@
 mod commands;
 pub mod db;
 mod docker;
+mod event_sink;
 mod state;
 
 pub use cubelit_core::error;
@@ -57,7 +58,7 @@ pub fn run() {
                 // Clone handles before moving state into manage()
                 let watcher_docker = state.docker.clone();
                 let watcher_db = state.db.clone();
-                let watcher_handle = app_handle.clone();
+                let watcher_events = event_sink::TauriEventSink::shared(app_handle.clone());
 
                 app_handle.manage(state);
 
@@ -65,7 +66,7 @@ pub fn run() {
                 commands::docker_commands::spawn_crash_watcher(
                     watcher_docker,
                     watcher_db,
-                    watcher_handle,
+                    watcher_events,
                 );
             });
 

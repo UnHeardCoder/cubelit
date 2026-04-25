@@ -1,11 +1,15 @@
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::collections::HashMap;
-use tauri::{AppHandle, Emitter, State};
+use std::sync::Arc;
+use tauri::{AppHandle, State};
 use tracing::{error, info};
+
+use cubelit_core::events::{CoreEvent, EventSink, ServerCreateProgress};
 
 use crate::db::models::Cubelit;
 use crate::docker;
 use crate::error::CoreError;
+use crate::event_sink::TauriEventSink;
 use crate::state::AppState;
 
 fn validate_env_vars(env: &HashMap<String, String>) -> Result<(), CoreError> {
@@ -58,7 +62,7 @@ fn readiness_pattern(recipe_id: &str) -> Option<&'static str> {
 fn spawn_readiness_watcher(
     docker: bollard::Docker,
     pool: sqlx::SqlitePool,
-    app_handle: AppHandle,
+    events: Arc<dyn EventSink>,
     server_id: String,
     container_id: String,
     pattern: &'static str,
@@ -97,7 +101,9 @@ fn spawn_readiness_watcher(
                     let _ = crate::db::queries::update_cubelit_status(
                         &pool, &server_id, "running", None,
                     ).await;
-                    let _ = app_handle.emit("server-status-changed", &server_id);
+                    events.emit(CoreEvent::ServerStatusChanged {
+                        server_id: server_id.clone(),
+                    });
                     break;
                 }
                 item = stream.next() => {
@@ -107,7 +113,9 @@ fn spawn_readiness_watcher(
                                 let _ = crate::db::queries::update_cubelit_status(
                                     &pool, &server_id, "running", None,
                                 ).await;
-                                let _ = app_handle.emit("server-status-changed", &server_id);
+                                events.emit(CoreEvent::ServerStatusChanged {
+                                    server_id: server_id.clone(),
+                                });
                                 break;
                             }
                         }
@@ -173,13 +181,6 @@ pub async fn sync_all_servers(
     crate::db::queries::list_cubelits(db).await
 }
 
-#[derive(Debug, Clone, Serialize)]
-pub struct ServerCreateProgress {
-    pub step: String,
-    pub progress: Option<f32>,
-    pub message: String,
-}
-
 #[derive(Debug, Deserialize)]
 pub struct CreateServerConfig {
     pub name: String,
@@ -206,15 +207,13 @@ pub async fn create_server(
 ) -> Result<Cubelit, CoreError> {
     info!(name = %config.name, recipe = %config.recipe_id, "Creating server");
     let recipe = cubelit_core::recipes::get_recipe(&state.recipes_dir, &config.recipe_id)?;
+    let events: Arc<dyn EventSink> = TauriEventSink::shared(app_handle.clone());
 
-    let _ = app_handle.emit(
-        "server-create-progress",
-        ServerCreateProgress {
-            step: "preparing".into(),
-            progress: Some(0.0),
-            message: "Preparing server configuration...".into(),
-        },
-    );
+    events.emit(CoreEvent::ServerCreateProgress(ServerCreateProgress {
+        step: "preparing".into(),
+        progress: Some(0.0),
+        message: "Preparing server configuration...".into(),
+    }));
 
     let id = uuid::Uuid::new_v4().to_string();
     let now = chrono::Utc::now().to_rfc3339();
@@ -294,27 +293,21 @@ pub async fn create_server(
 
     crate::db::queries::insert_cubelit(&state.db, &cubelit).await?;
 
-    let _ = app_handle.emit(
-        "server-create-progress",
-        ServerCreateProgress {
-            step: "pulling".into(),
-            progress: Some(0.2),
-            message: format!("Pulling image {}...", image),
-        },
-    );
+    events.emit(CoreEvent::ServerCreateProgress(ServerCreateProgress {
+        step: "pulling".into(),
+        progress: Some(0.2),
+        message: format!("Pulling image {}...", image),
+    }));
 
-    docker::images::pull_image(&state.docker, &image, &app_handle).await?;
+    docker::images::pull_image(&state.docker, &image, events.as_ref()).await?;
 
     // FiveM sidecar: MariaDB + Docker network
     if cubelit.recipe_id == "fivem" {
-        let _ = app_handle.emit(
-            "server-create-progress",
-            ServerCreateProgress {
-                step: "creating".into(),
-                progress: Some(0.5),
-                message: "Setting up MariaDB database...".into(),
-            },
-        );
+        events.emit(CoreEvent::ServerCreateProgress(ServerCreateProgress {
+            step: "creating".into(),
+            progress: Some(0.5),
+            message: "Setting up MariaDB database...".into(),
+        }));
 
         // Read DB config from env (set by user in the wizard, defaults from recipe)
         let db_password = env.get("DB_PASSWORD").cloned().unwrap_or_default();
@@ -325,7 +318,7 @@ pub async fn create_server(
 
         // Pull MariaDB image
         let mariadb_image = "mariadb:10.11";
-        docker::images::pull_image(&state.docker, mariadb_image, &app_handle).await?;
+        docker::images::pull_image(&state.docker, mariadb_image, events.as_ref()).await?;
 
         // Create Docker network
         let network_name = format!("cubelit-{}-net", id);
@@ -428,14 +421,11 @@ pub async fn create_server(
         crate::db::queries::update_cubelit_environment(&state.db, &id, &updated_env).await?;
     }
 
-    let _ = app_handle.emit(
-        "server-create-progress",
-        ServerCreateProgress {
-            step: "creating".into(),
-            progress: Some(0.7),
-            message: "Creating container...".into(),
-        },
-    );
+    events.emit(CoreEvent::ServerCreateProgress(ServerCreateProgress {
+        step: "creating".into(),
+        progress: Some(0.7),
+        message: "Creating container...".into(),
+    }));
 
     // Re-read cubelit from DB to get updated env (with sidecar connection string)
     let cubelit = crate::db::queries::get_cubelit(&state.db, &id).await?;
@@ -461,14 +451,11 @@ pub async fn create_server(
         ).await;
     }
 
-    let _ = app_handle.emit(
-        "server-create-progress",
-        ServerCreateProgress {
-            step: "starting".into(),
-            progress: Some(0.9),
-            message: "Starting server...".into(),
-        },
-    );
+    events.emit(CoreEvent::ServerCreateProgress(ServerCreateProgress {
+        step: "starting".into(),
+        progress: Some(0.9),
+        message: "Starting server...".into(),
+    }));
 
     docker::containers::start_container(&state.docker, &container_id).await?;
 
@@ -484,7 +471,7 @@ pub async fn create_server(
         spawn_readiness_watcher(
             state.docker.clone(),
             state.db.clone(),
-            app_handle.clone(),
+            events.clone(),
             id.clone(),
             container_id.clone(),
             pattern,
@@ -498,18 +485,15 @@ pub async fn create_server(
 
     let updated = crate::db::queries::get_cubelit(&state.db, &id).await?;
 
-    let _ = app_handle.emit(
-        "server-create-progress",
-        ServerCreateProgress {
-            step: "ready".into(),
-            progress: Some(1.0),
-            message: if running {
-                "Server is ready!".into()
-            } else {
-                "Server started but may have encountered an error.".into()
-            },
+    events.emit(CoreEvent::ServerCreateProgress(ServerCreateProgress {
+        step: "ready".into(),
+        progress: Some(1.0),
+        message: if running {
+            "Server is ready!".into()
+        } else {
+            "Server started but may have encountered an error.".into()
         },
-    );
+    }));
 
     if running {
         info!(server_id = %id, container_id = %container_id, "Server created and running");
@@ -547,7 +531,7 @@ pub async fn start_server(
         spawn_readiness_watcher(
             state.docker.clone(),
             state.db.clone(),
-            app_handle,
+            TauriEventSink::shared(app_handle),
             id.clone(),
             container_id.clone(),
             pattern,
@@ -617,7 +601,7 @@ pub async fn restart_server(
         spawn_readiness_watcher(
             state.docker.clone(),
             state.db.clone(),
-            app_handle,
+            TauriEventSink::shared(app_handle),
             id.clone(),
             container_id.clone(),
             pattern,
@@ -703,6 +687,7 @@ pub async fn update_server_settings(
     environment: HashMap<String, String>,
 ) -> Result<Cubelit, CoreError> {
     info!(server_id = %id, "Updating server settings");
+    let events: Arc<dyn EventSink> = TauriEventSink::shared(app_handle.clone());
     let cubelit = crate::db::queries::get_cubelit(&state.db, &id).await?;
     let was_running = cubelit.status == "running" || cubelit.status == "starting";
 
@@ -766,7 +751,7 @@ pub async fn update_server_settings(
             spawn_readiness_watcher(
                 state.docker.clone(),
                 state.db.clone(),
-                app_handle.clone(),
+                events.clone(),
                 id.clone(),
                 new_container_id.clone(),
                 pattern,
@@ -785,7 +770,9 @@ pub async fn update_server_settings(
 
     let updated = crate::db::queries::get_cubelit(&state.db, &id).await?;
     info!(server_id = %id, container_id = %new_container_id, "Server settings updated");
-    let _ = app_handle.emit("server-status-changed", &id);
+    events.emit(CoreEvent::ServerStatusChanged {
+        server_id: id.clone(),
+    });
     Ok(updated)
 }
 
@@ -847,7 +834,7 @@ pub async fn get_server_logs(
 pub fn spawn_crash_watcher(
     docker: bollard::Docker,
     pool: sqlx::SqlitePool,
-    app_handle: tauri::AppHandle,
+    events: Arc<dyn EventSink>,
 ) {
     tokio::spawn(async move {
         use futures_util::StreamExt;
@@ -871,7 +858,9 @@ pub fn spawn_crash_watcher(
                             let _ = crate::db::queries::update_cubelit_status(
                                 &pool, server_id, "stopped", None,
                             ).await;
-                            let _ = app_handle.emit("server-status-changed", server_id);
+                            events.emit(CoreEvent::ServerStatusChanged {
+                                server_id: server_id.to_string(),
+                            });
                         }
                     }
                 }
