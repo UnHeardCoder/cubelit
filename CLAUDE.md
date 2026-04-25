@@ -136,7 +136,7 @@ Schema:
 
 Bundled via `tauri.conf.json` → `bundle.resources: ["recipes/*"]`. The `recipes/*` glob **requires at least one file to exist** or the build fails.
 
-**Docker tag pinning**: Always use a specific tag in `default_tag`, never `"latest"`. For `itzg/minecraft-server` use Java-version tags (`java21`). For other images, check Docker Hub for the latest stable tag before enabling a recipe. FiveM (`spritsail/fivem`) uses date-based tags — check Docker Hub for the current stable tag before enabling.
+**Docker tag pinning**: Always use a specific tag in `default_tag`, never `"latest"`. For `itzg/minecraft-server` use Java-version tags (`java25` as of 0.1.8 — bump as Mojang's bundler advances; current Minecraft releases ship a Java 25 bundler with class file version 69.0). For other images, check Docker Hub for the latest stable tag before enabling a recipe. FiveM (`spritsail/fivem`) uses date-based tags — check Docker Hub for the current stable tag before enabling.
 
 ## Key Patterns
 
