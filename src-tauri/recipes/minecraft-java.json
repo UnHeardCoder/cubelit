@@ -5,7 +5,7 @@
   "icon": "minecraft-java",
   "available": true,
   "docker_image": "itzg/minecraft-server",
-  "default_tag": "java21",
+  "default_tag": "java25",
   "ports": [
     {
       "container_port": 25565,

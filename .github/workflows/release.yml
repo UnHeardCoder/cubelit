@@ -15,14 +15,16 @@ jobs:
           TAG="${{ github.ref_name }}"
           VERSION="${TAG#v}"
           CARGO=$(grep '^version' src-tauri/Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+          CORE=$(grep '^version' crates/core/Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
           PKG=$(jq -r .version package.json)
           TAURI=$(jq -r .version src-tauri/tauri.conf.json)
-          echo "Tag:             $VERSION"
-          echo "Cargo.toml:      $CARGO"
-          echo "package.json:    $PKG"
-          echo "tauri.conf.json: $TAURI"
-          if [ "$CARGO" != "$VERSION" ] || [ "$PKG" != "$VERSION" ] || [ "$TAURI" != "$VERSION" ]; then
-            echo "ERROR: Version mismatch — bump all three files before tagging."
+          echo "Tag:                       $VERSION"
+          echo "src-tauri/Cargo.toml:      $CARGO"
+          echo "crates/core/Cargo.toml:    $CORE"
+          echo "package.json:              $PKG"
+          echo "tauri.conf.json:           $TAURI"
+          if [ "$CARGO" != "$VERSION" ] || [ "$CORE" != "$VERSION" ] || [ "$PKG" != "$VERSION" ] || [ "$TAURI" != "$VERSION" ]; then
+            echo "ERROR: Version mismatch — bump all four files before tagging."
             exit 1
           fi
           echo "All versions match $VERSION"

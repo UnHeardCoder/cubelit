@@ -1,4 +1,4 @@
-use cubelit_lib::db::{models::Cubelit, queries, run_migrations};
+use cubelit_core::db::{models::Cubelit, queries, run_migrations};
 use sqlx::sqlite::SqlitePoolOptions;
 
 async fn setup_db() -> sqlx::SqlitePool {
@@ -46,7 +46,7 @@ async fn insert_and_get() {
 async fn get_not_found_returns_error() {
     let db = setup_db().await;
     let err = queries::get_cubelit(&db, "doesnotexist").await.unwrap_err();
-    assert!(matches!(err, cubelit_lib::error::AppError::NotFound(_)));
+    assert!(matches!(err, cubelit_core::error::CoreError::NotFound(_)));
 }
 
 #[tokio::test]
@@ -84,12 +84,31 @@ async fn update_status_with_container_id() {
     let db = setup_db().await;
     let c = make_cubelit("upd2");
     queries::insert_cubelit(&db, &c).await.unwrap();
-    queries::update_cubelit_status(&db, "upd2", "running", Some("cid-xyz"))
+    queries::update_cubelit_status(&db, "upd2", "running", Some(Some("cid-xyz")))
         .await
         .unwrap();
     let fetched = queries::get_cubelit(&db, "upd2").await.unwrap();
     assert_eq!(fetched.status, "running");
     assert_eq!(fetched.container_id.as_deref(), Some("cid-xyz"));
+}
+
+#[tokio::test]
+async fn update_status_clears_container_id() {
+    // Some(None) must write SQL NULL — verifies the v0.1.8 fix where
+    // `update_server_settings` previously passed Some("") and ended up
+    // persisting an empty string in container_id.
+    let db = setup_db().await;
+    let mut c = make_cubelit("upd3");
+    c.container_id = Some("stale-cid".into());
+    queries::insert_cubelit(&db, &c).await.unwrap();
+
+    queries::update_cubelit_status(&db, "upd3", "stopped", Some(None))
+        .await
+        .unwrap();
+
+    let fetched = queries::get_cubelit(&db, "upd3").await.unwrap();
+    assert_eq!(fetched.status, "stopped");
+    assert_eq!(fetched.container_id, None);
 }
 
 #[tokio::test]
@@ -136,5 +155,5 @@ async fn delete_removes_record() {
     queries::insert_cubelit(&db, &c).await.unwrap();
     queries::delete_cubelit(&db, "del1").await.unwrap();
     let err = queries::get_cubelit(&db, "del1").await.unwrap_err();
-    assert!(matches!(err, cubelit_lib::error::AppError::NotFound(_)));
+    assert!(matches!(err, cubelit_core::error::CoreError::NotFound(_)));
 }

@@ -11,6 +11,20 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.1.8] — 2026-04-25
+
+### Changed
+- Restructured the Rust backend into a Cargo workspace with a new `cubelit-core` crate housing shared business logic (error types, ports, recipes, sqlx queries + migrations + offline cache, Docker orchestration, server lifecycle, RCON / backup helpers). The `src-tauri` crate is now a thin transport layer whose Tauri IPC commands are 5–15 line shims that delegate to `cubelit-core`.
+- Introduced an `EventSink` trait abstracting progress-event emission. The desktop ships `TauriEventSink`; future CLI and HTTP/WebSocket agent transports can supply their own implementation without touching core orchestration code.
+- Split server orchestration into two traits: `ServerRunner` (narrow Docker runtime ops) and `ServerLifecycle` (full DB-touching lifecycle). `LocalServerHost` implements both for the v0.1.8 single-process desktop and is the seam future remote agents will replace.
+- CI `paths` filter expanded to cover the new `crates/**`, `Cargo.toml`, `Cargo.lock`, and workspace `.sqlx/` directory layout.
+- Frontend Tauri IPC wire format preserved byte-for-byte: every command signature, event name (`server-create-progress`, `server-status-changed`, `image-pull-progress`, etc.), and payload shape is unchanged from v0.1.7.
+
+### Fixed
+- Minecraft Java recipe now pins `default_tag` to `itzg/minecraft-server:java25` (was `java21`). Modern Minecraft releases — including vanilla `LATEST` (1.21.10+ / "26.x") and any modpack built against them — ship a Java 25 bundler (class file version 69.0) and refused to launch on the Java 21 image. The new pin runs older Minecraft versions just as well; users on pre-1.18 worlds can still pick a different image with `tag_override`.
+
+---
+
 ## [0.1.7] — 2026-04-06
 
 ### Added

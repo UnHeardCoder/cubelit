@@ -1,12 +1,13 @@
 use tauri::State;
 
-use crate::error::AppError;
-use crate::recipes::{Recipe, RecipeSummary};
+use cubelit_core::recipes::{self, Recipe, RecipeSummary};
+
+use crate::error::CoreError;
 use crate::state::AppState;
 
 #[tauri::command]
-pub async fn list_recipes(state: State<'_, AppState>) -> Result<Vec<RecipeSummary>, AppError> {
-    let recipes = crate::recipes::load_recipes(&state.recipes_dir)?;
+pub async fn list_recipes(state: State<'_, AppState>) -> Result<Vec<RecipeSummary>, CoreError> {
+    let recipes = recipes::load_recipes(&state.host.recipes_dir)?;
     Ok(recipes
         .into_iter()
         .map(|r| RecipeSummary {
@@ -24,6 +25,6 @@ pub async fn list_recipes(state: State<'_, AppState>) -> Result<Vec<RecipeSummar
 pub async fn get_recipe_detail(
     state: State<'_, AppState>,
     id: String,
-) -> Result<Recipe, AppError> {
-    crate::recipes::get_recipe(&state.recipes_dir, &id)
+) -> Result<Recipe, CoreError> {
+    recipes::get_recipe(&state.host.recipes_dir, &id)
 }

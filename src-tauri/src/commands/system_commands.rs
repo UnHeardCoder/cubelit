@@ -1,8 +1,9 @@
-use crate::error::AppError;
-use crate::ports;
-use crate::state::AppState;
+use cubelit_core::ports;
 use serde::Serialize;
 use tauri::State;
+
+use crate::error::CoreError;
+use crate::state::AppState;
 
 #[cfg(target_os = "windows")]
 #[derive(Debug, Clone, Serialize)]
@@ -309,7 +310,7 @@ pub fn check_wsl_status() -> WslStatus {
 #[cfg(target_os = "windows")]
 #[tauri::command]
 /// Launches an elevated PowerShell command to enable the Windows WSL2 features.
-pub fn enable_wsl2() -> Result<(), AppError> {
+pub fn enable_wsl2() -> Result<(), CoreError> {
     use std::ffi::OsStr;
     use std::os::windows::ffi::OsStrExt;
     use windows_sys::Win32::UI::Shell::ShellExecuteW;
@@ -340,7 +341,7 @@ pub fn enable_wsl2() -> Result<(), AppError> {
     };
 
     if result as usize <= 32 {
-        Err(AppError::Validation(format!(
+        Err(CoreError::Validation(format!(
             "Failed to launch elevated PowerShell (code {})",
             result as usize
         )))
@@ -352,7 +353,7 @@ pub fn enable_wsl2() -> Result<(), AppError> {
 #[cfg(target_os = "windows")]
 #[tauri::command]
 /// Sets WSL version 2 as the default for new Linux distributions on Windows.
-pub fn set_wsl_default_version() -> Result<(), AppError> {
+pub fn set_wsl_default_version() -> Result<(), CoreError> {
     let output = std::process::Command::new(r"C:\Windows\System32\wsl.exe")
         .args(["--set-default-version", "2"])
         .output()?;
@@ -361,7 +362,7 @@ pub fn set_wsl_default_version() -> Result<(), AppError> {
         Ok(())
     } else {
         let err = String::from_utf8_lossy(&output.stderr).to_string();
-        Err(AppError::Validation(format!(
+        Err(CoreError::Validation(format!(
             "wsl --set-default-version 2 failed: {err}"
         )))
     }
@@ -381,29 +382,29 @@ pub fn suggest_port(default_port: u16) -> u16 {
 /// Returns a full onboarding snapshot combining Docker and platform diagnostics.
 pub async fn get_onboarding_status(
     state: State<'_, AppState>,
-) -> Result<OnboardingStatus, AppError> {
+) -> Result<OnboardingStatus, CoreError> {
     Ok(OnboardingStatus {
         platform: platform_name(),
-        docker: check_docker_diagnostic(&state.docker).await,
+        docker: check_docker_diagnostic(&state.host.docker).await,
         wsl: check_wsl_diagnostic(),
     })
 }
 
 #[tauri::command]
-pub async fn get_public_ip() -> Result<String, AppError> {
+pub async fn get_public_ip() -> Result<String, CoreError> {
     let ip = reqwest::Client::new()
         .get("https://api.ipify.org")
         .send()
         .await
-        .map_err(|e| AppError::Validation(e.to_string()))?
+        .map_err(|e| CoreError::Validation(e.to_string()))?
         .text()
         .await
-        .map_err(|e| AppError::Validation(e.to_string()))?;
+        .map_err(|e| CoreError::Validation(e.to_string()))?;
     Ok(ip.trim().to_string())
 }
 
 #[tauri::command]
-pub fn open_folder(path: String) -> Result<(), AppError> {
+pub fn open_folder(path: String) -> Result<(), CoreError> {
     std::fs::create_dir_all(&path)?;
 
     #[cfg(target_os = "windows")]
