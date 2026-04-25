@@ -4,6 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Build & Dev Commands
 
+> **Always prefix Rust commands with `SQLX_OFFLINE=true`.** The `.sqlx/` offline query cache lives in `crates/core/.sqlx/` (committed). Without the env var, sqlx's `query!` / `query_as!` macros try to connect to a live database at compile time and fail. CI sets this for every Rust step in `ci.yml`.
+
 ```bash
 # Full app (frontend + Rust backend) — the primary dev workflow
 bun run tauri dev
@@ -15,12 +17,12 @@ bun run check            # SvelteKit sync + svelte-check (TypeScript)
 bun run check:watch      # Same, in watch mode
 
 # Rust only (from repo root — Cargo workspace)
-cargo check --workspace --all-targets   # Fast type-check across both crates
-cargo build --workspace                  # Full debug build
-cargo clippy --workspace --all-targets   # Lints across both crates
+SQLX_OFFLINE=true cargo check --workspace --all-targets   # Fast type-check across both crates
+SQLX_OFFLINE=true cargo build --workspace                  # Full debug build
+SQLX_OFFLINE=true cargo clippy --workspace --all-targets   # Lints across both crates
 ```
 
-Always run with `SQLX_OFFLINE=true` — the `.sqlx/` offline query cache lives in `crates/core/.sqlx/` (committed) and is required for builds without a live DB:
+The full pre-PR check matrix (run these before pushing):
 
 ```bash
 SQLX_OFFLINE=true cargo check --workspace --all-targets
@@ -164,6 +166,8 @@ Version must be bumped in **four files simultaneously** before tagging a release
 - `crates/core/Cargo.toml` — `version = "x.y.z"` (kept in lockstep with the desktop crate; no workspace inheritance for now)
 - `package.json` — `"version": "x.y.z"`
 - `src-tauri/tauri.conf.json` — `"version": "x.y.z"`
+
+The `check-version` job in `release.yml` strips the `v` prefix from the pushed tag and compares it against three of the four files (`src-tauri/Cargo.toml`, `package.json`, `src-tauri/tauri.conf.json`). If any disagree, the release workflow fails fast before the Windows/Linux/macOS build matrix kicks off — saving ~30 minutes of wasted CI time. `crates/core/Cargo.toml` is not currently checked by CI, so keep it in sync manually.
 
 ## Logging
 
