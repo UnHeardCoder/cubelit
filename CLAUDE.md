@@ -14,28 +14,33 @@ bun run build            # Production build to ./build
 bun run check            # SvelteKit sync + svelte-check (TypeScript)
 bun run check:watch      # Same, in watch mode
 
-# Rust only (from src-tauri/)
-cargo check              # Fast type-check without building
-cargo build              # Full debug build
-cargo clippy             # Lints
+# Rust only (from repo root — Cargo workspace)
+cargo check --workspace --all-targets   # Fast type-check across both crates
+cargo build --workspace                  # Full debug build
+cargo clippy --workspace --all-targets   # Lints across both crates
 ```
 
-Always run with `SQLX_OFFLINE=true` — the `.sqlx/` offline query cache is committed and required for builds without a live DB:
+Always run with `SQLX_OFFLINE=true` — the `.sqlx/` offline query cache lives in `crates/core/.sqlx/` (committed) and is required for builds without a live DB:
 
 ```bash
-SQLX_OFFLINE=true cargo check
-SQLX_OFFLINE=true cargo clippy -- -D warnings
-SQLX_OFFLINE=true cargo test
+SQLX_OFFLINE=true cargo check --workspace --all-targets
+SQLX_OFFLINE=true cargo clippy --workspace --all-targets -- -D warnings
+SQLX_OFFLINE=true cargo test --workspace
 bun run check
 bun run test
 ```
 
 To run a single Rust test by name:
 ```bash
-SQLX_OFFLINE=true cargo test <test_name>
+SQLX_OFFLINE=true cargo test --workspace <test_name>
 ```
 
 ## Architecture
+
+Cargo workspace with two Rust members:
+
+- **`crates/core/`** (`cubelit-core`) — Pure business logic: error type, sqlx schema/queries/migrations, Docker helpers (health, stats), recipe loader, port utilities. No Tauri, no IPC, no UI. The `.sqlx/` offline query cache lives here.
+- **`src-tauri/`** (`cubelit`) — Tauri v2 desktop binary. Owns the IPC command modules, the `AppState`, the bollard-based container/image/log streaming that emits Tauri events, and the desktop wiring. Re-exports `cubelit_core::*` through its `db/` and `docker/` modules so existing `crate::error` / `crate::db::queries` call sites keep compiling without churn.
 
 Tauri v2 desktop app: Rust backend manages Docker containers and SQLite persistence, SvelteKit 5 frontend communicates via Tauri IPC (`invoke()`/`emit()`).
 
@@ -55,31 +60,34 @@ Frontend (Svelte 5)          Tauri IPC           Rust Backend
 
 ### Rust backend (`src-tauri/src/`)
 
-- **`lib.rs`** — App setup: initializes `AppState`, registers all 18 IPC commands, runs `sync_all_servers()` on startup to match DB status with Docker reality.
+- **`lib.rs`** — App setup: initializes `AppState`, registers 26 IPC commands (plus 3 Windows-only), runs `sync_all_servers()` on startup to match DB status with Docker reality, and spawns a background `crash_watcher` task that periodically reconciles container state so unexpected exits flip the DB status without user action.
 - **`state.rs`** — `AppState` holds `Docker` (bollard), `SqlitePool` (sqlx), `data_dir`, `recipes_dir`. Created once in `.setup()` block, injected via `app_handle.manage()`.
-- **`commands/docker_commands.rs`** — `create_server` is the main orchestrator: loads recipe → creates DB record → pulls image → creates container → starts it. Emits `"server-create-progress"` events at each step. Also: `start_server`, `stop_server`, `restart_server`, `delete_server`, `check_docker_status`, `sync_server_status`, `sync_all_statuses`.
-- **`commands/server_commands.rs`** — `list_cubelits`, `get_cubelit` (read-only DB queries).
+- **`commands/docker_commands.rs`** — Main orchestrator file. `create_server` is the workhorse: loads recipe → creates DB record → pulls image → creates container → starts it. Emits `"server-create-progress"` events at each step. Also hosts: `start_server`, `stop_server`, `restart_server`, `delete_server`, `check_docker_status`, `sync_server_status`, `sync_all_statuses`, `update_server_settings` (recreates the container with new env/ports), `get_server_stats`, `get_server_logs`, plus the `spawn_crash_watcher` background task and the internal `sync_single_server`/`sync_all_servers` helpers.
+- **`commands/server_commands.rs`** — `list_cubelits`, `get_cubelit`, `rename_server` (DB-only metadata operations; no Docker calls).
 - **`commands/recipe_commands.rs`** — `list_recipes`, `get_recipe_detail`.
-- **`commands/system_commands.rs`** — `check_port`, `suggest_port`.
-- **`commands/file_commands.rs`** — `list_server_files`, `copy_file_to_server`, `delete_server_file`, `get_server_logs`.
+- **`commands/system_commands.rs`** — Grab bag for non-Docker host operations: `check_port`, `suggest_port`, `get_onboarding_status` (drives the first-launch DockerOnboarding gate), `get_public_ip` (shown on the server overview so users can share an address), `open_folder` (jumps to server files in the OS file manager), and the Windows-only `check_wsl_status` / `enable_wsl2` / `set_wsl_default_version` (gated by `#[cfg(target_os = "windows")]`).
+- **`commands/file_commands.rs`** — `list_server_files`, `copy_file_to_server`, `delete_server_file`. (Note: `get_server_logs` lives in `docker_commands.rs`, not here, despite the name.)
 - **`commands/minecraft_commands.rs`** — `send_minecraft_command` (RCON over TCP), `backup_server` (recursive copy to timestamped dir).
-- **`db/`** — SQLite with compile-time checked queries (`query!` / `query_as!` macros). `models.rs` defines the `Cubelit` struct; `queries.rs` contains all DB operations. Single `cubelits` table. WAL mode. DB at `{app_data_dir}/cubelit.db`. Schema migrations live in `src-tauri/migrations/` and are applied via `sqlx::migrate!()` at startup. The `.sqlx/` offline cache (committed to git) allows builds without a live DB — set `SQLX_OFFLINE=true`. To update the cache after changing queries: `DATABASE_URL=sqlite:///tmp/cubelit-dev.db sqlx migrate run && DATABASE_URL=sqlite:///tmp/cubelit-dev.db cargo sqlx prepare` (from `src-tauri/`).
+- **`db/`** — Re-exports `cubelit_core::db::{models, queries, run_migrations}`. The actual schema/queries/migrations live in `crates/core/src/db/` and `crates/core/migrations/`. Single `cubelits` table, compile-time checked queries (`query!` / `query_as!`). WAL mode. DB at `{app_data_dir}/cubelit.db`. Migrations run via `sqlx::migrate!("./migrations")` from inside `cubelit-core`. The `.sqlx/` offline cache (committed) lives at `crates/core/.sqlx/` — set `SQLX_OFFLINE=true` for offline builds. To update the cache after changing queries: `DATABASE_URL=sqlite:///tmp/cubelit-dev.db sqlx migrate run --source crates/core/migrations && DATABASE_URL=sqlite:///tmp/cubelit-dev.db cargo sqlx prepare --workspace` (from the repo root).
 - **`docker/containers.rs`** — Maps `Cubelit` fields to bollard `Config`. Containers named `cubelit-{id}`, labeled with `cubelit.id`/`cubelit.managed=true`, restart policy `unless-stopped`.
 - **`docker/images.rs`** — Pulls images with streaming progress via Tauri events.
-- **`docker/health.rs`** — `check_docker_status()` helper: pings Docker and returns version info as `DockerStatus` struct (used by `check_docker_status` IPC command).
 - **`docker/logs.rs`** — Streams container logs via Tauri events.
-- **`docker/stats.rs`** — Streams container resource stats (CPU, memory) via Tauri events.
-- **`recipes.rs`** — Loads JSON recipe files from `recipes_dir`, deserializes into `Recipe` structs.
-- **`error.rs`** — `AppError` enum with variants: `Docker`, `Database`, `Io`, `NotFound`, `Validation`. Serializes as a plain string for IPC transport.
+- **`docker/{health, stats}`** — Re-exports of `cubelit_core::docker::health` (DockerStatus + ping) and `cubelit_core::docker::stats` (resource-stats payload types). Streaming uses Tauri events from src-tauri.
+
+Modules now living in `crates/core/src/` (consumed via re-exports):
+- **`error.rs`** — `CoreError` enum with variants: `Docker`, `Database`, `Migration`, `Io`, `NotFound`, `Validation`. Serializes as a plain string for IPC transport (byte-identical to v0.1.7's `AppError`). Re-exported as `cubelit_lib::error::CoreError` for existing IPC commands.
 - **`ports.rs`** — `is_port_available()` / `suggest_port()` utilities (tries up to 100 offsets from the default); used by `system_commands.rs`.
+- **`recipes.rs`** — Loads JSON recipe files from `recipes_dir`, deserializes into `Recipe` structs.
 
 ### Frontend (`src/`)
 
 - **Svelte 5 runes** — Stores use `$state` + exported getter functions (not Svelte 4 writable stores).
-- **API layer** (`lib/api/`) — Thin wrappers around `invoke()`. Each file maps to a Rust command module.
+- **API layer** (`lib/api/`) — Thin wrappers around `invoke()`. Each file maps to a Rust command module. Vitest unit tests live alongside the modules (`docker.test.ts`, `servers.test.ts`); run with `bun run test`.
 - **Stores** (`lib/stores/`) — `servers.svelte.ts`, `docker.svelte.ts`, `recipes.svelte.ts`. Stores are created via `getXxxStore()` factory functions.
+- **Game registry** (`lib/games/registry.ts`) — Single source of truth for the game dispatch pattern. Maps `recipe_id` → `{ setupComponent, dashboardComponent, reviewNotes?, tileMonogram?, cardStyle? }`. The create wizard and the server detail page both call `getGameDefinition(recipeId)` and fall back to `ServerConfigForm` + `GenericDashboard` for unregistered recipes. Adding a complex game means adding an entry here in addition to creating the Svelte components.
+- **Component layout** — `lib/components/` holds shared UI (Card, Button, LogViewer, StatsCards, StatusRibbon, DockerOnboarding, etc.). Game-specific Setup/Dashboard components live under `lib/components/games/<game>/`.
 - **Routes**: `/` (dashboard), `/create` (3-step wizard), `/server/[id]` (detail page).
-- **Layout** (`+layout.svelte`) — Sidebar with server list + Docker onboarding gate. Checks Docker on mount; if unavailable, blocks UI with `DockerOnboarding` component.
+- **Layout** (`+layout.svelte`) — Sidebar with server list + Docker onboarding gate. Checks Docker on mount; if unavailable, blocks UI with `DockerOnboarding` (which on Windows surfaces the WSL2 helpers via `get_onboarding_status` + `enable_wsl2`).
 - **Create wizard** (`/create`) — Step 1: pick game (recipe), Step 2: configure (dynamic form from recipe fields), Step 3: review + create. Listens for `"server-create-progress"` Tauri events during creation.
 
 ### Recipe system
@@ -112,8 +120,7 @@ Schema:
 **Standard games** (no special backend needs): JSON recipe alone is enough. The create wizard uses the generic `ServerConfigForm` and the server detail uses `GenericDashboard`.
 
 **Complex games** that need code changes beyond the JSON:
-- **Create wizard** (`/create`): dispatches to `MinecraftSetup` or `FivemSetup` by `recipe_id`; all others fall back to `ServerConfigForm`.
-- **Server detail** (`/server/[id]`): dispatches to `MinecraftDashboard` or `FivemDashboard` by `recipe_id`; all others fall back to `GenericDashboard`.
+- **Frontend**: register the game in `src/lib/games/registry.ts` with custom `setupComponent` / `dashboardComponent` (and optional `reviewNotes`, `tileMonogram`, `cardStyle`). Currently `minecraft-java` → `MinecraftSetup`/`MinecraftDashboard` and `fivem` → `FivemSetup`/`FivemDashboard`; everything else inherits the generic fallback. Routes (`/create`, `/server/[id]`) read from this registry — do not hardcode `recipe_id` checks elsewhere.
 - **Backend** (`containers.rs`): FiveM requires a MariaDB sidecar, Docker network, and filtered env vars (`FRAMEWORK`, `LICENSE_KEY` removed). Standard games use none of this.
 
 Bundled via `tauri.conf.json` → `bundle.resources: ["recipes/*"]`. The `recipes/*` glob **requires at least one file to exist** or the build fails.
@@ -124,7 +131,7 @@ Bundled via `tauri.conf.json` → `bundle.resources: ["recipes/*"]`. The `recipe
 
 - **Tauri v2 path API**: Use `app.path().app_data_dir()`, NOT `app.path_resolver()`.
 - **Tauri v2 state injection**: `app_handle.manage(state)` inside the `.setup()` block.
-- **IPC commands** return `Result<T, AppError>` where `AppError` implements `Serialize` (serializes as string).
+- **IPC commands** return `Result<T, CoreError>` where `CoreError` (defined in `cubelit-core`, re-exported as `cubelit_lib::error::CoreError`) implements `Serialize` and serializes as a plain string. The wire format is byte-identical to v0.1.7's `AppError` — guarded by a unit test in `crates/core/src/error.rs`.
 - **Long operations** (image pull, server creation) stream progress via `app_handle.emit("event-name", payload)` → frontend listens with `listen()` from `@tauri-apps/api/event`.
 - **SvelteKit SPA mode**: SSR is disabled (`+layout.ts` exports `ssr = false`), static adapter with `fallback: "index.html"`.
 - **`page.params.id`** can be `undefined` in SvelteKit — always guard before use.
@@ -141,8 +148,9 @@ Defined in `src/app.css` via `@theme`. Use `cubelit-*` classes:
 
 ## Versioning
 
-Version must be bumped in **three files simultaneously** before tagging a release, or installer filenames won't match the tag:
+Version must be bumped in **four files simultaneously** before tagging a release, or installer filenames won't match the tag:
 - `src-tauri/Cargo.toml` — `version = "x.y.z"`
+- `crates/core/Cargo.toml` — `version = "x.y.z"` (kept in lockstep with the desktop crate; no workspace inheritance for now)
 - `package.json` — `"version": "x.y.z"`
 - `src-tauri/tauri.conf.json` — `"version": "x.y.z"`
 
@@ -157,12 +165,12 @@ Filter level is `warn,cubelit=info` by default. Tracing calls use `tracing::info
 
 ## CI/CD
 
-Two workflows trigger on `v*` tag pushes:
+Four workflows in `.github/workflows/`:
 
-- **`release.yml`** — runs a version check first, then builds the Tauri app for Windows, Linux, and macOS (ARM), and uploads a draft GitHub Release
-- **`deploy-website.yml`** — builds the website, pushes a Docker image to GHCR, and deploys to the VPS via SSH
-
-**`ci.yml`** runs on every PR: cargo check, clippy (-D warnings), test, bun check, bun test.
+- **`release.yml`** (on `v*` tag push) — runs a version check first, then builds the Tauri app for Windows, Linux, and macOS (ARM), and uploads a draft GitHub Release.
+- **`deploy-website.yml`** (on `v*` tag push) — builds the website, pushes a Docker image to GHCR, and deploys to the VPS via SSH.
+- **`ci.yml`** (on PR / push to `master` touching app paths) — cargo check, clippy (-D warnings), cargo test, `bun run check`, `bun run test`. All Rust steps use `SQLX_OFFLINE=true`.
+- **`ci-website.yml`** (on PR / push to `master` touching `website/**`) — `bun install` + `bun run check` for the marketing site only. The website is a separate SvelteKit-less Vite + Svelte 5 SPA with its own `package.json` and its own `CLAUDE.md`.
 
 ### Version check
 
