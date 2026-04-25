@@ -474,7 +474,13 @@ impl ServerLifecycle for LocalServerHost {
 
         if let Some(pattern) = readiness_pattern(&cubelit.recipe_id).filter(|_| running) {
             // Game needs log-based readiness detection — keep "starting" until Done
-            queries::update_cubelit_status(&self.db, &id, "starting", Some(&container_id)).await?;
+            queries::update_cubelit_status(
+                &self.db,
+                &id,
+                "starting",
+                Some(Some(&container_id)),
+            )
+            .await?;
             spawn_readiness_watcher(
                 self.docker.clone(),
                 self.db.clone(),
@@ -485,7 +491,8 @@ impl ServerLifecycle for LocalServerHost {
             );
         } else {
             let status = if running { "running" } else { "error" };
-            queries::update_cubelit_status(&self.db, &id, status, Some(&container_id)).await?;
+            queries::update_cubelit_status(&self.db, &id, status, Some(Some(&container_id)))
+                .await?;
         }
 
         let updated = queries::get_cubelit(&self.db, &id).await?;
@@ -686,8 +693,11 @@ impl ServerLifecycle for LocalServerHost {
         let env_json = serde_json::to_string(&environment).unwrap_or_default();
         queries::update_cubelit_environment(&self.db, id, &env_json).await?;
 
-        // Clear stale container_id and mark stopped while we recreate
-        queries::update_cubelit_status(&self.db, id, "stopped", Some("")).await?;
+        // Clear stale container_id (the old container was just removed) and
+        // mark stopped while we recreate. `Some(None)` writes SQL NULL — the
+        // previous `Some("")` left an empty string in the column, which broke
+        // any subsequent code that treated `container_id` as `Option`.
+        queries::update_cubelit_status(&self.db, id, "stopped", Some(None)).await?;
 
         // Re-read to get updated env
         let cubelit = queries::get_cubelit(&self.db, id).await?;
@@ -729,7 +739,7 @@ impl ServerLifecycle for LocalServerHost {
                     &self.db,
                     id,
                     "starting",
-                    Some(&new_container_id),
+                    Some(Some(&new_container_id)),
                 )
                 .await?;
                 spawn_readiness_watcher(
@@ -746,7 +756,7 @@ impl ServerLifecycle for LocalServerHost {
                     &self.db,
                     id,
                     status,
-                    Some(&new_container_id),
+                    Some(Some(&new_container_id)),
                 )
                 .await?;
             }
@@ -755,7 +765,7 @@ impl ServerLifecycle for LocalServerHost {
                 &self.db,
                 id,
                 "stopped",
-                Some(&new_container_id),
+                Some(Some(&new_container_id)),
             )
             .await?;
         }

@@ -35,17 +35,28 @@ async fn send_rcon_packet(
     Ok(())
 }
 
+/// RCON packet length bounds, per the Source RCON protocol:
+///   * minimum body — 10 bytes (4 req_id + 4 type + 1 null terminator + 1 pad)
+///   * maximum body — 4 110 bytes (response cap + headers); we reject anything
+///     larger so a hostile or buggy server can't make us allocate gigabytes.
+const RCON_MIN_LEN: i32 = 10;
+const RCON_MAX_LEN: i32 = 4_110;
+
 async fn read_rcon_packet(stream: &mut TcpStream) -> Result<(i32, i32, String), CoreError> {
     let mut len_buf = [0u8; 4];
     stream.read_exact(&mut len_buf).await?;
-    let length = i32::from_le_bytes(len_buf) as usize;
+    let length_i32 = i32::from_le_bytes(len_buf);
+
+    if !(RCON_MIN_LEN..=RCON_MAX_LEN).contains(&length_i32) {
+        return Err(CoreError::Validation(format!(
+            "Malformed RCON packet: length {} out of range [{}, {}]",
+            length_i32, RCON_MIN_LEN, RCON_MAX_LEN
+        )));
+    }
+    let length = length_i32 as usize;
 
     let mut data = vec![0u8; length];
     stream.read_exact(&mut data).await?;
-
-    if data.len() < 8 {
-        return Err(CoreError::Validation("Malformed RCON packet".into()));
-    }
 
     let req_id = i32::from_le_bytes(data[0..4].try_into().unwrap());
     let pkt_type = i32::from_le_bytes(data[4..8].try_into().unwrap());

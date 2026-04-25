@@ -84,12 +84,31 @@ async fn update_status_with_container_id() {
     let db = setup_db().await;
     let c = make_cubelit("upd2");
     queries::insert_cubelit(&db, &c).await.unwrap();
-    queries::update_cubelit_status(&db, "upd2", "running", Some("cid-xyz"))
+    queries::update_cubelit_status(&db, "upd2", "running", Some(Some("cid-xyz")))
         .await
         .unwrap();
     let fetched = queries::get_cubelit(&db, "upd2").await.unwrap();
     assert_eq!(fetched.status, "running");
     assert_eq!(fetched.container_id.as_deref(), Some("cid-xyz"));
+}
+
+#[tokio::test]
+async fn update_status_clears_container_id() {
+    // Some(None) must write SQL NULL — verifies the v0.1.8 fix where
+    // `update_server_settings` previously passed Some("") and ended up
+    // persisting an empty string in container_id.
+    let db = setup_db().await;
+    let mut c = make_cubelit("upd3");
+    c.container_id = Some("stale-cid".into());
+    queries::insert_cubelit(&db, &c).await.unwrap();
+
+    queries::update_cubelit_status(&db, "upd3", "stopped", Some(None))
+        .await
+        .unwrap();
+
+    let fetched = queries::get_cubelit(&db, "upd3").await.unwrap();
+    assert_eq!(fetched.status, "stopped");
+    assert_eq!(fetched.container_id, None);
 }
 
 #[tokio::test]

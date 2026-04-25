@@ -123,13 +123,22 @@ pub fn spawn_readiness_watcher(
             tokio::select! {
                 biased;
                 _ = &mut timeout => {
-                    // 10-minute limit reached — promote anyway
+                    // 10-minute limit reached. Don't blindly promote to "running"
+                    // — re-check the actual container state first, otherwise a
+                    // server that crashed mid-startup gets reported alive.
+                    let actual = verify_container_status(&docker, &container_id).await;
                     let _ = queries::update_cubelit_status(
-                        &pool, &server_id, "running", None,
+                        &pool, &server_id, actual, None,
                     ).await;
                     events.emit(CoreEvent::ServerStatusChanged {
                         server_id: server_id.clone(),
                     });
+                    if actual != "running" {
+                        tracing::warn!(
+                            server_id = %server_id,
+                            "Readiness watcher timed out after 10 min and container is not running"
+                        );
+                    }
                     break;
                 }
                 item = stream.next() => {
@@ -145,9 +154,17 @@ pub fn spawn_readiness_watcher(
                                 break;
                             }
                         }
-                        // Stream ended (container stopped) or error — exit silently;
+                        Some(Err(e)) => {
+                            tracing::warn!(
+                                server_id = %server_id,
+                                error = %e,
+                                "Readiness watcher log stream errored — exiting; sync_single_server will correct status on next poll"
+                            );
+                            break;
+                        }
+                        // Stream ended (container stopped) — exit silently;
                         // sync_single_server will correct the status on the next poll.
-                        Some(Err(_)) | None => break,
+                        None => break,
                     }
                 }
             }
@@ -187,18 +204,38 @@ pub fn spawn_crash_watcher(
 
             let mut stream = docker.events(Some(opts));
 
-            while let Some(Ok(ev)) = stream.next().await {
-                if let Some(actor) = ev.actor {
-                    if let Some(attrs) = actor.attributes {
-                        if let Some(server_id) = attrs.get("cubelit.id").map(String::as_str) {
-                            let _ = queries::update_cubelit_status(
-                                &pool, server_id, "stopped", None,
-                            )
-                            .await;
-                            events.emit(CoreEvent::ServerStatusChanged {
-                                server_id: server_id.to_string(),
-                            });
+            while let Some(item) = stream.next().await {
+                match item {
+                    Ok(ev) => {
+                        if let Some(actor) = ev.actor {
+                            if let Some(attrs) = actor.attributes {
+                                if let Some(server_id) =
+                                    attrs.get("cubelit.id").map(String::as_str)
+                                {
+                                    if let Err(e) = queries::update_cubelit_status(
+                                        &pool, server_id, "stopped", None,
+                                    )
+                                    .await
+                                    {
+                                        tracing::warn!(
+                                            server_id = %server_id,
+                                            error = %e,
+                                            "Crash watcher failed to persist stopped status"
+                                        );
+                                    }
+                                    events.emit(CoreEvent::ServerStatusChanged {
+                                        server_id: server_id.to_string(),
+                                    });
+                                }
+                            }
                         }
+                    }
+                    Err(e) => {
+                        tracing::warn!(
+                            error = %e,
+                            "Crash watcher Docker event stream errored — reconnecting in 5s"
+                        );
+                        break;
                     }
                 }
             }

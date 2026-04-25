@@ -53,33 +53,50 @@ pub async fn list_cubelits(db: &SqlitePool) -> Result<Vec<Cubelit>, CoreError> {
     Ok(cubelits)
 }
 
+/// Update a server's `status`, optionally also rewriting `container_id`.
+///
+/// `container_id` semantics:
+///   * `None`              — leave the existing column value alone.
+///   * `Some(None)`        — explicitly clear it (write SQL `NULL`).
+///   * `Some(Some(value))` — set it to `value`.
+///
+/// The two-level Option is the smallest API change that lets a caller
+/// distinguish "skip" from "clear". Using a single `Option<&str>` (with
+/// `None` overloaded for both) silently broke `update_server_settings`,
+/// which expected `Some("")` to clear the FK but instead persisted an
+/// empty string — see the v0.1.8 CodeRabbit review.
 pub async fn update_cubelit_status(
     db: &SqlitePool,
     id: &str,
     status: &str,
-    container_id: Option<&str>,
+    container_id: Option<Option<&str>>,
 ) -> Result<(), CoreError> {
     let now = chrono::Utc::now().to_rfc3339();
 
-    if let Some(cid) = container_id {
-        sqlx::query!(
-            "UPDATE cubelits SET status = ?, container_id = ?, updated_at = ? WHERE id = ?",
-            status,
-            cid,
-            now,
-            id,
-        )
-        .execute(db)
-        .await?;
-    } else {
-        sqlx::query!(
-            "UPDATE cubelits SET status = ?, updated_at = ? WHERE id = ?",
-            status,
-            now,
-            id,
-        )
-        .execute(db)
-        .await?;
+    match container_id {
+        Some(cid) => {
+            // sqlx binds `Option<&str>` as NULL when None, so this single
+            // branch covers both "set to value" and "set to NULL".
+            sqlx::query!(
+                "UPDATE cubelits SET status = ?, container_id = ?, updated_at = ? WHERE id = ?",
+                status,
+                cid,
+                now,
+                id,
+            )
+            .execute(db)
+            .await?;
+        }
+        None => {
+            sqlx::query!(
+                "UPDATE cubelits SET status = ?, updated_at = ? WHERE id = ?",
+                status,
+                now,
+                id,
+            )
+            .execute(db)
+            .await?;
+        }
     }
 
     Ok(())
