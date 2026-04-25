@@ -167,7 +167,7 @@ Version must be bumped in **four files simultaneously** before tagging a release
 - `package.json` — `"version": "x.y.z"`
 - `src-tauri/tauri.conf.json` — `"version": "x.y.z"`
 
-The `check-version` job in `release.yml` strips the `v` prefix from the pushed tag and compares it against three of the four files (`src-tauri/Cargo.toml`, `package.json`, `src-tauri/tauri.conf.json`). If any disagree, the release workflow fails fast before the Windows/Linux/macOS build matrix kicks off — saving ~30 minutes of wasted CI time. `crates/core/Cargo.toml` is not currently checked by CI, so keep it in sync manually.
+The `check-version` job in `release.yml` strips the `v` prefix from the pushed tag and compares it against all four files. If any disagree, the release workflow fails fast before the Windows/Linux/macOS build matrix kicks off — saving ~30 minutes of wasted CI time.
 
 ## Logging
 

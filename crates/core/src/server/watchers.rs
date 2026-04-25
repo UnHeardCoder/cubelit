@@ -59,7 +59,14 @@ pub async fn verify_container_status(
                 "error"
             }
         }
-        Err(_) => "error",
+        Err(e) => {
+            tracing::warn!(
+                container_id = %container_id,
+                error = %e,
+                "verify_container_status: docker inspect failed; reporting error"
+            );
+            "error"
+        }
     }
 }
 
