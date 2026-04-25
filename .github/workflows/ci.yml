@@ -39,7 +39,7 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: src-tauri
+          workspaces: '. -> target'
 
       - name: Install Linux system dependencies
         run: |
@@ -54,20 +54,17 @@ jobs:
         run: bun install
 
       - name: Cargo check
-        run: cargo check
-        working-directory: src-tauri
+        run: cargo check --workspace --all-targets
         env:
           SQLX_OFFLINE: "true"
 
       - name: Cargo clippy
-        run: cargo clippy -- -D warnings
-        working-directory: src-tauri
+        run: cargo clippy --workspace --all-targets -- -D warnings
         env:
           SQLX_OFFLINE: "true"
 
       - name: Cargo test
-        run: cargo test
-        working-directory: src-tauri
+        run: cargo test --workspace
         env:
           SQLX_OFFLINE: "true"
 

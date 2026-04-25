@@ -1,0 +1,13 @@
+[package]
+name = "cubelit-core"
+version = "0.1.7"
+edition = "2021"
+description = "Core business logic for Cubelit (DB, Docker, recipes, server lifecycle)."
+authors = ["Cubelit Contributors"]
+license = "MIT"
+
+[lib]
+name = "cubelit_core"
+path = "src/lib.rs"
+
+[dependencies]
