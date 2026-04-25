@@ -46,7 +46,7 @@ async fn insert_and_get() {
 async fn get_not_found_returns_error() {
     let db = setup_db().await;
     let err = queries::get_cubelit(&db, "doesnotexist").await.unwrap_err();
-    assert!(matches!(err, cubelit_lib::error::AppError::NotFound(_)));
+    assert!(matches!(err, cubelit_lib::error::CoreError::NotFound(_)));
 }
 
 #[tokio::test]
@@ -136,5 +136,5 @@ async fn delete_removes_record() {
     queries::insert_cubelit(&db, &c).await.unwrap();
     queries::delete_cubelit(&db, "del1").await.unwrap();
     let err = queries::get_cubelit(&db, "del1").await.unwrap_err();
-    assert!(matches!(err, cubelit_lib::error::AppError::NotFound(_)));
+    assert!(matches!(err, cubelit_lib::error::CoreError::NotFound(_)));
 }

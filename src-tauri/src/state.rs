@@ -3,7 +3,7 @@ use sqlx::sqlite::SqlitePoolOptions;
 use sqlx::SqlitePool;
 use std::path::PathBuf;
 
-use crate::error::AppError;
+use crate::error::CoreError;
 
 pub struct AppState {
     pub docker: Docker,
@@ -13,7 +13,7 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub async fn new(data_dir: PathBuf, recipes_dir: PathBuf) -> Result<Self, AppError> {
+    pub async fn new(data_dir: PathBuf, recipes_dir: PathBuf) -> Result<Self, CoreError> {
         let docker = Docker::connect_with_local_defaults()?;
 
         std::fs::create_dir_all(&data_dir)?;

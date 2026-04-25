@@ -1,10 +1,9 @@
 mod commands;
 pub mod db;
 mod docker;
-pub mod error;
-mod ports;
-mod recipes;
 mod state;
+
+pub use cubelit_core::error;
 
 use commands::docker_commands::*;
 use commands::file_commands::*;

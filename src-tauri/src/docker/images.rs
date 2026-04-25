@@ -4,7 +4,7 @@ use futures_util::StreamExt;
 use serde::Serialize;
 use tauri::{AppHandle, Emitter};
 
-use crate::error::AppError;
+use crate::error::CoreError;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct ImagePullProgress {
@@ -17,7 +17,7 @@ pub async fn pull_image(
     docker: &Docker,
     image: &str,
     app_handle: &AppHandle,
-) -> Result<(), AppError> {
+) -> Result<(), CoreError> {
     let (repo, tag) = if let Some(pos) = image.rfind(':') {
         (&image[..pos], &image[pos + 1..])
     } else {
@@ -42,7 +42,7 @@ pub async fn pull_image(
                 };
                 let _ = app_handle.emit("image-pull-progress", &progress);
             }
-            Err(e) => return Err(AppError::Docker(e)),
+            Err(e) => return Err(CoreError::Docker(e)),
         }
     }
 

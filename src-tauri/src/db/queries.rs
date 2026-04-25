@@ -1,9 +1,9 @@
 use sqlx::SqlitePool;
 
 use crate::db::models::Cubelit;
-use crate::error::AppError;
+use crate::error::CoreError;
 
-pub async fn insert_cubelit(db: &SqlitePool, cubelit: &Cubelit) -> Result<(), AppError> {
+pub async fn insert_cubelit(db: &SqlitePool, cubelit: &Cubelit) -> Result<(), CoreError> {
     sqlx::query!(
         "INSERT INTO cubelits (id, name, game, recipe_id, docker_image, container_id, status, port_mappings, environment, volume_path, container_mount_path, sidecar_container_id, sidecar_image, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -29,7 +29,7 @@ pub async fn insert_cubelit(db: &SqlitePool, cubelit: &Cubelit) -> Result<(), Ap
     Ok(())
 }
 
-pub async fn get_cubelit(db: &SqlitePool, id: &str) -> Result<Cubelit, AppError> {
+pub async fn get_cubelit(db: &SqlitePool, id: &str) -> Result<Cubelit, CoreError> {
     let cubelit = sqlx::query_as!(
         Cubelit,
         "SELECT id, name, game, recipe_id, docker_image, container_id, status, port_mappings, environment, volume_path, container_mount_path, sidecar_container_id, sidecar_image, created_at, updated_at FROM cubelits WHERE id = ?",
@@ -37,12 +37,12 @@ pub async fn get_cubelit(db: &SqlitePool, id: &str) -> Result<Cubelit, AppError>
     )
     .fetch_optional(db)
     .await?
-    .ok_or_else(|| AppError::NotFound(format!("Cubelit with id '{}' not found", id)))?;
+    .ok_or_else(|| CoreError::NotFound(format!("Cubelit with id '{}' not found", id)))?;
 
     Ok(cubelit)
 }
 
-pub async fn list_cubelits(db: &SqlitePool) -> Result<Vec<Cubelit>, AppError> {
+pub async fn list_cubelits(db: &SqlitePool) -> Result<Vec<Cubelit>, CoreError> {
     let cubelits = sqlx::query_as!(
         Cubelit,
         "SELECT id, name, game, recipe_id, docker_image, container_id, status, port_mappings, environment, volume_path, container_mount_path, sidecar_container_id, sidecar_image, created_at, updated_at FROM cubelits ORDER BY created_at DESC"
@@ -58,7 +58,7 @@ pub async fn update_cubelit_status(
     id: &str,
     status: &str,
     container_id: Option<&str>,
-) -> Result<(), AppError> {
+) -> Result<(), CoreError> {
     let now = chrono::Utc::now().to_rfc3339();
 
     if let Some(cid) = container_id {
@@ -89,7 +89,7 @@ pub async fn update_cubelit_environment(
     db: &SqlitePool,
     id: &str,
     environment: &str,
-) -> Result<(), AppError> {
+) -> Result<(), CoreError> {
     let now = chrono::Utc::now().to_rfc3339();
     sqlx::query!(
         "UPDATE cubelits SET environment = ?, updated_at = ? WHERE id = ?",
@@ -107,7 +107,7 @@ pub async fn update_cubelit_sidecar(
     id: &str,
     sidecar_container_id: &str,
     sidecar_image: &str,
-) -> Result<(), AppError> {
+) -> Result<(), CoreError> {
     let now = chrono::Utc::now().to_rfc3339();
     sqlx::query!(
         "UPDATE cubelits SET sidecar_container_id = ?, sidecar_image = ?, updated_at = ? WHERE id = ?",
@@ -125,7 +125,7 @@ pub async fn update_cubelit_name(
     db: &SqlitePool,
     id: &str,
     name: &str,
-) -> Result<(), AppError> {
+) -> Result<(), CoreError> {
     let now = chrono::Utc::now().to_rfc3339();
     sqlx::query!(
         "UPDATE cubelits SET name = ?, updated_at = ? WHERE id = ?",
@@ -138,7 +138,7 @@ pub async fn update_cubelit_name(
     Ok(())
 }
 
-pub async fn delete_cubelit(db: &SqlitePool, id: &str) -> Result<(), AppError> {
+pub async fn delete_cubelit(db: &SqlitePool, id: &str) -> Result<(), CoreError> {
     sqlx::query!("DELETE FROM cubelits WHERE id = ?", id)
         .execute(db)
         .await?;

@@ -3,7 +3,7 @@ use tauri::State;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 
-use crate::error::AppError;
+use crate::error::CoreError;
 use crate::state::AppState;
 
 // ─── RCON helpers ────────────────────────────────────────────────────────────
@@ -13,7 +13,7 @@ async fn send_rcon_packet(
     req_id: i32,
     pkt_type: i32,
     body: &str,
-) -> Result<(), AppError> {
+) -> Result<(), CoreError> {
     let body_bytes = body.as_bytes();
     // length field covers: req_id (4) + type (4) + body + null terminator (1) + padding (1)
     let length = (4 + 4 + body_bytes.len() + 2) as i32;
@@ -30,7 +30,7 @@ async fn send_rcon_packet(
     Ok(())
 }
 
-async fn read_rcon_packet(stream: &mut TcpStream) -> Result<(i32, i32, String), AppError> {
+async fn read_rcon_packet(stream: &mut TcpStream) -> Result<(i32, i32, String), CoreError> {
     let mut len_buf = [0u8; 4];
     stream.read_exact(&mut len_buf).await?;
     let length = i32::from_le_bytes(len_buf) as usize;
@@ -39,7 +39,7 @@ async fn read_rcon_packet(stream: &mut TcpStream) -> Result<(i32, i32, String), 
     stream.read_exact(&mut data).await?;
 
     if data.len() < 8 {
-        return Err(AppError::Validation("Malformed RCON packet".into()));
+        return Err(CoreError::Validation("Malformed RCON packet".into()));
     }
 
     let req_id = i32::from_le_bytes(data[0..4].try_into().unwrap());
@@ -64,11 +64,11 @@ pub async fn send_minecraft_command(
     state: State<'_, AppState>,
     id: String,
     command: String,
-) -> Result<String, AppError> {
+) -> Result<String, CoreError> {
     let server = crate::db::queries::get_cubelit(&state.db, &id).await?;
 
     if server.status != "running" {
-        return Err(AppError::Validation("Server is not running".into()));
+        return Err(CoreError::Validation("Server is not running".into()));
     }
 
     // Resolve RCON host port from port_mappings {"25575/tcp": <host_port>}
@@ -78,7 +78,7 @@ pub async fn send_minecraft_command(
         .get("25575/tcp")
         .and_then(|v| v.as_u64())
         .map(|p| p as u16)
-        .ok_or_else(|| AppError::Validation("RCON port (25575) is not mapped on this server".into()))?;
+        .ok_or_else(|| CoreError::Validation("RCON port (25575) is not mapped on this server".into()))?;
 
     // RCON password — falls back to itzg default if not in environment
     let env: HashMap<String, String> =
@@ -91,7 +91,7 @@ pub async fn send_minecraft_command(
     let addr = format!("127.0.0.1:{}", rcon_port);
 
     let mut stream = TcpStream::connect(&addr).await.map_err(|e| {
-        AppError::Validation(format!(
+        CoreError::Validation(format!(
             "Cannot connect to RCON at {} — is the server fully started? ({})",
             addr, e
         ))
@@ -101,7 +101,7 @@ pub async fn send_minecraft_command(
     send_rcon_packet(&mut stream, 1, 3, &password).await?;
     let (auth_id, _, _) = read_rcon_packet(&mut stream).await?;
     if auth_id == -1 {
-        return Err(AppError::Validation(
+        return Err(CoreError::Validation(
             "RCON authentication failed — wrong RCON_PASSWORD?".into(),
         ));
     }
@@ -119,12 +119,12 @@ pub async fn send_minecraft_command(
 pub async fn backup_server(
     state: State<'_, AppState>,
     id: String,
-) -> Result<String, AppError> {
+) -> Result<String, CoreError> {
     let server = crate::db::queries::get_cubelit(&state.db, &id).await?;
 
     let src = std::path::Path::new(&server.volume_path);
     if !src.exists() {
-        return Err(AppError::Validation(
+        return Err(CoreError::Validation(
             "Server data directory not found".into(),
         ));
     }
@@ -157,7 +157,7 @@ pub async fn backup_server(
 fn copy_dir_recursive(
     src: &std::path::Path,
     dst: &std::path::Path,
-) -> Result<(), AppError> {
+) -> Result<(), CoreError> {
     std::fs::create_dir_all(dst)?;
     for entry in std::fs::read_dir(src)? {
         let entry = entry?;

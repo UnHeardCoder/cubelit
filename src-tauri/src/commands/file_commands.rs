@@ -2,7 +2,7 @@ use serde::Serialize;
 use std::path::PathBuf;
 use tauri::State;
 
-use crate::error::AppError;
+use crate::error::CoreError;
 use crate::state::AppState;
 
 #[derive(Debug, Clone, Serialize)]
@@ -17,7 +17,7 @@ pub async fn list_server_files(
     state: State<'_, AppState>,
     id: String,
     subpath: Option<String>,
-) -> Result<Vec<FileEntry>, AppError> {
+) -> Result<Vec<FileEntry>, CoreError> {
     let cubelit = crate::db::queries::get_cubelit(&state.db, &id).await?;
     let mut base = PathBuf::from(&cubelit.volume_path);
     if let Some(ref sub) = subpath {
@@ -52,7 +52,7 @@ pub async fn copy_file_to_server(
     id: String,
     source_path: String,
     dest_subpath: String,
-) -> Result<(), AppError> {
+) -> Result<(), CoreError> {
     let cubelit = crate::db::queries::get_cubelit(&state.db, &id).await?;
     let dest = PathBuf::from(&cubelit.volume_path).join(&dest_subpath);
 
@@ -69,7 +69,7 @@ pub async fn delete_server_file(
     state: State<'_, AppState>,
     id: String,
     filepath: String,
-) -> Result<(), AppError> {
+) -> Result<(), CoreError> {
     let cubelit = crate::db::queries::get_cubelit(&state.db, &id).await?;
     let full_path = PathBuf::from(&cubelit.volume_path).join(&filepath);
 
@@ -77,7 +77,7 @@ pub async fn delete_server_file(
     let canonical_base = PathBuf::from(&cubelit.volume_path).canonicalize().unwrap_or_else(|_| PathBuf::from(&cubelit.volume_path));
     let canonical_target = full_path.canonicalize().unwrap_or(full_path.clone());
     if !canonical_target.starts_with(&canonical_base) {
-        return Err(AppError::Validation("Path traversal not allowed".into()));
+        return Err(CoreError::Validation("Path traversal not allowed".into()));
     }
 
     if full_path.is_dir() {

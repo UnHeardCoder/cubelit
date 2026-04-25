@@ -8,9 +8,9 @@ use bollard::models::{HostConfig, PortBinding, RestartPolicy, RestartPolicyNameE
 use bollard::Docker;
 
 use crate::db::models::Cubelit;
-use crate::error::AppError;
+use crate::error::CoreError;
 
-pub async fn create_container(docker: &Docker, cubelit: &Cubelit, extra_binds: &[String]) -> Result<String, AppError> {
+pub async fn create_container(docker: &Docker, cubelit: &Cubelit, extra_binds: &[String]) -> Result<String, CoreError> {
     let port_mappings: HashMap<String, u16> =
         serde_json::from_str(&cubelit.port_mappings).unwrap_or_default();
 
@@ -86,26 +86,26 @@ pub async fn create_container(docker: &Docker, cubelit: &Cubelit, extra_binds: &
     Ok(response.id)
 }
 
-pub async fn start_container(docker: &Docker, container_id: &str) -> Result<(), AppError> {
+pub async fn start_container(docker: &Docker, container_id: &str) -> Result<(), CoreError> {
     docker
         .start_container(container_id, None::<StartContainerOptions<String>>)
         .await?;
     Ok(())
 }
 
-pub async fn stop_container(docker: &Docker, container_id: &str) -> Result<(), AppError> {
+pub async fn stop_container(docker: &Docker, container_id: &str) -> Result<(), CoreError> {
     docker
         .stop_container(container_id, Some(StopContainerOptions { t: 10 }))
         .await?;
     Ok(())
 }
 
-pub async fn restart_container(docker: &Docker, container_id: &str) -> Result<(), AppError> {
+pub async fn restart_container(docker: &Docker, container_id: &str) -> Result<(), CoreError> {
     docker.restart_container(container_id, Some(bollard::container::RestartContainerOptions { t: 10 })).await?;
     Ok(())
 }
 
-pub async fn remove_container(docker: &Docker, container_id: &str) -> Result<(), AppError> {
+pub async fn remove_container(docker: &Docker, container_id: &str) -> Result<(), CoreError> {
     docker
         .remove_container(
             container_id,

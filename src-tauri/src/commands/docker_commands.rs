@@ -5,19 +5,19 @@ use tracing::{error, info};
 
 use crate::db::models::Cubelit;
 use crate::docker;
-use crate::error::AppError;
+use crate::error::CoreError;
 use crate::state::AppState;
 
-fn validate_env_vars(env: &HashMap<String, String>) -> Result<(), AppError> {
+fn validate_env_vars(env: &HashMap<String, String>) -> Result<(), CoreError> {
     for (key, value) in env {
         if key.contains('\0') {
-            return Err(AppError::Validation(format!("Env var key '{}' contains NUL byte", key)));
+            return Err(CoreError::Validation(format!("Env var key '{}' contains NUL byte", key)));
         }
         if value.contains('\0') {
-            return Err(AppError::Validation(format!("Env var '{}' value contains NUL byte", key)));
+            return Err(CoreError::Validation(format!("Env var '{}' value contains NUL byte", key)));
         }
         if value.len() > 4096 {
-            return Err(AppError::Validation(format!("Env var '{}' value exceeds 4096 bytes", key)));
+            return Err(CoreError::Validation(format!("Env var '{}' value exceeds 4096 bytes", key)));
         }
     }
     Ok(())
@@ -125,7 +125,7 @@ pub async fn sync_single_server(
     docker: &bollard::Docker,
     db: &sqlx::SqlitePool,
     cubelit: &Cubelit,
-) -> Result<String, AppError> {
+) -> Result<String, CoreError> {
     let new_status = if let Some(container_id) = &cubelit.container_id {
         match docker.inspect_container(container_id, None).await {
             Ok(info) => {
@@ -154,7 +154,7 @@ pub async fn sync_single_server(
 pub async fn sync_all_servers(
     docker: &bollard::Docker,
     db: &sqlx::SqlitePool,
-) -> Result<Vec<Cubelit>, AppError> {
+) -> Result<Vec<Cubelit>, CoreError> {
     let cubelits = crate::db::queries::list_cubelits(db).await?;
     info!("Syncing {} server(s) with Docker", cubelits.len());
     for cubelit in &cubelits {
@@ -194,7 +194,7 @@ pub struct CreateServerConfig {
 #[tauri::command]
 pub async fn check_docker_status(
     state: State<'_, AppState>,
-) -> Result<docker::health::DockerStatus, AppError> {
+) -> Result<docker::health::DockerStatus, CoreError> {
     Ok(docker::health::check_docker_status(&state.docker).await)
 }
 
@@ -203,9 +203,9 @@ pub async fn create_server(
     state: State<'_, AppState>,
     app_handle: AppHandle,
     config: CreateServerConfig,
-) -> Result<Cubelit, AppError> {
+) -> Result<Cubelit, CoreError> {
     info!(name = %config.name, recipe = %config.recipe_id, "Creating server");
-    let recipe = crate::recipes::get_recipe(&state.recipes_dir, &config.recipe_id)?;
+    let recipe = cubelit_core::recipes::get_recipe(&state.recipes_dir, &config.recipe_id)?;
 
     let _ = app_handle.emit(
         "server-create-progress",
@@ -525,12 +525,12 @@ pub async fn start_server(
     state: State<'_, AppState>,
     app_handle: AppHandle,
     id: String,
-) -> Result<(), AppError> {
+) -> Result<(), CoreError> {
     info!(server_id = %id, "Starting server");
     let cubelit = crate::db::queries::get_cubelit(&state.db, &id).await?;
     let container_id = cubelit
         .container_id
-        .ok_or_else(|| AppError::NotFound("No container associated with this server".into()))?;
+        .ok_or_else(|| CoreError::NotFound("No container associated with this server".into()))?;
 
     // Also start sidecar if present
     if let Some(ref sidecar_id) = cubelit.sidecar_container_id {
@@ -570,12 +570,12 @@ pub async fn start_server(
 pub async fn stop_server(
     state: State<'_, AppState>,
     id: String,
-) -> Result<(), AppError> {
+) -> Result<(), CoreError> {
     info!(server_id = %id, "Stopping server");
     let cubelit = crate::db::queries::get_cubelit(&state.db, &id).await?;
     let container_id = cubelit
         .container_id
-        .ok_or_else(|| AppError::NotFound("No container associated with this server".into()))?;
+        .ok_or_else(|| CoreError::NotFound("No container associated with this server".into()))?;
 
     docker::containers::stop_container(&state.docker, &container_id).await?;
 
@@ -595,12 +595,12 @@ pub async fn restart_server(
     state: State<'_, AppState>,
     app_handle: AppHandle,
     id: String,
-) -> Result<(), AppError> {
+) -> Result<(), CoreError> {
     info!(server_id = %id, "Restarting server");
     let cubelit = crate::db::queries::get_cubelit(&state.db, &id).await?;
     let container_id = cubelit
         .container_id
-        .ok_or_else(|| AppError::NotFound("No container associated with this server".into()))?;
+        .ok_or_else(|| CoreError::NotFound("No container associated with this server".into()))?;
 
     // Also restart sidecar if present
     if let Some(ref sidecar_id) = cubelit.sidecar_container_id {
@@ -641,7 +641,7 @@ pub async fn delete_server(
     state: State<'_, AppState>,
     id: String,
     delete_data: bool,
-) -> Result<(), AppError> {
+) -> Result<(), CoreError> {
     info!(server_id = %id, delete_data = %delete_data, "Deleting server");
     let cubelit = crate::db::queries::get_cubelit(&state.db, &id).await?;
 
@@ -679,7 +679,7 @@ pub async fn delete_server(
 pub async fn sync_server_status(
     state: State<'_, AppState>,
     id: String,
-) -> Result<Cubelit, AppError> {
+) -> Result<Cubelit, CoreError> {
     let cubelit = crate::db::queries::get_cubelit(&state.db, &id).await?;
     sync_single_server(&state.docker, &state.db, &cubelit).await?;
     crate::db::queries::get_cubelit(&state.db, &id).await
@@ -688,7 +688,7 @@ pub async fn sync_server_status(
 #[tauri::command]
 pub async fn sync_all_statuses(
     state: State<'_, AppState>,
-) -> Result<Vec<Cubelit>, AppError> {
+) -> Result<Vec<Cubelit>, CoreError> {
     sync_all_servers(&state.docker, &state.db).await
 }
 
@@ -701,7 +701,7 @@ pub async fn update_server_settings(
     app_handle: AppHandle,
     id: String,
     environment: HashMap<String, String>,
-) -> Result<Cubelit, AppError> {
+) -> Result<Cubelit, CoreError> {
     info!(server_id = %id, "Updating server settings");
     let cubelit = crate::db::queries::get_cubelit(&state.db, &id).await?;
     let was_running = cubelit.status == "running" || cubelit.status == "starting";
@@ -793,11 +793,11 @@ pub async fn update_server_settings(
 pub async fn get_server_stats(
     state: State<'_, AppState>,
     id: String,
-) -> Result<crate::docker::stats::ContainerStats, AppError> {
+) -> Result<crate::docker::stats::ContainerStats, CoreError> {
     let cubelit = crate::db::queries::get_cubelit(&state.db, &id).await?;
     let container_id = cubelit
         .container_id
-        .ok_or_else(|| AppError::NotFound("No container associated with this server".into()))?;
+        .ok_or_else(|| CoreError::NotFound("No container associated with this server".into()))?;
 
     crate::docker::stats::get_container_stats(&state.docker, &container_id).await
 }
@@ -807,14 +807,14 @@ pub async fn get_server_logs(
     id: String,
     lines: Option<u64>,
     state: State<'_, AppState>,
-) -> Result<Vec<String>, AppError> {
+) -> Result<Vec<String>, CoreError> {
     use bollard::container::LogsOptions;
     use futures_util::StreamExt;
 
     let cubelit = crate::db::queries::get_cubelit(&state.db, &id).await?;
     let container_id = cubelit
         .container_id
-        .ok_or_else(|| AppError::NotFound("No container associated with this server".into()))?;
+        .ok_or_else(|| CoreError::NotFound("No container associated with this server".into()))?;
 
     let tail = lines.unwrap_or(100).to_string();
     let opts = LogsOptions::<String> {

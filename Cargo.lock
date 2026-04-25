@@ -740,6 +740,16 @@ dependencies = [
 [[package]]
 name = "cubelit-core"
 version = "0.1.7"
+dependencies = [
+ "bollard",
+ "futures-util",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "tempfile",
+ "thiserror 2.0.18",
+ "tokio",
+]
 
 [[package]]
 name = "darling"
