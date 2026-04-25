@@ -710,7 +710,7 @@ dependencies = [
 
 [[package]]
 name = "cubelit"
-version = "0.1.7"
+version = "0.1.8"
 dependencies = [
  "bollard",
  "chrono",
@@ -739,7 +739,7 @@ dependencies = [
 
 [[package]]
 name = "cubelit-core"
-version = "0.1.7"
+version = "0.1.8"
 dependencies = [
  "async-trait",
  "bollard",

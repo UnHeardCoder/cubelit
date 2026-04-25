@@ -1,6 +1,6 @@
 [package]
 name = "cubelit-core"
-version = "0.1.7"
+version = "0.1.8"
 edition = "2021"
 description = "Core business logic for Cubelit (DB, Docker, recipes, server lifecycle)."
 authors = ["Cubelit Contributors"]
