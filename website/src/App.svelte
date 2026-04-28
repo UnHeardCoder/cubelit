@@ -9,18 +9,21 @@
   import DownloadCTA from './lib/components/DownloadCTA.svelte'
   import Footer from './lib/components/Footer.svelte'
   import Audits from './lib/components/Audits.svelte'
+  import Roadmap from './lib/components/Roadmap.svelte'
 
-  let page = $state<'home' | 'audits'>('home')
+  let page = $state<'home' | 'audits' | 'roadmap'>('home')
 
   function navigate(path: string) {
     history.pushState({}, '', path)
-    page = path.startsWith('/audits') ? 'audits' : 'home'
+    page = path.startsWith('/roadmap') ? 'roadmap' : path.startsWith('/audits') ? 'audits' : 'home'
   }
 
   onMount(() => {
-    page = window.location.pathname.startsWith('/audits') ? 'audits' : 'home'
+    const p = window.location.pathname
+    page = p.startsWith('/roadmap') ? 'roadmap' : p.startsWith('/audits') ? 'audits' : 'home'
     const handlePopState = () => {
-      page = window.location.pathname.startsWith('/audits') ? 'audits' : 'home'
+      const p2 = window.location.pathname
+      page = p2.startsWith('/roadmap') ? 'roadmap' : p2.startsWith('/audits') ? 'audits' : 'home'
     }
     window.addEventListener('popstate', handlePopState)
     return () => window.removeEventListener('popstate', handlePopState)
@@ -38,8 +41,10 @@
     <TechStack />
     <DownloadCTA />
   </main>
-{:else}
+{:else if page === 'audits'}
   <Audits />
+{:else if page === 'roadmap'}
+  <Roadmap />
 {/if}
 
 <Footer />

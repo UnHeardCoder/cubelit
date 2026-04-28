@@ -812,7 +812,7 @@ dependencies = [
 
 [[package]]
 name = "cubelit"
-version = "0.1.9"
+version = "0.1.10"
 dependencies = [
  "bollard",
  "cubelit-core",
@@ -834,7 +834,7 @@ dependencies = [
 
 [[package]]
 name = "cubelit-cli"
-version = "0.1.9"
+version = "0.1.10"
 dependencies = [
  "bollard",
  "clap",
@@ -852,7 +852,7 @@ dependencies = [
 
 [[package]]
 name = "cubelit-core"
-version = "0.1.9"
+version = "0.1.10"
 dependencies = [
  "async-trait",
  "bollard",

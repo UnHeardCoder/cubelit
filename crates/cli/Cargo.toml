@@ -1,6 +1,6 @@
 [package]
 name = "cubelit-cli"
-version = "0.1.9"
+version = "0.1.10"
 edition = "2021"
 description = "Standalone CLI for Cubelit — same core, no GUI."
 license = "MIT"

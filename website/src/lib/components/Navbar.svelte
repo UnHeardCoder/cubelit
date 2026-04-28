@@ -50,6 +50,7 @@
         <a href="#how-it-works" class="nav-link">How It Works</a>
       {/if}
       <button class="nav-link" class:nav-link-active={currentPage === 'audits'} onclick={() => goTo('/audits')}>Audits</button>
+      <button class="nav-link" class:nav-link-active={currentPage === 'roadmap'} onclick={() => goTo('/roadmap')}>Roadmap</button>
       <a href="https://github.com/UnHeardCoder/cubelit" target="_blank" rel="noopener" class="nav-link">GitHub</a>
       {#if currentPage === 'home'}
         <a href="#download" class="btn-download">Download</a>
@@ -75,6 +76,7 @@
         <a href="#how-it-works" class="mobile-link" onclick={closeMobile}>How It Works</a>
       {/if}
       <button class="mobile-link" class:mobile-link-active={currentPage === 'audits'} onclick={() => goTo('/audits')}>Audits</button>
+      <button class="mobile-link" class:mobile-link-active={currentPage === 'roadmap'} onclick={() => goTo('/roadmap')}>Roadmap</button>
       <a href="https://github.com/UnHeardCoder/cubelit" target="_blank" rel="noopener" class="mobile-link" onclick={closeMobile}>GitHub</a>
       {#if currentPage === 'home'}
         <a href="#download" class="mobile-btn" onclick={closeMobile}>Download</a>
