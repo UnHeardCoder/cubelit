@@ -33,7 +33,7 @@ bollard = "0.18"
 # tokio: only `macros` + `rt-multi-thread` are reachable from the desktop
 # crate (Tauri spawns its own runtime, our shims only `.await` on
 # `state.host.<method>(...)`). The full feature set lives in cubelit-core.
-tokio = { version = "1.51.0", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.52.1", features = ["macros", "rt-multi-thread"] }
 # reqwest used by `commands/system_commands.rs::get_public_ip` only.
 reqwest = { version = "0.12", features = ["rustls-tls"], default-features = false }
 tracing = "0.1"
