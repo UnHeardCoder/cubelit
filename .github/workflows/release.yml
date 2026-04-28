@@ -119,12 +119,15 @@ jobs:
           - platform: ubuntu-22.04
             artifact: cubelit-cli-linux
             src: target/release/cubelit
+            target: ""
           - platform: macos-latest
             artifact: cubelit-cli-macos
-            src: target/release/cubelit
+            src: target/aarch64-apple-darwin/release/cubelit
+            target: aarch64-apple-darwin
           - platform: windows-latest
             artifact: cubelit-cli-windows.exe
             src: target/release/cubelit.exe
+            target: ""
     runs-on: ${{ matrix.platform }}
 
     steps:
@@ -137,7 +140,15 @@ jobs:
           workspaces: '. -> target'
 
       - name: Build CLI
-        run: cargo build --release -p cubelit-cli
+        shell: bash
+        run: |
+          TARGET="${{ matrix.target }}"
+          if [ -n "$TARGET" ]; then
+            rustup target add "$TARGET"
+            cargo build --release -p cubelit-cli --target "$TARGET"
+          else
+            cargo build --release -p cubelit-cli
+          fi
         env:
           SQLX_OFFLINE: "true"
 

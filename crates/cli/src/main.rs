@@ -68,22 +68,32 @@ enum ServerCommand {
 
 #[derive(Subcommand, Debug)]
 enum AgentCommand {
-    /// Start agent (not implemented)
-    Start {
-        #[arg(long)]
-        #[allow(dead_code)]
-        port: Option<u16>,
-    },
+    /// Start agent (not yet implemented — coming in v0.3.0)
+    Start,
 }
 
-fn init_tracing() {
+/// Initialise tracing.  Writes to `cubelit.log` in the platform data dir (same
+/// file the desktop uses) so CLI runs are visible in a single log.  Falls back
+/// to stderr when the log file cannot be opened (e.g. first boot, read-only FS).
+fn init_tracing(data_dir: Option<&std::path::Path>) {
+    let filter = tracing_subscriber::EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("warn,cubelit_core=info,cubelit_cli=info"));
+
+    if let Some(dir) = data_dir {
+        let log_file = dir.join("cubelit.log");
+        if let Ok(file) = std::fs::OpenOptions::new().create(true).append(true).open(&log_file) {
+            let _ = tracing_subscriber::fmt()
+                .with_writer(std::sync::Mutex::new(file))
+                .with_env_filter(filter)
+                .try_init();
+            return;
+        }
+    }
+
+    // Fallback: log to stderr (no file available)
     let _ = tracing_subscriber::fmt()
         .with_writer(std::io::stderr)
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-                tracing_subscriber::EnvFilter::new("warn,cubelit_core=info,cubelit_cli=info")
-            }),
-        )
+        .with_env_filter(filter)
         .try_init();
 }
 
@@ -130,18 +140,17 @@ async fn run(cli: Cli) -> Result<(), CoreError> {
         },
         Command::Logs { id, tail } => commands::logs::follow(&ctx, &id, tail).await,
         Command::Agent { sub } => match sub {
-            AgentCommand::Start { .. } => {
-                commands::agent::start_stub();
-                Ok(())
-            }
+            AgentCommand::Start => commands::agent::start_stub(),
         },
     }
 }
 
 #[tokio::main]
 async fn main() -> Result<(), ()> {
-    init_tracing();
     let cli = Cli::parse();
+    // Resolve data_dir early (best-effort) so tracing can write to cubelit.log.
+    let data_dir_for_logging = context::resolve_data_dir().ok();
+    init_tracing(data_dir_for_logging.as_deref());
     if let Err(e) = run(cli).await {
         eprintln!("error: {}", format_cli_error(&e));
         std::process::exit(exit_code(&e));
@@ -191,13 +200,11 @@ mod cli_parse_tests {
 
     #[test]
     fn parse_agent_start() {
-        let c = Cli::try_parse_from(["cubelit", "agent", "start", "--port", "8080"]).unwrap();
+        let c = Cli::try_parse_from(["cubelit", "agent", "start"]).unwrap();
         assert!(matches!(
             c.command,
             Command::Agent {
-                sub: AgentCommand::Start {
-                    port: Some(8080),
-                },
+                sub: AgentCommand::Start,
             }
         ));
     }

@@ -65,7 +65,7 @@ impl EventSink for CliEventSink {
             }
             CoreEvent::ServerLogLine { line, .. } => {
                 let mut out = self.stdout.lock().expect("stdout mutex poisoned");
-                let _ = writeln!(out, "{}", line.trim_end());
+                let _ = writeln!(out, "{}", line.trim_end_matches(['\r', '\n']));
                 let _ = out.flush();
             }
         }
