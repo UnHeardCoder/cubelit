@@ -177,14 +177,17 @@ body { overflow-x: hidden; min-height: 100vh; }
 }
 
 .phase-dot {
+  appearance: none;
   width: 10px;
   height: 10px;
+  padding: 0;
   border-radius: 50%;
   border: 2px solid var(--border2);
   background: transparent;
   cursor: pointer;
   transition: all 0.2s;
   position: relative;
+  font: inherit;
 }
 
 .phase-dot:hover, .phase-dot.active {
@@ -540,7 +543,11 @@ body { overflow-x: hidden; min-height: 100vh; }
   border-bottom: 1px solid var(--border);
 }
 .faq-q {
+  appearance: none;
+  width: 100%;
   padding: 1rem 0;
+  border: 0;
+  background: transparent;
   font-weight: 600;
   font-size: 14px;
   cursor: pointer;
@@ -548,6 +555,8 @@ body { overflow-x: hidden; min-height: 100vh; }
   justify-content: space-between;
   align-items: center;
   color: var(--bright);
+  font-family: inherit;
+  text-align: left;
   user-select: none;
 }
 .faq-q:hover { color: var(--orange); }
@@ -683,30 +692,30 @@ hr.phase-divider {
 
 <!-- FIXED NAV DOTS -->
 <nav class="phase-nav" id="phaseNav">
-  <div class="phase-dot active" onclick="scrollToPhase('hero')" title="">
+  <button type="button" class="phase-dot active" onclick="scrollToPhase('hero')" aria-label="Jump to Start">
     <span class="phase-dot-label">Start</span>
-  </div>
-  <div class="phase-dot" onclick="scrollToPhase('p1')">
+  </button>
+  <button type="button" class="phase-dot" onclick="scrollToPhase('p1')" aria-label="Jump to Today">
     <span class="phase-dot-label">Today</span>
-  </div>
-  <div class="phase-dot" onclick="scrollToPhase('p2')">
+  </button>
+  <button type="button" class="phase-dot" onclick="scrollToPhase('p2')" aria-label="Jump to CLI Tool">
     <span class="phase-dot-label">CLI Tool</span>
-  </div>
-  <div class="phase-dot" onclick="scrollToPhase('p3')">
+  </button>
+  <button type="button" class="phase-dot" onclick="scrollToPhase('p3')" aria-label="Jump to New Desktop">
     <span class="phase-dot-label">New Desktop</span>
-  </div>
-  <div class="phase-dot" onclick="scrollToPhase('p4')">
+  </button>
+  <button type="button" class="phase-dot" onclick="scrollToPhase('p4')" aria-label="Jump to Remote Control">
     <span class="phase-dot-label">Remote Control</span>
-  </div>
-  <div class="phase-dot" onclick="scrollToPhase('p5')">
+  </button>
+  <button type="button" class="phase-dot" onclick="scrollToPhase('p5')" aria-label="Jump to Mobile">
     <span class="phase-dot-label">Mobile</span>
-  </div>
-  <div class="phase-dot" onclick="scrollToPhase('p6')">
+  </button>
+  <button type="button" class="phase-dot" onclick="scrollToPhase('p6')" aria-label="Jump to Cloud Hosting">
     <span class="phase-dot-label">Cloud Hosting</span>
-  </div>
-  <div class="phase-dot" onclick="scrollToPhase('p7')">
+  </button>
+  <button type="button" class="phase-dot" onclick="scrollToPhase('p7')" aria-label="Jump to Platform">
     <span class="phase-dot-label">Platform</span>
-  </div>
+  </button>
 </nav>
 
 <!-- ═══ HERO ═══════════════════════════════════════ -->
@@ -817,15 +826,15 @@ hr.phase-divider {
 
     <div class="faq">
       <div class="faq-item">
-        <div class="faq-q" onclick="toggleFaq(this)">Why is it free? <span class="faq-icon">+</span></div>
+        <button type="button" class="faq-q" onclick="toggleFaq(this)" aria-expanded="false"><span>Why is it free?</span><span class="faq-icon" aria-hidden="true">+</span></button>
         <div class="faq-a">Cubelit is open source — the code is publicly available on GitHub. We believe game server tools should be accessible to everyone. The app will always be free to download and self-host. We'll offer paid hosted servers later for people who don't want to run it themselves.</div>
       </div>
       <div class="faq-item">
-        <div class="faq-q" onclick="toggleFaq(this)">Do I need to know how to code? <span class="faq-icon">+</span></div>
+        <button type="button" class="faq-q" onclick="toggleFaq(this)" aria-expanded="false"><span>Do I need to know how to code?</span><span class="faq-icon" aria-hidden="true">+</span></button>
         <div class="faq-a">Not at all. That's the whole point. Cubelit handles all the technical stuff — Docker, networking, configuration — so you just click buttons. If a server crashes, Cubelit tells you what happened in plain English.</div>
       </div>
       <div class="faq-item">
-        <div class="faq-q" onclick="toggleFaq(this)">What's Docker and why does Cubelit use it? <span class="faq-icon">+</span></div>
+        <button type="button" class="faq-q" onclick="toggleFaq(this)" aria-expanded="false"><span>What's Docker and why does Cubelit use it?</span><span class="faq-icon" aria-hidden="true">+</span></button>
         <div class="faq-a">Docker is a tool that runs programs in an isolated "container" — like a bubble that doesn't interfere with the rest of your computer. It means your Minecraft server is safely sandboxed, and installing or removing it never leaves a mess on your PC.</div>
       </div>
     </div>
@@ -861,7 +870,7 @@ hr.phase-divider {
     </div>
     <div class="persona-callout" data-persona="dev">
       <div class="callout-label dev">💻 For developers</div>
-      CLI calls <code>cubelit-core</code> directly as a library — no HTTP layer yet. <code>CliEventSink</code> implements <code>EventSink</code> and prints progress to stdout. Using <code>clap</code> for argument parsing. Cross-compiled binaries shipped as GitHub release artifacts via CI. Integration-tested against real Docker with <code>CUBELIT_INTEGRATION_TESTS=1</code> flag.
+      CLI calls <code>cubelit-core</code> directly as a library — no HTTP layer yet. <code>CliEventSink</code> implements <code>EventSink</code> and sends progress to stderr while streaming log lines to stdout. Using <code>clap</code> for argument parsing. Cross-compiled binaries shipped as GitHub release artifacts via CI. Integration-tested against real Docker with <code>CUBELIT_INTEGRATION_TESTS=1</code> flag.
     </div>
     <div class="persona-callout" data-persona="biz">
       <div class="callout-label biz">📈 For builders</div>
@@ -1315,7 +1324,11 @@ function toggleFaq(el) {
   const item = el.parentElement;
   const wasOpen = item.classList.contains('open');
   document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
-  if (!wasOpen) item.classList.add('open');
+  document.querySelectorAll('.faq-q').forEach(btn => btn.setAttribute('aria-expanded', 'false'));
+  if (!wasOpen) {
+    item.classList.add('open');
+    el.setAttribute('aria-expanded', 'true');
+  }
 }
 
 // Scroll to phase

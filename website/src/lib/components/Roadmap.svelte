@@ -29,6 +29,25 @@
     bizCards?: boolean
   }
 
+  function collectColumnItems(arch: NonNullable<Phase['arch']>, startIndex: number): ArchNode[] {
+    const items: ArchNode[] = []
+    for (let k = startIndex; k < arch.length; k++) {
+      const entry = arch[k]
+      if (entry === 'col-end') break
+      if (typeof entry === 'object') items.push(entry)
+    }
+    return items
+  }
+
+  function isInsideColumn(arch: NonNullable<Phase['arch']>, index: number): boolean {
+    for (let i = index - 1; i >= 0; i--) {
+      const entry = arch[i]
+      if (entry === 'col-end') return false
+      if (typeof entry === 'object' && entry.col) return true
+    }
+    return false
+  }
+
   const phases: Phase[] = [
     {
       id: 'p1',
@@ -89,7 +108,7 @@
       plainEnglish: `We built a <strong>CLI (command-line interface)</strong> — a text-based tool that lets you control Cubelit by typing commands instead of clicking buttons. This is especially useful for people running servers on a <strong>remote computer or VPS</strong> that has no screen attached, where you can't open a regular app. The CLI uses the exact same backend code as the desktop app, so it's not a different product — it's just a different way to talk to the same engine.`,
       personas: {
         gamer: `Got a spare PC in your basement running headless? Want to manage your server over SSH from your laptop? The CLI lets you do exactly that. Type <code>cubelit server start minecraft</code> and it just works.`,
-        developer: `CLI calls <code>cubelit-core</code> directly as a library — no HTTP layer. <code>CliEventSink</code> implements <code>EventSink</code> and prints progress to stderr. Using <code>clap</code> for argument parsing. Cross-compiled binaries shipped as GitHub release artifacts via CI. Fuzzy identifier resolver: exact UUID → name → ≥4-char UUID prefix.`,
+        developer: `CLI calls <code>cubelit-core</code> directly as a library — no HTTP layer. <code>CliEventSink</code> implements <code>EventSink</code> and sends progress to stderr while streaming log lines to stdout. Using <code>clap</code> for argument parsing. Cross-compiled binaries shipped as GitHub release artifacts via CI. Fuzzy identifier resolver: exact UUID → name → ≥4-char UUID prefix.`,
         investor: `The CLI is the proof that the core architecture is truly decoupled. It validates the entire multi-client strategy and opens up the self-hosting market to sysadmins and VPS users — a segment that doesn't use GUIs.`,
       },
       archTitle: 'What changed in v0.1.9–v0.1.10',
@@ -354,7 +373,7 @@
 
   <!-- Phases -->
   <div class="phases-wrap">
-    {#each phases as phase, i}
+    {#each phases as phase, phaseIndex}
       <section
         id={phase.id}
         class="phase-section"
@@ -365,7 +384,7 @@
           <span class="phase-num">{phase.num}</span>
           <span class="status-chip status-{phase.status}">{statusLabel(phase.status)}</span>
           {#if phase.showLiveBadge}
-            <span class="live-badge"><span class="live-dot"></span>v0.1.9 live</span>
+            <span class="live-badge"><span class="live-dot"></span>v0.1.10 live</span>
           {/if}
         </div>
 
@@ -410,7 +429,7 @@
           <div class="diagram-card">
             <div class="diagram-label">{phase.archTitle}</div>
             <div class="arch-flow">
-              {#each phase.arch as node}
+              {#each phase.arch as node, nodeIndex}
                 {#if node === '→'}
                   <span class="arch-arrow">→</span>
                 {:else if node === '←'}
@@ -419,16 +438,7 @@
                   <!-- closing col tag handled by col: true on first item -->
                 {:else if typeof node === 'object' && node.col}
                   <!-- Start a column; collect siblings until col-end -->
-                  {@const colItems = (() => {
-                    const idx = phase.arch!.indexOf(node)
-                    const items: ArchNode[] = []
-                    for (let k = idx; k < phase.arch!.length; k++) {
-                      const n = phase.arch![k]
-                      if (n === 'col-end') break
-                      if (typeof n === 'object') items.push(n as ArchNode)
-                    }
-                    return items
-                  })()}
+                  {@const colItems = collectColumnItems(phase.arch!, nodeIndex)}
                   <div class="arch-col">
                     {#each colItems as colNode}
                       <div class="arch-box arch-{colNode.style ?? 'default'}">
@@ -438,8 +448,7 @@
                     {/each}
                   </div>
                 {:else if typeof node === 'object' && !node.col}
-                  {@const prev = i > 0 ? phase.arch![phase.arch!.indexOf(node) - 1] : null}
-                  {#if prev !== 'col-end' && !(typeof prev === 'object' && (prev as ArchNode).col)}
+                  {#if !isInsideColumn(phase.arch!, nodeIndex)}
                     <div class="arch-box arch-{node.style ?? 'default'}">
                       {node.label}
                       {#if node.sub}<small>{node.sub}</small>{/if}
@@ -533,11 +542,11 @@
       </section>
 
       <!-- Connector between phases -->
-      {#if i < phases.length - 1}
+      {#if phaseIndex < phases.length - 1}
         <div class="phase-connector">
           <div class="connector-line"></div>
           <span class="connector-label">
-            {#if phases[i + 1].status === 'shipped'}next shipped phase{:else if phases[i + 1].status === 'next'}coming next{:else if phases[i + 1].status === 'planned'}planned{:else if phases[i + 1].status === 'later'}later{:else}long term{/if}
+            {#if phases[phaseIndex + 1].status === 'shipped'}next shipped phase{:else if phases[phaseIndex + 1].status === 'next'}coming next{:else if phases[phaseIndex + 1].status === 'planned'}planned{:else if phases[phaseIndex + 1].status === 'later'}later{:else}long term{/if}
           </span>
           <div class="connector-line"></div>
         </div>
