@@ -11,7 +11,7 @@ path = "src/main.rs"
 
 [dependencies]
 cubelit-core = { path = "../core" }
-bollard = "0.18"
+bollard = "0.20"
 clap = { version = "4", features = ["derive"] }
 tokio = { version = "1.51.0", features = ["macros", "rt-multi-thread", "signal"] }
 tracing = "0.1"
