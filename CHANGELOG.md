@@ -11,6 +11,21 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.1.9] — 2026-04-28
+
+### Added
+- `cubelit-cli` workspace crate — standalone Rust CLI binary (`cubelit`) that calls `cubelit-core` directly. Same SQLite database and Docker orchestration as the desktop, no GUI. Subcommands: `server list`, `install`, `start`, `stop`, `restart`, `status`, `remove`; `logs` (follow with Ctrl+C); `agent start` stub for v0.3.0.
+- `CliEventSink` — `EventSink` implementation that streams create/pull/status events to stderr (progress lines) and log lines to stdout where applicable.
+- Identifier resolver: full UUID, unique server name, or unique UUID prefix (4+ characters); ambiguous matches return a validation error.
+- Embedded recipe bundle with first-run seeding under the default recipes directory; overrides via `--recipes-dir` and `CUBELIT_RECIPES_DIR`.
+- `cubelit.1` manual page under `crates/cli/man/` (install to `share/man/man1` for `man cubelit`).
+- `build-cli` GitHub Actions job attaching `cubelit-cli-linux`, `cubelit-cli-macos`, and `cubelit-cli-windows.exe` to the same release as the desktop app.
+
+### Changed
+- Workspace root `Cargo.toml` includes `crates/cli`.
+- Desktop package default binary is `cubelit-desktop` (`src-tauri/src/bin/cubelit-desktop.rs`) so it does not collide with the CLI binary named `cubelit` in `target/release/`. Installers still use `productName` from `tauri.conf.json`.
+- Release workflow `check-version` validates five Rust/npm/tauri version sources (added `crates/cli/Cargo.toml`).
+
 ## [0.1.8] — 2026-04-25
 
 ### Changed
