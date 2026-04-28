@@ -1,0 +1,19 @@
+# Normalize line endings to LF in the repository.
+# On checkout, Windows gets CRLF; everywhere else gets LF.
+* text=auto eol=lf
+
+# Explicitly LF for files that must not have CRLF (CI scripts, Cargo manifests)
+*.toml text eol=lf
+*.yaml text eol=lf
+*.yml  text eol=lf
+*.json text eol=lf
+*.rs   text eol=lf
+*.ts   text eol=lf
+*.svelte text eol=lf
+*.sh   text eol=lf
+*.md   text eol=lf
+
+# Binary files — no line-ending conversion
+*.png  binary
+*.ico  binary
+*.icns binary
