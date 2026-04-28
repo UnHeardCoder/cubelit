@@ -1,0 +1,88 @@
+.TH CUBELIT 1 "2026-04-28" "Cubelit 0.1.9" "User Commands"
+.SH NAME
+cubelit \- manage Cubelit game servers from the terminal
+.SH SYNOPSIS
+.B cubelit
+.RI [ options ]
+.I command
+.RI [ args... ]
+.SH DESCRIPTION
+The Cubelit CLI uses the same SQLite database and Docker daemon as the desktop application.
+Server identifiers can be a full UUID, an unambiguous server name, or a unique prefix of at least four characters of a UUID.
+.SH OPTIONS
+.TP
+.BR \-\-recipes\-dir " " \fIDIR\fR
+Use this directory for recipe JSON files instead of the default. When set, embedded recipes are not seeded.
+.SH ENVIRONMENT
+.TP
+.B CUBELIT_DATA_DIR
+Override the application data directory (database and desktop-aligned paths). When unset: on Linux, \fI$XDG_CONFIG_HOME/cubelit\fR (typically \fI~/.config/cubelit\fR); on Windows and macOS, \fI~/Library/Application Support/cubelit\fR or the platform data-dir equivalent under \fIcubelit\fR.
+.TP
+.B CUBELIT_RECIPES_DIR
+Override the recipes directory (same effect as \fB\-\-recipes\-dir\fR).
+.TP
+.B RUST_LOG
+Standard tracing filter (default roughly \fIwarn,cubelit_core=info\fR).
+.SH COMMANDS
+.SS cubelit server list
+List all servers (table: short ID, game, name, status, created).
+.SS cubelit server install \fIRECIPE\fR \-\-name \fINAME\fR [\-\-port \fIPORT\fR]
+Create and start a server from \fIRECIPE\fR (e.g. \fIminecraft-java\fR). With \fB\-\-port\fR, overrides the host port for the recipe\(cqs first published port. Prints the new server UUID on stdout; progress on stderr.
+.SS cubelit server start \fIID\fR
+Start a stopped server.
+.SS cubelit server stop \fIID\fR
+Stop a running server.
+.SS cubelit server restart \fIID\fR
+Restart a server.
+.SS cubelit server status \fIID\fR
+Show detailed status after syncing with Docker.
+.SS cubelit server remove \fIID\fR [\-\-keep\-data] [\-\-yes]
+Remove a server. Prompts unless \fB\-y\fR/\fB\-\-yes\fR. With \fB\-\-keep\-data\fR, container is removed but data directory is kept.
+.SS cubelit logs \fIID\fR [\-\-tail \fIN\fR]
+Follow container stdout/stderr (default tail \fB100\fR lines). Press Ctrl+C to stop.
+.SS cubelit agent start
+Stub: prints that the agent is not yet implemented (v0.3.0).
+.SH FILES
+Default database: \fICUBELIT_DATA_DIR\fR/\fBcubelit.db\fR (WAL mode).
+.br
+Default recipes (when not overridden): seeded under the XDG data directory, e.g. \fI~/.local/share/cubelit/recipes\fR on Linux.
+.SH "INSTALLING THE MAN PAGE"
+.B cargo install
+does not install manual pages. To use \fBman cubelit\fR, copy this file to your man path, for example:
+.PP
+.nf
+sudo install -Dm644 crates/cli/man/cubelit.1 /usr/local/share/man/man1/cubelit.1
+sudo mandb
+.fi
+.SH "EXIT STATUS"
+.TP
+.B 0
+Success.
+.TP
+.B 2
+Invalid command line (clap).
+.TP
+.B 4
+Validation error.
+.TP
+.B 5
+Not found.
+.TP
+.B 6
+Docker error.
+.TP
+.B 7
+Database or migration error.
+.TP
+.B 8
+I/O error.
+.SH EXAMPLES
+.TP
+List servers:
+.B cubelit server list
+.TP
+Create a Java Minecraft server named \fIlan\fR:
+.B cubelit server install minecraft-java \-\-name lan
+.TP
+Follow logs (50 lines then stream):
+.B cubelit logs lan \-\-tail 50

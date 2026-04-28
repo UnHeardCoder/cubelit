@@ -1,0 +1,26 @@
+[package]
+name = "cubelit-cli"
+version = "0.1.9"
+edition = "2021"
+description = "Standalone CLI for Cubelit — same core, no GUI."
+license = "MIT"
+
+[[bin]]
+name = "cubelit"
+path = "src/main.rs"
+
+[dependencies]
+cubelit-core = { path = "../core" }
+bollard = "0.18"
+clap = { version = "4", features = ["derive"] }
+tokio = { version = "1.51.0", features = ["macros", "rt-multi-thread", "signal"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+serde_json = "1"
+tabled = "0.17"
+dirs = "6"
+include_dir = "0.7"
+futures-util = "0.3"
+
+[dev-dependencies]
+tempfile = "3"

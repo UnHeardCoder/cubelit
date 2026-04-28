@@ -16,15 +16,17 @@ jobs:
           VERSION="${TAG#v}"
           CARGO=$(grep '^version' src-tauri/Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
           CORE=$(grep '^version' crates/core/Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+          CLI=$(grep '^version' crates/cli/Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
           PKG=$(jq -r .version package.json)
           TAURI=$(jq -r .version src-tauri/tauri.conf.json)
           echo "Tag:                       $VERSION"
           echo "src-tauri/Cargo.toml:      $CARGO"
           echo "crates/core/Cargo.toml:    $CORE"
+          echo "crates/cli/Cargo.toml:     $CLI"
           echo "package.json:              $PKG"
           echo "tauri.conf.json:           $TAURI"
-          if [ "$CARGO" != "$VERSION" ] || [ "$CORE" != "$VERSION" ] || [ "$PKG" != "$VERSION" ] || [ "$TAURI" != "$VERSION" ]; then
-            echo "ERROR: Version mismatch — bump all four files before tagging."
+          if [ "$CARGO" != "$VERSION" ] || [ "$CORE" != "$VERSION" ] || [ "$CLI" != "$VERSION" ] || [ "$PKG" != "$VERSION" ] || [ "$TAURI" != "$VERSION" ]; then
+            echo "ERROR: Version mismatch — bump all five Rust/version files before tagging."
             exit 1
           fi
           echo "All versions match $VERSION"
@@ -105,3 +107,49 @@ jobs:
           prerelease: false
           updaterJsonPreferNsis: true
           args: ${{ matrix.args }}
+
+  build-cli:
+    needs: [check-version, release]
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: ubuntu-22.04
+            artifact: cubelit-cli-linux
+            src: target/release/cubelit
+          - platform: macos-latest
+            artifact: cubelit-cli-macos
+            src: target/release/cubelit
+          - platform: windows-latest
+            artifact: cubelit-cli-windows.exe
+            src: target/release/cubelit.exe
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: '. -> target'
+
+      - name: Build CLI
+        run: cargo build --release -p cubelit-cli
+        env:
+          SQLX_OFFLINE: "true"
+
+      - name: Rename binary
+        shell: bash
+        run: mv "${{ matrix.src }}" "${{ matrix.artifact }}"
+
+      - name: Attach to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: ${{ matrix.artifact }}
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
