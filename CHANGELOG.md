@@ -11,6 +11,34 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.1.10] — 2026-04-28
+
+### Fixed
+- `resolve_data_dir()` in the CLI now returns `CoreResult` instead of panicking
+  when the platform config/data directory is unavailable.
+- Default recipes directory is now derived from the same resolved data dir so
+  `CUBELIT_DATA_DIR` affects both the SQLite DB path and the recipe seed path.
+- CLI tracing writes to `cubelit.log` in the platform data dir (matching the
+  desktop), falling back to stderr when the file is unavailable.
+- `cubelit agent start` now exits with code 4 (Validation error) instead of 0,
+  so scripts can detect the unimplemented command.
+- `--port` flag removed from `agent start` (no-op flag that implied
+  configurability).
+- Log lines in `CliEventSink` now strip only `\r`/`\n` rather than all trailing
+  whitespace, preserving meaningful trailing spaces.
+- `crates/cli/Cargo.toml` and `.github/workflows/release.yml` converted from
+  CRLF to LF; `.gitattributes` added to enforce LF repo-wide.
+- Release `check-version` CI no longer false-fails due to `\r` in extracted
+  version strings from CRLF-encoded files.
+
+### Changed
+- CLI macOS release binary is now pinned to `aarch64-apple-darwin` (matching
+  the desktop job) for deterministic architecture.
+- Integration test scaffold in `crates/cli/tests/integration.rs` now contains
+  a real Docker-backed flow body (guarded by `#[ignore]`).
+
+---
+
 ## [0.1.9] — 2026-04-28
 
 ### Added

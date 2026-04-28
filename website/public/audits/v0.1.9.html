@@ -1,0 +1,271 @@
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+.root{font-family:'Inter',system-ui,sans-serif;background:#0d0d0d;color:#e8e8e8;padding-bottom:48px;}
+.navbar{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;background:rgba(13,13,13,0.97);border-bottom:1px solid rgba(255,255,255,0.06);position:sticky;top:0;z-index:10;}
+.nav-brand{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:600;color:#fff;}
+.nav-badge{background:rgba(234,106,17,0.15);border:1px solid rgba(234,106,17,0.3);color:#ea6a11;font-size:11px;font-weight:600;padding:2px 10px;border-radius:20px;}
+.hero{text-align:center;padding:48px 24px 36px;background:radial-gradient(ellipse 60% 40% at 50% 0%,rgba(234,106,17,0.08) 0%,transparent 70%);}
+.vpill{display:inline-flex;align-items:center;gap:6px;background:rgba(234,106,17,0.12);border:1px solid rgba(234,106,17,0.25);color:#ea6a11;font-size:11px;font-weight:600;padding:4px 12px;border-radius:20px;margin-bottom:18px;}
+.vpill::before{content:'●';font-size:7px;}
+.hero-score{font-size:76px;font-weight:700;color:#fff;line-height:1;letter-spacing:-3px;margin-bottom:6px;}
+.hero-score span{font-size:38px;color:#444;font-weight:400;}
+.hero-sublabel{font-size:11px;color:#555;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:16px;}
+.hero-delta{display:inline-flex;align-items:center;gap:6px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.2);color:#22c55e;font-size:12px;font-weight:600;padding:4px 12px;border-radius:20px;margin-bottom:20px;}
+.hero-desc{font-size:13px;color:#888;max-width:640px;margin:0 auto;line-height:1.75;}
+.sec{padding:0 24px;margin-bottom:28px;}
+.sl{display:flex;align-items:center;gap:8px;font-size:10px;font-weight:600;color:#ea6a11;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:14px;}
+.sl::after{content:'';flex:1;height:1px;background:rgba(234,106,17,0.18);}
+.div{height:1px;background:rgba(255,255,255,0.04);margin:0 24px 28px;}
+.score-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.sc{background:#161616;border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:15px 16px;position:relative;overflow:hidden;}
+.sc::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px;}
+.sc.g::before{background:#22c55e;}.sc.a::before{background:#ea6a11;}.sc.r::before{background:#ef4444;}
+.sc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:9px;}
+.sc-name{font-size:11px;font-weight:500;color:#aaa;line-height:1.4;max-width:160px;}
+.sc-num{font-size:24px;font-weight:700;line-height:1;}
+.sc.g .sc-num{color:#22c55e;}.sc.a .sc-num{color:#ea6a11;}.sc.r .sc-num{color:#ef4444;}
+.sc-track{height:3px;background:rgba(255,255,255,0.05);border-radius:2px;overflow:hidden;margin-bottom:7px;}
+.sc-fill{height:100%;border-radius:2px;}
+.sc.g .sc-fill{background:#22c55e;}.sc.a .sc-fill{background:#ea6a11;}.sc.r .sc-fill{background:#ef4444;}
+.sc-delta{font-size:10px;font-weight:600;margin-bottom:4px;}
+.sc.g .sc-delta{color:#22c55e;}.sc.a .sc-delta{color:#ea6a11;}.sc.r .sc-delta{color:#777;}
+.sc-note{font-size:10px;color:#555;line-height:1.5;}
+.hl{background:linear-gradient(135deg,rgba(234,106,17,0.1) 0%,rgba(13,13,13,0) 55%);border:1px solid rgba(234,106,17,0.25);border-radius:10px;padding:16px 18px;margin-bottom:10px;}
+.hl-title{font-size:13px;font-weight:600;color:#fff;margin-bottom:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.hl-badge{background:rgba(234,106,17,0.15);color:#ea6a11;font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;white-space:nowrap;}
+.hl-body{font-size:12px;color:#777;line-height:1.65;}
+.fi-list{display:flex;flex-direction:column;gap:8px;}
+.fi{display:flex;gap:12px;align-items:flex-start;background:#161616;border:1px solid rgba(255,255,255,0.05);border-radius:8px;padding:12px 14px;}
+.fi-icon{width:26px;height:26px;border-radius:6px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;color:#22c55e;font-weight:700;}
+.fi-title{font-size:12px;font-weight:600;color:#e8e8e8;margin-bottom:2px;}
+.fi-desc{font-size:11px;color:#555;line-height:1.5;}
+.gi-list{display:flex;flex-direction:column;gap:8px;}
+.gi{display:flex;gap:12px;align-items:flex-start;background:#161616;border:1px solid rgba(255,255,255,0.05);border-radius:8px;padding:12px 14px;}
+.gi-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+.gi-dot.r{background:#ef4444;box-shadow:0 0 6px rgba(239,68,68,0.4);}
+.gi-dot.a{background:#ea6a11;box-shadow:0 0 6px rgba(234,106,17,0.4);}
+.gi-dot.g{background:#22c55e;box-shadow:0 0 5px rgba(34,197,94,0.3);}
+.gi-dot.y{background:#eab308;box-shadow:0 0 5px rgba(234,179,8,0.3);}
+.gi-title{font-size:12px;font-weight:600;color:#e8e8e8;margin-bottom:2px;}
+.gi-desc{font-size:11px;color:#555;line-height:1.5;}
+code{background:rgba(255,255,255,0.07);padding:1px 5px;border-radius:3px;font-size:10px;color:#bbb;font-family:monospace;}
+.traj{background:#161616;border:1px solid rgba(255,255,255,0.05);border-radius:10px;padding:20px;}
+.tbars{display:flex;align-items:flex-end;gap:4px;height:72px;margin-bottom:8px;}
+.tcol{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;}
+.tbar{width:100%;border-radius:3px 3px 0 0;min-height:4px;}
+.tv{font-size:10px;font-weight:600;color:#555;}
+.tv.hi{color:#ea6a11;}
+.tl{font-size:9px;color:#444;margin-top:1px;}
+.tl.hi{color:#ea6a11;font-weight:600;}
+.tcap{font-size:11px;color:#444;text-align:center;border-top:1px solid rgba(255,255,255,0.04);padding-top:10px;line-height:1.6;}
+.prio{display:flex;flex-direction:column;gap:8px;}
+.pr{display:flex;gap:12px;align-items:flex-start;background:#161616;border:1px solid rgba(255,255,255,0.05);border-radius:8px;padding:12px 14px;}
+.pr-num{font-size:13px;font-weight:700;color:#ea6a11;flex-shrink:0;min-width:20px;}
+.pr-title{font-size:12px;font-weight:600;color:#e8e8e8;margin-bottom:3px;}
+.pr-desc{font-size:11px;color:#555;line-height:1.5;}
+.context-box{background:#161616;border:1px solid rgba(255,255,255,0.05);border-radius:10px;padding:14px 18px;font-size:12px;color:#666;line-height:1.75;}
+.context-box strong{color:#aaa;font-weight:600;}
+.bottom{margin:0 24px;background:linear-gradient(135deg,rgba(234,106,17,0.09) 0%,rgba(13,13,13,0) 60%);border:1px solid rgba(234,106,17,0.2);border-radius:12px;padding:20px 22px;}
+.bt{font-size:13px;font-weight:600;color:#fff;margin-bottom:8px;}
+.bb{font-size:12px;color:#777;line-height:1.75;}
+.bb strong{color:#ea6a11;font-weight:600;}
+.gap-table{width:100%;border-collapse:collapse;font-size:11px;}
+.gap-table th{text-align:left;font-size:9px;font-weight:600;color:#333;text-transform:uppercase;letter-spacing:0.07em;padding:0 10px 8px 0;}
+.gap-table td{padding:6px 10px 6px 0;border-top:1px solid rgba(255,255,255,0.04);color:#666;vertical-align:top;}
+.gap-table td:first-child{color:#aaa;}
+.gap-table .ok{color:#22c55e;font-weight:600;}
+.gap-table .no{color:#ef4444;font-weight:600;}
+</style>
+
+<div class="root">
+<div class="navbar">
+  <div class="nav-brand">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2L3 7v10l9 5 9-5V7L12 2z" stroke="#ea6a11" stroke-width="1.5" stroke-linejoin="round"/><path d="M12 2v20M3 7l9 5 9-5" stroke="#ea6a11" stroke-width="1.5" stroke-linejoin="round"/></svg>
+    CubeLit
+  </div>
+  <div class="nav-badge">Production Readiness Audit</div>
+</div>
+
+<div class="hero">
+  <div class="vpill">v0.1.9 · April 28, 2026</div>
+  <div class="hero-score">93<span>/100</span></div>
+  <div class="hero-sublabel">Overall Production Score</div>
+  <div class="hero-delta">↑ +2 from v0.1.8</div>
+  <div class="hero-desc">v0.1.9 ships the <code>cubelit-cli</code> — a standalone Rust CLI binary that calls <code>cubelit-core</code> directly, sharing the same SQLite database and Docker orchestration as the desktop app. This is the first real-world proof that the v0.1.8 workspace architecture actually works: <code>CliEventSink</code> is a second concrete EventSink implementation, and the CLI shipped cross-platform binaries (Linux, macOS, Windows) on the same day as the desktop release. The same gaps from v0.1.8 remain open — bollard, Sentry, mock tests, more games — but the score rises because the CLI is a meaningful new capability, not just polish.</div>
+</div>
+
+<div style="height:28px"></div>
+
+<div class="sec">
+  <div class="sl">What v0.1.9 actually proves</div>
+  <div class="context-box">v0.1.8 made a promise: that <code>cubelit-core</code> was genuinely transport-agnostic and that the EventSink abstraction would enable new consumers without changing core logic. <strong>v0.1.9 cashes that cheque.</strong> The CLI crate was added without touching a line of <code>cubelit-core</code>. <code>CliEventSink</code> streams progress to stderr and log lines to stdout. The identifier resolver, recipe seeding, and man page represent CLI polish that goes well beyond a proof-of-concept. The <code>agent start</code> stub also publicly declares the v0.3.0 remote-agent contract — which maps directly to the MCP server idea discussed earlier.</div>
+</div>
+
+<div class="sec">
+  <div class="sl">Standout additions</div>
+
+  <div class="hl">
+    <div class="hl-title">cubelit-cli crate — standalone Rust CLI binary <span class="hl-badge">VALIDATES v0.1.8 ARCHITECTURE</span></div>
+    <div class="hl-body">A full CLI binary at <code>crates/cli/</code> with subcommands: <code>server list</code>, <code>install</code>, <code>start</code>, <code>stop</code>, <code>restart</code>, <code>status</code>, <code>remove</code>, <code>logs</code> (follow with Ctrl+C), and <code>agent start</code> (stub). Calls <code>cubelit-core</code> directly — no Tauri, no GUI. Shares the same SQLite database and Docker orchestration as the desktop. Three cross-platform binaries (10.1 MB Linux, 8.57 MB macOS, 8.28 MB Windows) shipped in the v0.1.9 release assets on the same day as the desktop.</div>
+  </div>
+
+  <div class="hl" style="margin-top:10px;">
+    <div class="hl-title">CliEventSink — first non-desktop EventSink implementation <span class="hl-badge">ABSTRACTION PROVEN</span></div>
+    <div class="hl-body">The EventSink trait introduced in v0.1.8 now has two concrete implementations: <code>TauriEventSink</code> (desktop IPC) and <code>CliEventSink</code> (stderr progress / stdout log lines). This is not a trivial milestone — it's direct proof that the abstraction is correct and general enough to serve fundamentally different transports. <code>NoopSink</code> for tests already existed. The next obvious sink is <code>SentryEventSink</code>.</div>
+  </div>
+
+  <div class="hl" style="margin-top:10px;">
+    <div class="hl-title">Identifier resolver + first-run recipe seeding <span class="hl-badge">CLI POLISH</span></div>
+    <div class="hl-body">Full UUID, unique server name, or unique 4-char UUID prefix — ambiguous matches return a validation error rather than silently picking one. First-run recipe seeding from the default recipes directory with <code>--recipes-dir</code> flag and <code>CUBELIT_RECIPES_DIR</code> env var override. This is the kind of UX polish that distinguishes a real CLI tool from a proof-of-concept.</div>
+  </div>
+
+  <div class="hl" style="margin-top:10px;">
+    <div class="hl-title">cubelit.1 man page + release pipeline matured <span class="hl-badge">DISTRIBUTION</span></div>
+    <div class="hl-body">Man page at <code>crates/cli/man/cubelit.1</code>, installs to <code>share/man/man1</code> for <code>man cubelit</code>. Release workflow now validates 5 version sources (added <code>crates/cli/Cargo.toml</code> to the version-consistency check). New <code>build-cli</code> job in <code>release.yml</code> produces and attaches CLI binaries to every GitHub release automatically.</div>
+  </div>
+
+  <div class="hl" style="margin-top:10px;">
+    <div class="hl-title">agent start stub — v0.3.0 contract declared publicly <span class="hl-badge">ROADMAP SIGNAL</span></div>
+    <div class="hl-body">The <code>agent start</code> subcommand stub establishes the remote-agent seam contract before the implementation exists. This is the architectural foundation for the MCP server concept — the CLI transport validates the pattern, the agent transport comes next.</div>
+  </div>
+</div>
+
+<div class="div"></div>
+
+<div class="sec">
+  <div class="sl">v0.1.9 gap scorecard — what was promised vs what shipped</div>
+  <table class="gap-table">
+    <tr><th>Gap from v0.1.8</th><th>Status</th><th>Notes</th></tr>
+    <tr><td>bollard stuck at 0.18 (PR #27 red)</td><td class="no">✗ Open</td><td>Still pinned at 0.18 in both Cargo.tomls. PR #27 remains open and unresolved.</td></tr>
+    <tr><td>No Sentry crash reporting</td><td class="no">✗ Not added</td><td>No mention in CHANGELOG or any Cargo.toml. Longest-standing observability gap.</td></tr>
+    <tr><td>No ServerLifecycle mock tests</td><td class="no">✗ Not added</td><td>No new test infrastructure documented. Trait seam still unused for testing.</td></tr>
+    <tr><td>Still 2/10 games</td><td class="no">✗ Unchanged</td><td>No new game recipes. Valheim and Terraria still not shipped.</td></tr>
+    <tr><td>8 open Dependabot PRs</td><td class="no">✗ Unchanged</td><td>Still 8 open — none merged for v0.1.9. Some duplication from pre-workspace config.</td></tr>
+    <tr><td>Dead code: stream_container_logs</td><td class="no">✗ Not cleaned</td><td>Not mentioned in CHANGELOG. Likely still missing #[allow(dead_code)].</td></tr>
+    <tr><td>No CLI / headless mode</td><td class="ok">✓ Shipped</td><td>cubelit-cli with 9 subcommands, cross-platform binaries, man page.</td></tr>
+  </table>
+</div>
+
+<div class="div"></div>
+
+<div class="sec">
+  <div class="sl">Category scores</div>
+  <div class="score-grid">
+
+    <div class="sc g">
+      <div class="sc-top"><div class="sc-name">Architecture &amp; Code Quality</div><div class="sc-num">98</div></div>
+      <div class="sc-track"><div class="sc-fill" style="width:98%"></div></div>
+      <div class="sc-delta">↑ +1 from v0.1.8</div>
+      <div class="sc-note">CliEventSink proves the EventSink abstraction is general. Three-crate workspace is the right structure. Essentially perfect for this stage of the project.</div>
+    </div>
+
+    <div class="sc g">
+      <div class="sc-top"><div class="sc-name">CI / Release Pipeline</div><div class="sc-num">97</div></div>
+      <div class="sc-track"><div class="sc-fill" style="width:97%"></div></div>
+      <div class="sc-delta">↑ +1 from v0.1.8</div>
+      <div class="sc-note">5-source version validation, build-cli job producing cross-platform binaries, all 19 release assets present. Docked one point only for the still-unresolved bollard PR #27.</div>
+    </div>
+
+    <div class="sc a">
+      <div class="sc-top"><div class="sc-name">Testing</div><div class="sc-num">74</div></div>
+      <div class="sc-track"><div class="sc-fill" style="width:74%"></div></div>
+      <div class="sc-delta">— unchanged</div>
+      <div class="sc-note">No new tests in v0.1.9. The CLI ships untested at the trait level. ServerLifecycle mock tests remain the most glaring gap — the seam has existed since v0.1.8.</div>
+    </div>
+
+    <div class="sc r">
+      <div class="sc-top"><div class="sc-name">Feature Completeness</div><div class="sc-num">54</div></div>
+      <div class="sc-track"><div class="sc-fill" style="width:54%"></div></div>
+      <div class="sc-delta">↑ +12 from v0.1.8</div>
+      <div class="sc-note">The CLI is a major new capability — headless server management, scriptable, shareable database with the desktop. This is not the same category as shipping a new game but it materially changes what Cubelit is as a product.</div>
+    </div>
+
+    <div class="sc g">
+      <div class="sc-top"><div class="sc-name">Documentation &amp; Presentation</div><div class="sc-num">97</div></div>
+      <div class="sc-track"><div class="sc-fill" style="width:97%"></div></div>
+      <div class="sc-delta">↑ +1 from v0.1.8</div>
+      <div class="sc-note">Man page for the CLI. CHANGELOG covers everything. Release notes accurate. Essentially complete.</div>
+    </div>
+
+    <div class="sc g">
+      <div class="sc-top"><div class="sc-name">Security &amp; Error Handling</div><div class="sc-num">81</div></div>
+      <div class="sc-track"><div class="sc-fill" style="width:81%"></div></div>
+      <div class="sc-delta">↑ +1 from v0.1.8</div>
+      <div class="sc-note">Identifier resolver returns a validation error on ambiguous matches — correct, safe behaviour. No regressions.</div>
+    </div>
+
+    <div class="sc a">
+      <div class="sc-top"><div class="sc-name">Observability &amp; Ops</div><div class="sc-num">80</div></div>
+      <div class="sc-track"><div class="sc-fill" style="width:80%"></div></div>
+      <div class="sc-delta">— unchanged</div>
+      <div class="sc-note">CliEventSink streams progress to stderr — useful for scripting. But Sentry is still missing. The EventSink pattern now makes adding it trivial: just write SentryEventSink. There is no longer any architectural excuse.</div>
+    </div>
+
+    <div class="sc g">
+      <div class="sc-top"><div class="sc-name">Packaging &amp; Distribution</div><div class="sc-num">92</div></div>
+      <div class="sc-track"><div class="sc-fill" style="width:92%"></div></div>
+      <div class="sc-delta">↑ +6 from v0.1.8</div>
+      <div class="sc-note">Three new platform CLI binaries (Linux 10.1 MB, macOS 8.57 MB, Windows 8.28 MB) shipped alongside the desktop on release day. Man page. 19 total release assets. This is the best distribution story the project has ever had.</div>
+    </div>
+
+  </div>
+</div>
+
+<div class="div"></div>
+
+<div class="sec">
+  <div class="sl">Remaining gaps — in priority order</div>
+  <div class="gi-list">
+    <div class="gi"><div class="gi-dot r"></div><div><div class="gi-title">No Sentry / crash reporting — now architecturally trivial to add</div><div class="gi-desc">The EventSink pattern means this is literally just writing a <code>SentryEventSink</code> impl and wiring it in. There is no longer any structural barrier. This has been the longest-standing gap in the project and is now the most embarrassing one to leave open.</div></div></div>
+    <div class="gi"><div class="gi-dot r"></div><div><div class="gi-title">No ServerLifecycle / ServerRunner mock tests</div><div class="gi-desc">The trait seam has existed since v0.1.8. <code>NoopSink</code> exists. The CLI shipped without trait-level tests. This is now three releases where the mocking infrastructure has been in place and unused for testing. It needs to happen in v0.2.0.</div></div></div>
+    <div class="gi"><div class="gi-dot a"></div><div><div class="gi-title">bollard stuck at 0.18 — PR #27 still red</div><div class="gi-desc">Bollard 0.20 has breaking changes in the streaming API. The call sites in <code>cubelit-core</code> need a manual fix. This dep cannot be left at 0.18 indefinitely — security and compatibility risk grows over time.</div></div></div>
+    <div class="gi"><div class="gi-dot a"></div><div><div class="gi-title">8 open Dependabot PRs — some duplicated due to pre-workspace config</div><div class="gi-desc">The tokio and tauri-plugin-updater PRs appearing twice is a Dependabot config artifact from before the workspace split. The config should be updated to target the workspace root only. Then merge the safe ones.</div></div></div>
+    <div class="gi"><div class="gi-dot a"></div><div><div class="gi-title">Still 2/10 games</div><div class="gi-desc">The CLI now makes game servers scriptable and headless. That's a new reason to want more games. Valheim and Terraria are still the obvious next targets — both are simple Docker images with no sidecar requirements.</div></div></div>
+    <div class="gi"><div class="gi-dot y"></div><div><div class="gi-title">CLI ships without its own test coverage</div><div class="gi-desc">The identifier resolver, subcommand routing, and CliEventSink have no automated tests. At minimum the identifier resolution logic (UUID / name / prefix / ambiguous) should have unit tests — it's pure logic with no Docker dependency.</div></div></div>
+    <div class="gi"><div class="gi-dot y"></div><div><div class="gi-title">Dead code: stream_container_logs / ServerLogLine</div><div class="gi-desc">Should be marked <code>#[allow(dead_code)]</code> with a TODO before compiler warnings start appearing as the workspace grows. Low priority but easy to do.</div></div></div>
+    <div class="gi"><div class="gi-dot g"></div><div><div class="gi-title">No Intel macOS build</div><div class="gi-desc">Apple Silicon only for the desktop. The CLI macOS binary may also be ARM-only. Low priority but worth checking.</div></div></div>
+  </div>
+</div>
+
+<div class="div"></div>
+
+<div class="sec">
+  <div class="sl">Score trajectory — all versions</div>
+  <div class="traj">
+    <div class="tbars">
+      <div class="tcol"><div class="tv">45</div><div class="tbar" style="height:22px;background:#2a2a2a"></div><div class="tl">v0.1.0</div></div>
+      <div class="tcol"><div class="tv">55</div><div class="tbar" style="height:27px;background:#333"></div><div class="tl">v0.1.1</div></div>
+      <div class="tcol"><div class="tv">63</div><div class="tbar" style="height:31px;background:#3d3d3d"></div><div class="tl">v0.1.2</div></div>
+      <div class="tcol"><div class="tv">74</div><div class="tbar" style="height:37px;background:#555"></div><div class="tl">v0.1.3</div></div>
+      <div class="tcol"><div class="tv">79</div><div class="tbar" style="height:39px;background:#666"></div><div class="tl">v0.1.4</div></div>
+      <div class="tcol"><div class="tv">84</div><div class="tbar" style="height:42px;background:#777"></div><div class="tl">v0.1.5</div></div>
+      <div class="tcol"><div class="tv">88</div><div class="tbar" style="height:44px;background:#888"></div><div class="tl">v0.1.6</div></div>
+      <div class="tcol"><div class="tv">88</div><div class="tbar" style="height:44px;background:#999"></div><div class="tl">v0.1.7</div></div>
+      <div class="tcol"><div class="tv">91</div><div class="tbar" style="height:47px;background:#aaa"></div><div class="tl">v0.1.8</div></div>
+      <div class="tcol"><div class="tv hi">93</div><div class="tbar" style="height:57px;background:linear-gradient(180deg,#ea6a11,#c45500)"></div><div class="tl hi">v0.1.9</div></div>
+    </div>
+    <div class="tcap">45 → 93 across 10 releases · no release has ever backslid · +48 points total</div>
+  </div>
+</div>
+
+<div class="div"></div>
+
+<div class="sec">
+  <div class="sl">Top 3 priorities for v0.2.0</div>
+  <div class="prio">
+    <div class="pr"><div class="pr-num">1.</div><div><div class="pr-title">Add Sentry crash reporting</div><div class="pr-desc">Write SentryEventSink, wire it into the desktop and CLI. Free tier, ~2 hours of work, closes the longest-standing gap in the entire project history. There is now zero architectural excuse to skip this.</div></div></div>
+    <div class="pr"><div class="pr-num">2.</div><div><div class="pr-title">Write ServerLifecycle + CLI identifier resolver tests</div><div class="pr-desc">Mock ServerRunner for lifecycle tests. Unit tests for the identifier resolver (it's pure logic — no Docker needed). Closes the testing gap that has been open since the trait seam was created in v0.1.8.</div></div></div>
+    <div class="pr"><div class="pr-num">3.</div><div><div class="pr-title">Fix bollard 0.20 + triage Dependabot PRs</div><div class="pr-desc">Update the bollard streaming API call sites in cubelit-core, merge PR #27, then sweep the remaining 7 Dependabot PRs. Also fix the Dependabot config to target the workspace root so duplicate PRs stop appearing.</div></div></div>
+  </div>
+</div>
+
+<div style="height:4px"></div>
+
+<div class="bottom">
+  <div class="bt">What gets you to 95+</div>
+  <div class="bb">At 93, the architecture and distribution story is essentially complete. The CLI ships cross-platform alongside the desktop, the workspace is properly structured, and the EventSink pattern is proven. <strong>Two things are holding the score below 95: Sentry and mock tests.</strong> Both are now easier to add than at any previous point in the project's history — the seams exist, the patterns are established, the work is just execution. Ship those in v0.2.0 and you're at 95+. Add a third game and you're at 97.</div>
+</div>
+
+</div>

@@ -1,0 +1,1362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cubelit — Roadmap</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=JetBrains+Mono:wght@300;400;500&display=swap');
+
+:root {
+  --bg: #07090e;
+  --surface: #0d1018;
+  --surface2: #121720;
+  --border: #1c2130;
+  --border2: #28334a;
+  --text: #7a8fa8;
+  --bright: #dde8f5;
+  --dim: #3a4a5e;
+  --orange: #ff7b35;
+  --orange-soft: rgba(255,123,53,0.1);
+  --orange-border: rgba(255,123,53,0.25);
+  --blue: #4db8ff;
+  --blue-soft: rgba(77,184,255,0.08);
+  --green: #50e890;
+  --green-soft: rgba(80,232,144,0.08);
+  --purple: #b794f4;
+  --purple-soft: rgba(183,148,244,0.08);
+  --yellow: #ffd166;
+  --yellow-soft: rgba(255,209,102,0.08);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html {
+  background: var(--bg);
+  color: var(--bright);
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  scroll-behavior: smooth;
+}
+
+body { overflow-x: hidden; min-height: 100vh; }
+
+/* ─── HERO ─────────────────────────────── */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 4rem 2rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-bg {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 40%, rgba(255,123,53,0.06) 0%, transparent 65%),
+    radial-gradient(ellipse 40% 40% at 20% 80%, rgba(77,184,255,0.04) 0%, transparent 60%);
+}
+
+.grid-bg {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 50px 50px;
+  opacity: 0.25;
+  mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 100%);
+}
+
+.hero-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  color: var(--orange);
+  text-transform: uppercase;
+  margin-bottom: 1.5rem;
+  position: relative;
+}
+
+.hero h1 {
+  font-size: clamp(3rem, 8vw, 6rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  position: relative;
+  margin-bottom: 1.5rem;
+}
+
+.hero h1 .accent { color: var(--orange); }
+
+.hero-desc {
+  font-size: clamp(1rem, 2vw, 1.2rem);
+  color: var(--text);
+  max-width: 560px;
+  line-height: 1.7;
+  position: relative;
+  margin-bottom: 3rem;
+}
+
+.persona-picker {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  position: relative;
+  margin-bottom: 3rem;
+}
+
+.persona-btn {
+  padding: 0.6rem 1.4rem;
+  border-radius: 100px;
+  border: 1px solid var(--border2);
+  background: var(--surface);
+  color: var(--text);
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.persona-btn:hover { border-color: var(--orange); color: var(--orange); }
+.persona-btn.active {
+  background: var(--orange-soft);
+  border-color: var(--orange);
+  color: var(--orange);
+}
+
+.persona-hint {
+  font-size: 12px;
+  color: var(--dim);
+  font-family: 'JetBrains Mono', monospace;
+  position: relative;
+  margin-bottom: 2rem;
+}
+
+.scroll-cue {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--dim);
+  font-size: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  animation: float 2.5s ease-in-out infinite;
+}
+
+.scroll-arrow {
+  width: 24px;
+  height: 24px;
+  border-right: 2px solid var(--dim);
+  border-bottom: 2px solid var(--dim);
+  transform: rotate(45deg);
+}
+
+@keyframes float {
+  0%,100% { transform: translateY(0); }
+  50% { transform: translateY(6px); }
+}
+
+/* ─── PHASE NAV RAIL ───────────────────── */
+.phase-nav {
+  position: fixed;
+  left: 2rem;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.phase-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid var(--border2);
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.phase-dot:hover, .phase-dot.active {
+  border-color: var(--orange);
+  background: var(--orange);
+  box-shadow: 0 0 10px rgba(255,123,53,0.5);
+}
+
+.phase-dot-label {
+  position: absolute;
+  left: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--dim);
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+}
+
+.phase-dot:hover .phase-dot-label { opacity: 1; }
+
+/* ─── PHASE SECTIONS ───────────────────── */
+.phases-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 4rem 2rem 8rem;
+}
+
+.phase-section {
+  margin-bottom: 8rem;
+  opacity: 0;
+  transform: translateY(40px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.phase-section.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Phase header */
+.phase-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.phase-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--dim);
+  letter-spacing: 0.1em;
+}
+
+.phase-chip {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  padding: 3px 10px;
+  border-radius: 100px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+}
+.chip-done { background: var(--green-soft); color: var(--green); border: 1px solid rgba(80,232,144,0.2); }
+.chip-now  { background: var(--orange-soft); color: var(--orange); border: 1px solid var(--orange-border); }
+.chip-soon { background: var(--blue-soft); color: var(--blue); border: 1px solid rgba(77,184,255,0.2); }
+.chip-later{ background: var(--purple-soft); color: var(--purple); border: 1px solid rgba(183,148,244,0.2); }
+.chip-vision{ background: var(--yellow-soft); color: var(--yellow); border: 1px solid rgba(255,209,102,0.2); }
+
+.phase-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.phase-h2 {
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.phase-version {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: var(--dim);
+  padding-top: 0.5rem;
+  white-space: nowrap;
+}
+
+/* Plain english box */
+.plain-english {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--orange);
+  border-radius: 0 10px 10px 0;
+  padding: 1.5rem 1.8rem;
+  margin-bottom: 2rem;
+  font-size: 15px;
+  color: var(--bright);
+  line-height: 1.7;
+}
+
+.plain-english strong { color: var(--orange); }
+
+/* Persona callout — shown/hidden per persona */
+.persona-callout {
+  display: none;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem 1.4rem;
+  margin-bottom: 2rem;
+  font-size: 13.5px;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.persona-callout.show { display: block; }
+
+.callout-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 0.4rem;
+}
+
+.callout-label.gamer { color: var(--green); }
+.callout-label.dev { color: var(--blue); }
+.callout-label.biz { color: var(--yellow); }
+
+/* Diagram */
+.diagram {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  overflow-x: auto;
+}
+
+.diagram-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--dim);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-bottom: 1.5rem;
+}
+
+/* Architecture flow diagrams */
+.arch-flow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.arch-box {
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  padding: 0.7rem 1.1rem;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--bright);
+  text-align: center;
+  min-width: 100px;
+}
+
+.arch-box.highlight {
+  border-color: var(--orange);
+  background: var(--orange-soft);
+  color: var(--orange);
+  box-shadow: 0 0 20px rgba(255,123,53,0.15);
+}
+
+.arch-box.done {
+  border-color: rgba(80,232,144,0.3);
+  background: var(--green-soft);
+  color: var(--green);
+}
+
+.arch-box.new {
+  border-color: rgba(77,184,255,0.3);
+  background: var(--blue-soft);
+  color: var(--blue);
+}
+
+.arch-box small {
+  display: block;
+  font-size: 10px;
+  font-weight: 400;
+  font-family: 'JetBrains Mono', monospace;
+  opacity: 0.7;
+  margin-top: 2px;
+}
+
+.arch-arrow {
+  color: var(--dim);
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.arch-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Feature list */
+.feature-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+  margin-bottom: 2rem;
+}
+
+.feature-item {
+  display: flex;
+  gap: 0.8rem;
+  align-items: flex-start;
+  padding: 0.8rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13.5px;
+  transition: border-color 0.2s;
+}
+
+.feature-item:hover { border-color: var(--border2); }
+
+.fi-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+.fi-body {}
+.fi-title { font-weight: 600; color: var(--bright); font-size: 13px; }
+.fi-desc { color: var(--text); font-size: 12px; margin-top: 1px; line-height: 1.4; }
+
+/* Timeline connector between phases */
+.phase-connector {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  margin-bottom: 4rem;
+  color: var(--dim);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+}
+
+.connector-line {
+  width: 1px;
+  height: 40px;
+  background: linear-gradient(var(--border2), var(--border));
+}
+
+/* Progress bar */
+.progress-strip {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  height: 6px;
+  overflow: hidden;
+  margin-bottom: 2rem;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 100px;
+  background: linear-gradient(90deg, var(--green), var(--orange));
+  transition: width 1s ease;
+}
+
+/* Business model section */
+.biz-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.biz-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.2rem;
+}
+
+.biz-card-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--bright);
+  margin-bottom: 0.8rem;
+}
+
+.biz-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 12.5px;
+}
+.biz-row:last-child { border: none; }
+.biz-key { color: var(--text); }
+.biz-val { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; }
+.biz-val.g { color: var(--green); }
+.biz-val.o { color: var(--orange); }
+
+/* Pricing table */
+.price-table {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 2rem;
+}
+
+.price-row {
+  display: grid;
+  grid-template-columns: 1fr 120px 120px 100px;
+  gap: 1rem;
+  padding: 0.9rem 1.2rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  align-items: center;
+}
+
+.price-row:last-child { border: none; }
+
+.price-row.header {
+  background: var(--surface2);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--dim);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.price-game { font-weight: 600; color: var(--bright); }
+.price-cost { font-family: 'JetBrains Mono', monospace; color: var(--text); font-size: 12px; }
+.price-charge { font-family: 'JetBrains Mono', monospace; color: var(--orange); font-weight: 500; }
+.price-margin { font-family: 'JetBrains Mono', monospace; color: var(--green); }
+
+/* FAQ accordion */
+.faq { margin-bottom: 2rem; }
+.faq-item {
+  border-bottom: 1px solid var(--border);
+}
+.faq-q {
+  padding: 1rem 0;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--bright);
+  user-select: none;
+}
+.faq-q:hover { color: var(--orange); }
+.faq-icon { transition: transform 0.2s; color: var(--dim); }
+.faq-item.open .faq-icon { transform: rotate(45deg); color: var(--orange); }
+.faq-a {
+  font-size: 13.5px;
+  color: var(--text);
+  line-height: 1.7;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease, padding 0.3s;
+}
+.faq-item.open .faq-a { max-height: 300px; padding-bottom: 1rem; }
+
+/* Final CTA */
+.cta-section {
+  text-align: center;
+  padding: 4rem 2rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+  margin-top: 4rem;
+}
+
+.cta-section::before {
+  content: '';
+  position: absolute;
+  top: -60%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 400px;
+  height: 300px;
+  background: radial-gradient(ellipse, rgba(255,123,53,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.cta-h2 {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.8rem;
+}
+
+.cta-sub {
+  color: var(--text);
+  margin-bottom: 2rem;
+  font-size: 14px;
+}
+
+.cta-links {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.cta-link {
+  padding: 0.7rem 1.8rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.cta-primary {
+  background: var(--orange);
+  color: #000;
+}
+.cta-primary:hover { background: #ff9a60; }
+
+.cta-secondary {
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  color: var(--bright);
+}
+.cta-secondary:hover { border-color: var(--orange); color: var(--orange); }
+
+/* Responsive */
+@media (max-width: 640px) {
+  .phase-nav { display: none; }
+  .feature-grid { grid-template-columns: 1fr; }
+  .biz-section { grid-template-columns: 1fr; }
+  .price-row { grid-template-columns: 1fr 1fr; }
+  .price-row .price-cost, .price-row .price-margin { display: none; }
+  .price-row.header .price-cost, .price-row.header .price-margin { display: none; }
+  .arch-flow { flex-direction: column; }
+}
+
+/* Animations */
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--green);
+  background: var(--green-soft);
+  border: 1px solid rgba(80,232,144,0.2);
+  padding: 3px 10px;
+  border-radius: 100px;
+}
+
+.live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: pulse 2s ease infinite;
+}
+
+@keyframes pulse {
+  0%,100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+hr.phase-divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 2rem 0;
+}
+</style>
+</head>
+<body>
+
+<!-- FIXED NAV DOTS -->
+<nav class="phase-nav" id="phaseNav">
+  <div class="phase-dot active" onclick="scrollToPhase('hero')" title="">
+    <span class="phase-dot-label">Start</span>
+  </div>
+  <div class="phase-dot" onclick="scrollToPhase('p1')">
+    <span class="phase-dot-label">Today</span>
+  </div>
+  <div class="phase-dot" onclick="scrollToPhase('p2')">
+    <span class="phase-dot-label">CLI Tool</span>
+  </div>
+  <div class="phase-dot" onclick="scrollToPhase('p3')">
+    <span class="phase-dot-label">New Desktop</span>
+  </div>
+  <div class="phase-dot" onclick="scrollToPhase('p4')">
+    <span class="phase-dot-label">Remote Control</span>
+  </div>
+  <div class="phase-dot" onclick="scrollToPhase('p5')">
+    <span class="phase-dot-label">Mobile</span>
+  </div>
+  <div class="phase-dot" onclick="scrollToPhase('p6')">
+    <span class="phase-dot-label">Cloud Hosting</span>
+  </div>
+  <div class="phase-dot" onclick="scrollToPhase('p7')">
+    <span class="phase-dot-label">Platform</span>
+  </div>
+</nav>
+
+<!-- ═══ HERO ═══════════════════════════════════════ -->
+<section class="hero" id="hero">
+  <div class="hero-bg"></div>
+  <div class="grid-bg"></div>
+
+  <div class="hero-tag">Product Roadmap · 2026</div>
+
+  <h1>
+    What is<br><span class="accent">Cubelit</span>,<br>and where is it going?
+  </h1>
+
+  <p class="hero-desc">
+    Cubelit makes it easy to host your own game servers — no command line needed, no technical knowledge required. This page explains what we've built, what we're building next, and the bigger vision.
+  </p>
+
+  <p style="font-size:13px;color:var(--dim);margin-bottom:1rem;font-family:'JetBrains Mono',monospace;">I'm reading this as a...</p>
+  <div class="persona-picker">
+    <button class="persona-btn active" onclick="setPerson('all')" id="btn-all">Everyone</button>
+    <button class="persona-btn" onclick="setPerson('gamer')" id="btn-gamer">🎮 Gamer</button>
+    <button class="persona-btn" onclick="setPerson('dev')" id="btn-dev">💻 Developer</button>
+    <button class="persona-btn" onclick="setPerson('biz')" id="btn-biz">📈 Investor / Builder</button>
+  </div>
+
+  <div class="scroll-cue">
+    <span>scroll to explore</span>
+    <div class="scroll-arrow"></div>
+  </div>
+</section>
+
+<!-- ═══ PHASES ══════════════════════════════════════ -->
+<div class="phases-container">
+
+  <!-- ── WHERE WE ARE TODAY ── -->
+  <section class="phase-section" id="p1">
+    <div class="phase-eyebrow">
+      <span class="phase-num">PHASE 1</span>
+      <span class="phase-chip chip-done">✓ SHIPPED</span>
+      <span class="live-badge"><span class="live-dot"></span>v0.1.8 live</span>
+    </div>
+
+    <div class="phase-title-row">
+      <h2 class="phase-h2">Where we are<br>right now</h2>
+      <span class="phase-version">v0.1.7 — v0.1.8</span>
+    </div>
+
+    <div class="progress-strip"><div class="progress-fill" style="width:100%"></div></div>
+
+    <div class="plain-english">
+      Cubelit is a <strong>working desktop app</strong> for Windows, Mac, and Linux. You download it, open it, click a button, and you have a Minecraft server running on your own computer — no technical knowledge needed. Under the hood, it uses Docker to run the server safely in an isolated container. We've also done something important in the latest update: we split the brains of the app into a separate "core" that can be used by other tools we build later (like a CLI or mobile app).
+    </div>
+
+    <div class="persona-callout" data-persona="gamer">
+      <div class="callout-label gamer">🎮 For gamers</div>
+      Think of Cubelit like a control panel for your game server. Instead of typing confusing commands into a terminal, you get a clean app with buttons. Your server runs on <em>your</em> computer — you own it, you control it, there's no monthly fee.
+    </div>
+    <div class="persona-callout" data-persona="dev">
+      <div class="callout-label dev">💻 For developers</div>
+      The v0.1.8 refactor extracted all business logic into <code>cubelit-core</code> (lib crate). Tauri commands are now 5–15 line shims. <code>ServerRunner</code> and <code>ServerLifecycle</code> traits are defined. <code>EventSink</code> abstraction ships with <code>TauriEventSink</code>. Cargo workspace is live. Stack: Rust + Bollard + sqlx WAL + Tokio + Svelte 5 runes + Tauri v2.
+    </div>
+    <div class="persona-callout" data-persona="biz">
+      <div class="callout-label biz">📈 For builders</div>
+      We have a working product with real users and clean architecture. The v0.1.8 refactor established the foundation for a multi-client platform. Production readiness score: 88/100. Open source on GitHub. This is the point where distribution begins in earnest.
+    </div>
+
+    <div class="diagram">
+      <div class="diagram-title">How it works today</div>
+      <div class="arch-flow">
+        <div class="arch-box done">You<small>click buttons</small></div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-box done">Cubelit App<small>Tauri + Svelte 5</small></div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-box done">cubelit-core<small>Rust lib crate</small></div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-box done">Docker<small>runs the server</small></div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-box done">Game Server<small>Minecraft etc.</small></div>
+      </div>
+    </div>
+
+    <div class="feature-grid">
+      <div class="feature-item">
+        <div class="fi-icon">🎮</div>
+        <div class="fi-body"><div class="fi-title">Minecraft Java</div><div class="fi-desc">Install, start, stop, configure — one click</div></div>
+      </div>
+      <div class="feature-item">
+        <div class="fi-icon">🐳</div>
+        <div class="fi-body"><div class="fi-title">Docker isolation</div><div class="fi-desc">Server runs safely, doesn't mess with your PC</div></div>
+      </div>
+      <div class="feature-item">
+        <div class="fi-icon">🔄</div>
+        <div class="fi-body"><div class="fi-title">Auto-updates</div><div class="fi-desc">App updates itself silently in the background</div></div>
+      </div>
+      <div class="feature-item">
+        <div class="fi-icon">🪟</div>
+        <div class="fi-body"><div class="fi-title">Windows Home support</div><div class="fi-desc">Works even on Windows Home edition via WSL2</div></div>
+      </div>
+      <div class="feature-item">
+        <div class="fi-icon">📦</div>
+        <div class="fi-body"><div class="fi-title">Modular core</div><div class="fi-desc">v0.1.8: backend split into reusable lib crate</div></div>
+      </div>
+      <div class="feature-item">
+        <div class="fi-icon">🔁</div>
+        <div class="fi-body"><div class="fi-title">CI/CD pipeline</div><div class="fi-desc">Automated builds and signed releases on GitHub</div></div>
+      </div>
+    </div>
+
+    <div class="faq">
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">Why is it free? <span class="faq-icon">+</span></div>
+        <div class="faq-a">Cubelit is open source — the code is publicly available on GitHub. We believe game server tools should be accessible to everyone. The app will always be free to download and self-host. We'll offer paid hosted servers later for people who don't want to run it themselves.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">Do I need to know how to code? <span class="faq-icon">+</span></div>
+        <div class="faq-a">Not at all. That's the whole point. Cubelit handles all the technical stuff — Docker, networking, configuration — so you just click buttons. If a server crashes, Cubelit tells you what happened in plain English.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">What's Docker and why does Cubelit use it? <span class="faq-icon">+</span></div>
+        <div class="faq-a">Docker is a tool that runs programs in an isolated "container" — like a bubble that doesn't interfere with the rest of your computer. It means your Minecraft server is safely sandboxed, and installing or removing it never leaves a mess on your PC.</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="phase-connector">
+    <div class="connector-line"></div>
+    <span>building now</span>
+    <div class="connector-line"></div>
+  </div>
+
+  <!-- ── CLI TOOL ── -->
+  <section class="phase-section" id="p2">
+    <div class="phase-eyebrow">
+      <span class="phase-num">PHASE 2</span>
+      <span class="phase-chip chip-now">⚡ BUILDING NOW</span>
+    </div>
+
+    <div class="phase-title-row">
+      <h2 class="phase-h2">A command-line<br>tool for power users</h2>
+      <span class="phase-version">v0.1.9</span>
+    </div>
+
+    <div class="progress-strip"><div class="progress-fill" style="width:35%"></div></div>
+
+    <div class="plain-english">
+      We're building a <strong>CLI (command-line interface)</strong> — a text-based tool that lets you control Cubelit by typing commands instead of clicking buttons. This is especially useful for people running servers on a <strong>remote computer or VPS</strong> that has no screen attached, where you can't open a regular app. The CLI uses the exact same backend code as the desktop app, so it's not a different product — it's just a different way to talk to the same engine.
+    </div>
+
+    <div class="persona-callout" data-persona="gamer">
+      <div class="callout-label gamer">🎮 For gamers</div>
+      Got a spare PC in your basement running headless? Want to manage your server over SSH from your laptop? The CLI lets you do exactly that. Type <code>cubelit server start minecraft</code> and it just works.
+    </div>
+    <div class="persona-callout" data-persona="dev">
+      <div class="callout-label dev">💻 For developers</div>
+      CLI calls <code>cubelit-core</code> directly as a library — no HTTP layer yet. <code>CliEventSink</code> implements <code>EventSink</code> and prints progress to stdout. Using <code>clap</code> for argument parsing. Cross-compiled binaries shipped as GitHub release artifacts via CI. Integration-tested against real Docker with <code>CUBELIT_INTEGRATION_TESTS=1</code> flag.
+    </div>
+    <div class="persona-callout" data-persona="biz">
+      <div class="callout-label biz">📈 For builders</div>
+      The CLI is the proof that the core architecture is truly decoupled. Once it works, it validates the entire multi-client strategy. It also opens up the self-hosting market to sysadmins and VPS users — a segment that doesn't use GUIs and wouldn't have adopted the desktop app.
+    </div>
+
+    <div class="diagram">
+      <div class="diagram-title">What changes in v0.1.9</div>
+      <div class="arch-flow">
+        <div class="arch-col">
+          <div class="arch-box done">Desktop App<small>Tauri + Svelte 5</small></div>
+          <div class="arch-box highlight">CLI Tool<small>new · type commands</small></div>
+        </div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-box done">cubelit-core<small>shared by both</small></div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-box done">Docker<small>unchanged</small></div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-box done">Game Server</div>
+      </div>
+    </div>
+
+    <div class="feature-grid">
+      <div class="feature-item">
+        <div class="fi-icon">📟</div>
+        <div class="fi-body"><div class="fi-title">cubelit server list</div><div class="fi-desc">See all servers and their status</div></div>
+      </div>
+      <div class="feature-item">
+        <div class="fi-icon">▶️</div>
+        <div class="fi-body"><div class="fi-title">cubelit server start</div><div class="fi-desc">Start a server by name</div></div>
+      </div>
+      <div class="feature-item">
+        <div class="fi-icon">⏹️</div>
+        <div class="fi-body"><div class="fi-title">cubelit server stop</div><div class="fi-desc">Gracefully stop a running server</div></div>
+      </div>
+      <div class="feature-item">
+        <div class="fi-icon">📜</div>
+        <div class="fi-body"><div class="fi-title">cubelit logs</div><div class="fi-desc">Stream live logs to your terminal</div></div>
+      </div>
+      <div class="feature-item">
+        <div class="fi-icon">⬇️</div>
+        <div class="fi-body"><div class="fi-title">cubelit server install</div><div class="fi-desc">Download and set up a new game server</div></div>
+      </div>
+      <div class="feature-item">
+        <div class="fi-icon">🎮</div>
+        <div class="fi-body"><div class="fi-title">Valheim or Terraria</div><div class="fi-desc">Third game added to the registry</div></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="phase-connector">
+    <div class="connector-line"></div>
+    <span>coming next</span>
+    <div class="connector-line"></div>
+  </div>
+
+  <!-- ── DESKTOP REDESIGN ── -->
+  <section class="phase-section" id="p3">
+    <div class="phase-eyebrow">
+      <span class="phase-num">PHASE 3</span>
+      <span class="phase-chip chip-soon">NEXT UP</span>
+    </div>
+
+    <div class="phase-title-row">
+      <h2 class="phase-h2">A much better<br>looking app</h2>
+      <span class="phase-version">v0.2.0</span>
+    </div>
+
+    <div class="progress-strip"><div class="progress-fill" style="width:5%"></div></div>
+
+    <div class="plain-english">
+      The current desktop app works great but was built to <strong>prove the concept</strong>, not win design awards. In v0.2 we're doing a full visual redesign — a clean, polished interface that feels as good as commercial apps. The workflow: design it in Claude's design tool, then use Claude Code to wire the new UI to the stable backend. Because we built the core properly, <strong>the backend doesn't change at all</strong> — we're just swapping the face of the app.
+    </div>
+
+    <div class="persona-callout" data-persona="gamer">
+      <div class="callout-label gamer">🎮 For gamers</div>
+      The app will go from "developer tool that works" to "app you'd actually show your friends." Better onboarding, clearer status displays, easier server config — everything just looks and feels more polished.
+    </div>
+    <div class="persona-callout" data-persona="dev">
+      <div class="callout-label dev">💻 For developers</div>
+      Workflow: Claude artifacts for UI mockup → Claude Code for wiring to Tauri IPC. The backend API contract (invoke commands, event names, payload shapes) is frozen from v0.1.8 so the AI wiring step is deterministic. Svelte 5 stays — no framework migration needed.
+    </div>
+    <div class="persona-callout" data-persona="biz">
+      <div class="callout-label biz">📈 For builders</div>
+      This is the first public-facing milestone — the version we post on r/selfhosted, write a DEV.to article about, and show in the GitHub README GIF. First impression matters for open source adoption. V0.2 is the product we want people to discover.
+    </div>
+
+    <div class="feature-grid">
+      <div class="feature-item">
+        <div class="fi-icon">🎨</div>
+        <div class="fi-body"><div class="fi-title">Full visual redesign</div><div class="fi-desc">Designed first, then wired to backend</div></div>
+      </div>
+      <div class="feature-item">
+        <div class="fi-icon">🎮</div>
+        <div class="fi-body"><div class="fi-title">3+ games in registry</div><div class="fi-desc">Minecraft, Valheim, Terraria minimum</div></div>
+      </div>
+      <div class="feature-item">
+        <div class="fi-icon">🎬</div>
+        <div class="fi-body"><div class="fi-title">README demo GIF</div><div class="fi-desc">Show don't tell for GitHub visitors</div></div>
+      </div>
+      <div class="feature-item">
+        <div class="fi-icon">📢</div>
+        <div class="fi-body"><div class="fi-title">Community launch</div><div class="fi-desc">r/selfhosted post, DEV.to article</div></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="phase-connector">
+    <div class="connector-line"></div>
+    <span>planned</span>
+    <div class="connector-line"></div>
+  </div>
+
+  <!-- ── REMOTE AGENT ── -->
+  <section class="phase-section" id="p4">
+    <div class="phase-eyebrow">
+      <span class="phase-num">PHASE 4</span>
+      <span class="phase-chip chip-soon">PLANNED</span>
+    </div>
+
+    <div class="phase-title-row">
+      <h2 class="phase-h2">Control your server<br>from anywhere</h2>
+      <span class="phase-version">v0.3.0</span>
+    </div>
+
+    <div class="progress-strip"><div class="progress-fill" style="width:2%"></div></div>
+
+    <div class="plain-english">
+      Right now, Cubelit only controls servers running on the <strong>same computer</strong> the app is installed on. In v0.3 we're adding a "remote agent" — a small background program you can run on any PC (even a headless server with no screen) that <strong>exposes an API</strong> over the internet. Your desktop app or phone can then connect to it and control that remote machine as if it was local. Think of it like having remote desktop access, but just for game servers.
+    </div>
+
+    <div class="persona-callout" data-persona="gamer">
+      <div class="callout-label gamer">🎮 For gamers</div>
+      Run the server on a powerful spare PC in the other room, control it from your laptop anywhere in the house — or anywhere in the world. Start and stop your Valheim server from your phone while you're at work.
+    </div>
+    <div class="persona-callout" data-persona="dev">
+      <div class="callout-label dev">💻 For developers</div>
+      <code>cubelit-agent</code>: Axum HTTP server wrapping <code>cubelit-core</code>. REST for lifecycle commands, WebSocket for log streaming and real-time events. Bearer token auth. NAT traversal via a small WebSocket relay VPS. LAN discovery via mDNS first. <code>HttpEventSink</code> implements <code>EventSink</code> — no core changes needed.
+    </div>
+    <div class="persona-callout" data-persona="biz">
+      <div class="callout-label biz">📈 For builders</div>
+      The agent is the unlock for mobile, the cloud tier, and remote management. Once the HTTP API exists, every future client (mobile, web dashboard, third-party integrations) becomes a front-end concern only. This is the biggest architectural unlock in the roadmap.
+    </div>
+
+    <div class="diagram">
+      <div class="diagram-title">Remote control architecture</div>
+      <div class="arch-flow">
+        <div class="arch-col">
+          <div class="arch-box done">Desktop App</div>
+          <div class="arch-box highlight">Mobile App<small>new</small></div>
+          <div class="arch-box done">CLI Tool</div>
+        </div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-box highlight">Relay Server<small>new · routes traffic</small></div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-box highlight">cubelit-agent<small>new · runs on your PC</small></div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-box done">cubelit-core</div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-box done">Game Server</div>
+      </div>
+    </div>
+
+    <div class="feature-grid">
+      <div class="feature-item">
+        <div class="fi-icon">🌐</div>
+        <div class="fi-body"><div class="fi-title">HTTP REST API</div><div class="fi-desc">Standardised endpoints every client speaks</div></div>
+      </div>
+      <div class="feature-item">
+        <div class="fi-icon">📡</div>
+        <div class="fi-body"><div class="fi-title">WebSocket log streaming</div><div class="fi-desc">Live logs from a remote machine to your screen</div></div>
+      </div>
+      <div class="feature-item">
+        <div class="fi-icon">🔐</div>
+        <div class="fi-body"><div class="fi-title">Token authentication</div><div class="fi-desc">Generate a secret key, paste it in the app</div></div>
+      </div>
+      <div class="feature-item">
+        <div class="fi-icon">🏠</div>
+        <div class="fi-body"><div class="fi-title">LAN auto-discovery</div><div class="fi-desc">Same network? No config needed at all</div></div>
+      </div>
+      <div class="feature-item">
+        <div class="fi-icon">⚙️</div>
+        <div class="fi-body"><div class="fi-title">Native runner</div><div class="fi-desc">Run servers without Docker on bare VPS</div></div>
+      </div>
+      <div class="feature-item">
+        <div class="fi-icon">💥</div>
+        <div class="fi-body"><div class="fi-title">Crash auto-restart</div><div class="fi-desc">Agent watches and restarts fallen servers</div></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="phase-connector">
+    <div class="connector-line"></div>
+    <span>later</span>
+    <div class="connector-line"></div>
+  </div>
+
+  <!-- ── MOBILE ── -->
+  <section class="phase-section" id="p5">
+    <div class="phase-eyebrow">
+      <span class="phase-num">PHASE 5</span>
+      <span class="phase-chip chip-later">LATER</span>
+    </div>
+
+    <div class="phase-title-row">
+      <h2 class="phase-h2">Manage servers<br>from your phone</h2>
+      <span class="phase-version">v0.4.0</span>
+    </div>
+
+    <div class="progress-strip"><div class="progress-fill" style="width:1%"></div></div>
+
+    <div class="plain-english">
+      Once the remote agent exists, adding a mobile client is mostly a front-end job. We'll start with a <strong>PWA (Progressive Web App)</strong> — a website that works like an app on your phone, no app store needed. You log in with Google, see all your machines, and control any server from anywhere. A native Android APK comes later once the experience is validated.
+    </div>
+
+    <div class="persona-callout" data-persona="gamer">
+      <div class="callout-label gamer">🎮 For gamers</div>
+      Open your phone, see "Gaming PC — Minecraft: Running — 4 players online." Tap to restart it. That's the whole experience. No app store, no account creation beyond Google login you already have.
+    </div>
+    <div class="persona-callout" data-persona="dev">
+      <div class="callout-label dev">💻 For developers</div>
+      PWA first — thin client hitting the agent HTTP API. Clerk for auth (Google OAuth, JWT). Device registry in a small cloud backend (Axum + SQLite or Supabase). The mobile app has zero Rust — just a web app that talks to the agent API. Tauri v2 mobile APK as a later upgrade path.
+    </div>
+    <div class="persona-callout" data-persona="biz">
+      <div class="callout-label biz">📈 For builders</div>
+      Mobile is the distribution play. Someone shows a friend "I can start my Minecraft server from my phone" — that friend downloads Cubelit. It's also the prerequisite for push notifications (player join alerts, crash alerts), which dramatically increase engagement and retention.
+    </div>
+
+    <div class="diagram">
+      <div class="diagram-title">How your devices connect</div>
+      <div class="arch-flow">
+        <div class="arch-col">
+          <div class="arch-box done" style="font-size:11px">🖥️ Gaming PC<small>runs the agent</small></div>
+          <div class="arch-box done" style="font-size:11px">💻 Work Laptop<small>runs the agent</small></div>
+        </div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-box highlight">Cubelit Cloud<small>device registry</small></div>
+        <div class="arch-arrow">←</div>
+        <div class="arch-col">
+          <div class="arch-box new" style="font-size:11px">📱 Your Phone<small>PWA · Google login</small></div>
+          <div class="arch-box done" style="font-size:11px">🖥️ Desktop App<small>remote host mode</small></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="feature-grid">
+      <div class="feature-item">
+        <div class="fi-icon">📱</div>
+        <div class="fi-body"><div class="fi-title">PWA — no app store</div><div class="fi-desc">Works on any phone, install from browser</div></div>
+      </div>
+      <div class="feature-item">
+        <div class="fi-icon">🔑</div>
+        <div class="fi-body"><div class="fi-title">Google login</div><div class="fi-desc">One account links all your devices</div></div>
+      </div>
+      <div class="feature-item">
+        <div class="fi-icon">🖥️</div>
+        <div class="fi-body"><div class="fi-title">Device registry</div><div class="fi-desc">"Ben's Gaming Rig" appears automatically</div></div>
+      </div>
+      <div class="feature-item">
+        <div class="fi-icon">🔔</div>
+        <div class="fi-body"><div class="fi-title">Push notifications</div><div class="fi-desc">Server crashed? You'll know immediately</div></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="phase-connector">
+    <div class="connector-line"></div>
+    <span>the big vision</span>
+    <div class="connector-line"></div>
+  </div>
+
+  <!-- ── CLOUD HOSTING ── -->
+  <section class="phase-section" id="p6">
+    <div class="phase-eyebrow">
+      <span class="phase-num">PHASE 6</span>
+      <span class="phase-chip chip-vision">VISION</span>
+    </div>
+
+    <div class="phase-title-row">
+      <h2 class="phase-h2">Rent a server<br>by the hour</h2>
+      <span class="phase-version">v1.x</span>
+    </div>
+
+    <div class="progress-strip"><div class="progress-fill" style="width:0%"></div></div>
+
+    <div class="plain-english">
+      Cubelit will always be <strong>free to self-host</strong>. But not everyone has a spare computer or wants to deal with setup. For them, we'll offer a one-click option to <strong>rent a server from us</strong>, billed by the hour — so you only pay when you're actually playing. We run these servers on enterprise cloud hardware, so they're fast and reliable. This is called an "open core" model — the software stays open source and free, but we offer a paid convenience tier on top.
+    </div>
+
+    <div class="persona-callout" data-persona="gamer">
+      <div class="callout-label gamer">🎮 For gamers</div>
+      Click "Rent Server," pick your game, pay $0.06 per hour. Play for 3 hours with your friends, pay $0.18 total. Stop when you're done, pay nothing while you sleep. No monthly commitment. Start and stop whenever you want right from the Cubelit app.
+    </div>
+    <div class="persona-callout" data-persona="dev">
+      <div class="callout-label dev">💻 For developers</div>
+      <code>CloudServerRunner</code> implements <code>ServerRunner</code> — talks to Hetzner API instead of local Docker socket. <code>cubelit-cloud</code> crate: Stripe usage-based metering, session tracking, auto-shutdown on idle (no players = server deleted = no Hetzner bill). Infrastructure: Hetzner CCX dedicated vCPU (no noisy-neighbour lag). Clerk auth carries through from mobile phase.
+    </div>
+    <div class="persona-callout" data-persona="biz">
+      <div class="callout-label biz">📈 For builders</div>
+      Unit economics: Hetzner CCX23 (4vCPU/16GB) ~$28/mo. Host 2–3 Minecraft servers per VPS. Charge $0.06–$0.15/hr per server. Margin: 3–6x on infrastructure cost. Break-even: ~3 active paying users per VPS. This is the same model as Plausible, Supabase, Sentry — open source with a hosted tier. The self-hosted community is the GTM channel for the paid product.
+    </div>
+
+    <div class="price-table">
+      <div class="price-row header">
+        <span>Game</span>
+        <span>Our Hetzner cost</span>
+        <span>You pay</span>
+        <span>Margin</span>
+      </div>
+      <div class="price-row">
+        <span class="price-game">🎮 Minecraft (small, ≤10 players)</span>
+        <span class="price-cost">~$0.008/hr</span>
+        <span class="price-charge">$0.06/hr</span>
+        <span class="price-margin">~7x</span>
+      </div>
+      <div class="price-row">
+        <span class="price-game">🎮 Minecraft (modded, ≤20 players)</span>
+        <span class="price-cost">~$0.016/hr</span>
+        <span class="price-charge">$0.12/hr</span>
+        <span class="price-margin">~7x</span>
+      </div>
+      <div class="price-row">
+        <span class="price-game">⚔️ Valheim (≤10 players)</span>
+        <span class="price-cost">~$0.008/hr</span>
+        <span class="price-charge">$0.06/hr</span>
+        <span class="price-margin">~7x</span>
+      </div>
+      <div class="price-row">
+        <span class="price-game">🌿 Terraria (≤20 players)</span>
+        <span class="price-cost">~$0.005/hr</span>
+        <span class="price-charge">$0.03/hr</span>
+        <span class="price-margin">~6x</span>
+      </div>
+      <div class="price-row">
+        <span class="price-game">🚗 FiveM (multi-core)</span>
+        <span class="price-cost">~$0.016/hr</span>
+        <span class="price-charge">$0.15/hr</span>
+        <span class="price-margin">~9x</span>
+      </div>
+    </div>
+
+    <div class="biz-section">
+      <div class="biz-card">
+        <div class="biz-card-title">The open core model</div>
+        <div class="biz-row"><span class="biz-key">Desktop app</span><span class="biz-val g">Free forever</span></div>
+        <div class="biz-row"><span class="biz-key">CLI tool</span><span class="biz-val g">Free forever</span></div>
+        <div class="biz-row"><span class="biz-key">Self-hosting</span><span class="biz-val g">Free forever</span></div>
+        <div class="biz-row"><span class="biz-key">Source code</span><span class="biz-val g">Open source (GitHub)</span></div>
+        <div class="biz-row"><span class="biz-key">Hosted servers</span><span class="biz-val o">Pay per hour</span></div>
+      </div>
+      <div class="biz-card">
+        <div class="biz-card-title">6-user example scenario</div>
+        <div class="biz-row"><span class="biz-key">2× small Minecraft</span><span class="biz-val">1× CCX23 VPS</span></div>
+        <div class="biz-row"><span class="biz-key">4× modded Minecraft</span><span class="biz-val">1× CCX33 VPS</span></div>
+        <div class="biz-row"><span class="biz-key">Monthly Hetzner cost</span><span class="biz-val o">~$84/mo</span></div>
+        <div class="biz-row"><span class="biz-key">Revenue (24/7 use)</span><span class="biz-val g">~$432/mo</span></div>
+        <div class="biz-row"><span class="biz-key">Revenue (5hrs/day)</span><span class="biz-val g">~$180/mo</span></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="phase-connector">
+    <div class="connector-line"></div>
+    <span>long term</span>
+    <div class="connector-line"></div>
+  </div>
+
+  <!-- ── PLATFORM ── -->
+  <section class="phase-section" id="p7">
+    <div class="phase-eyebrow">
+      <span class="phase-num">PHASE 7</span>
+      <span class="phase-chip chip-vision">LONG TERM</span>
+    </div>
+
+    <div class="phase-title-row">
+      <h2 class="phase-h2">A platform others<br>build on top of</h2>
+      <span class="phase-version">v2.x</span>
+    </div>
+
+    <div class="progress-strip"><div class="progress-fill" style="width:0%"></div></div>
+
+    <div class="plain-english">
+      The long-term vision is for Cubelit to be the <strong>infrastructure layer for game servers</strong> — an open platform where developers can add games, build integrations, and create tools on top of a stable API. Think: Discord bots that control your server, marketplace of community-built game templates, team accounts for gaming communities, AI-assisted server setup.
+    </div>
+
+    <div class="persona-callout" data-persona="dev">
+      <div class="callout-label dev">💻 For developers</div>
+      Public HTTP API with documented endpoints and SDK. Plugin system for game registry contributions. MCP server model for AI integration — user brings their own Claude subscription, one-time purchase, no per-request API costs. Potential for community-contributed runners and game templates.
+    </div>
+    <div class="persona-callout" data-persona="biz">
+      <div class="callout-label biz">📈 For builders</div>
+      Platform businesses compound. Every developer who builds on Cubelit's API brings their own users. Marketplace take-rate on community templates. Team/org accounts at higher price points. API access as a paid tier. The open source moat becomes a competitive advantage — switching costs increase as users invest in the ecosystem.
+    </div>
+
+    <div class="feature-grid">
+      <div class="feature-item">
+        <div class="fi-icon">🤖</div>
+        <div class="fi-body"><div class="fi-title">AI setup assistant</div><div class="fi-desc">MCP server — bring your own Claude key</div></div>
+      </div>
+      <div class="feature-item">
+        <div class="fi-icon">🔌</div>
+        <div class="fi-body"><div class="fi-title">Public API</div><div class="fi-desc">Discord bots, web dashboards, third-party tools</div></div>
+      </div>
+      <div class="feature-item">
+        <div class="fi-icon">🏢</div>
+        <div class="fi-body"><div class="fi-title">Team accounts</div><div class="fi-desc">Shared servers for gaming communities</div></div>
+      </div>
+      <div class="feature-item">
+        <div class="fi-icon">🛒</div>
+        <div class="fi-body"><div class="fi-title">Game template marketplace</div><div class="fi-desc">Community-built server configs and mods</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <div class="cta-section">
+    <h2 class="cta-h2">Try it today — it's free</h2>
+    <p class="cta-sub">Download the desktop app and have a Minecraft server running in under 5 minutes.</p>
+    <div class="cta-links">
+      <a href="https://github.com/UnHeardCoder/cubelit/releases" class="cta-link cta-primary">Download Cubelit</a>
+      <a href="https://github.com/UnHeardCoder/cubelit" class="cta-link cta-secondary">View on GitHub</a>
+      <a href="https://cubelit.app/audits" class="cta-link cta-secondary">Security Audits</a>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// Persona system
+let currentPersona = 'all';
+
+function setPerson(p) {
+  currentPersona = p;
+  document.querySelectorAll('.persona-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('btn-' + p).classList.add('active');
+
+  document.querySelectorAll('.persona-callout').forEach(el => {
+    const elPersona = el.dataset.persona;
+    if (p === 'all') {
+      el.classList.remove('show');
+    } else if (elPersona === p) {
+      el.classList.add('show');
+    } else {
+      el.classList.remove('show');
+    }
+  });
+}
+
+// FAQ toggle
+function toggleFaq(el) {
+  const item = el.parentElement;
+  const wasOpen = item.classList.contains('open');
+  document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+  if (!wasOpen) item.classList.add('open');
+}
+
+// Scroll to phase
+function scrollToPhase(id) {
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// Intersection observer for phase sections
+const sections = document.querySelectorAll('.phase-section');
+const dots = document.querySelectorAll('.phase-dot');
+
+const obs = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+    }
+  });
+}, { threshold: 0.1, rootMargin: '0px 0px -10% 0px' });
+
+sections.forEach(s => obs.observe(s));
+
+// Nav dot active state on scroll
+const sectionIds = ['hero', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7'];
+
+const navObs = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const idx = sectionIds.indexOf(entry.target.id);
+      if (idx !== -1) {
+        dots.forEach(d => d.classList.remove('active'));
+        if (dots[idx]) dots[idx].classList.add('active');
+      }
+    }
+  });
+}, { threshold: 0.4 });
+
+sectionIds.forEach(id => {
+  const el = document.getElementById(id);
+  if (el) navObs.observe(el);
+});
+</script>
+</body>
+</html>

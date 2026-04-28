@@ -1,0 +1,230 @@
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+.root{font-family:'Inter',system-ui,sans-serif;background:#0d0d0d;color:#e8e8e8;padding-bottom:48px;}
+.navbar{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;background:rgba(13,13,13,0.97);border-bottom:1px solid rgba(255,255,255,0.06);position:sticky;top:0;z-index:10;}
+.nav-brand{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:600;color:#fff;}
+.nav-badge{background:rgba(234,106,17,0.15);border:1px solid rgba(234,106,17,0.3);color:#ea6a11;font-size:11px;font-weight:600;padding:2px 10px;border-radius:20px;}
+.hero{text-align:center;padding:48px 24px 36px;background:radial-gradient(ellipse 60% 40% at 50% 0%,rgba(234,106,17,0.08) 0%,transparent 70%);}
+.vpill{display:inline-flex;align-items:center;gap:6px;background:rgba(234,106,17,0.12);border:1px solid rgba(234,106,17,0.25);color:#ea6a11;font-size:11px;font-weight:600;padding:4px 12px;border-radius:20px;margin-bottom:18px;}
+.vpill::before{content:'●';font-size:7px;}
+.hero-score{font-size:76px;font-weight:700;color:#fff;line-height:1;letter-spacing:-3px;margin-bottom:6px;}
+.hero-score span{font-size:38px;color:#444;font-weight:400;}
+.hero-sublabel{font-size:11px;color:#555;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:16px;}
+.hero-delta{display:inline-flex;align-items:center;gap:6px;background:rgba(234,106,17,0.1);border:1px solid rgba(234,106,17,0.2);color:#ea6a11;font-size:12px;font-weight:600;padding:4px 12px;border-radius:20px;margin-bottom:20px;}
+.hero-desc{font-size:13px;color:#888;max-width:600px;margin:0 auto;line-height:1.75;}
+.sec{padding:0 24px;margin-bottom:28px;}
+.sl{display:flex;align-items:center;gap:8px;font-size:10px;font-weight:600;color:#ea6a11;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:14px;}
+.sl::after{content:'';flex:1;height:1px;background:rgba(234,106,17,0.18);}
+.div{height:1px;background:rgba(255,255,255,0.04);margin:0 24px 28px;}
+.score-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.sc{background:#161616;border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:15px 16px;position:relative;overflow:hidden;}
+.sc::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px;}
+.sc.g::before{background:#22c55e;}.sc.a::before{background:#ea6a11;}.sc.r::before{background:#ef4444;}
+.sc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:9px;}
+.sc-name{font-size:11px;font-weight:500;color:#aaa;line-height:1.4;max-width:160px;}
+.sc-num{font-size:24px;font-weight:700;line-height:1;}
+.sc.g .sc-num{color:#22c55e;}.sc.a .sc-num{color:#ea6a11;}.sc.r .sc-num{color:#ef4444;}
+.sc-track{height:3px;background:rgba(255,255,255,0.05);border-radius:2px;overflow:hidden;margin-bottom:7px;}
+.sc-fill{height:100%;border-radius:2px;}
+.sc.g .sc-fill{background:#22c55e;}.sc.a .sc-fill{background:#ea6a11;}.sc.r .sc-fill{background:#ef4444;}
+.sc-delta{font-size:10px;font-weight:600;margin-bottom:4px;}
+.sc.g .sc-delta{color:#22c55e;}.sc.a .sc-delta{color:#ea6a11;}.sc.r .sc-delta{color:#777;}
+.sc-note{font-size:10px;color:#555;line-height:1.5;}
+.hl{background:linear-gradient(135deg,rgba(234,106,17,0.1) 0%,rgba(13,13,13,0) 55%);border:1px solid rgba(234,106,17,0.25);border-radius:10px;padding:16px 18px;margin-bottom:10px;}
+.hl-title{font-size:13px;font-weight:600;color:#fff;margin-bottom:6px;display:flex;align-items:center;gap:8px;}
+.hl-badge{background:rgba(234,106,17,0.15);color:#ea6a11;font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;}
+.hl-body{font-size:12px;color:#777;line-height:1.65;}
+.fi-list{display:flex;flex-direction:column;gap:8px;}
+.fi{display:flex;gap:12px;align-items:flex-start;background:#161616;border:1px solid rgba(255,255,255,0.05);border-radius:8px;padding:12px 14px;}
+.fi-icon{width:26px;height:26px;border-radius:6px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;color:#22c55e;font-weight:700;}
+.fi-title{font-size:12px;font-weight:600;color:#e8e8e8;margin-bottom:2px;}
+.fi-desc{font-size:11px;color:#555;line-height:1.5;}
+.gi-list{display:flex;flex-direction:column;gap:8px;}
+.gi{display:flex;gap:12px;align-items:flex-start;background:#161616;border:1px solid rgba(255,255,255,0.05);border-radius:8px;padding:12px 14px;}
+.gi-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+.gi-dot.r{background:#ef4444;box-shadow:0 0 6px rgba(239,68,68,0.4);}
+.gi-dot.a{background:#ea6a11;box-shadow:0 0 6px rgba(234,106,17,0.4);}
+.gi-dot.g{background:#22c55e;box-shadow:0 0 5px rgba(34,197,94,0.3);}
+.gi-title{font-size:12px;font-weight:600;color:#e8e8e8;margin-bottom:2px;}
+.gi-desc{font-size:11px;color:#555;line-height:1.5;}
+code{background:rgba(255,255,255,0.07);padding:1px 5px;border-radius:3px;font-size:10px;color:#bbb;font-family:monospace;}
+.traj{background:#161616;border:1px solid rgba(255,255,255,0.05);border-radius:10px;padding:20px;}
+.tbars{display:flex;align-items:flex-end;gap:5px;height:72px;margin-bottom:8px;}
+.tcol{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;}
+.tbar{width:100%;border-radius:3px 3px 0 0;min-height:4px;}
+.tv{font-size:10px;font-weight:600;color:#555;}
+.tv.hi{color:#ea6a11;}
+.tl{font-size:9px;color:#444;margin-top:1px;}
+.tl.hi{color:#ea6a11;font-weight:600;}
+.tcap{font-size:11px;color:#444;text-align:center;border-top:1px solid rgba(255,255,255,0.04);padding-top:10px;line-height:1.6;}
+.bottom{margin:0 24px;background:linear-gradient(135deg,rgba(234,106,17,0.09) 0%,rgba(13,13,13,0) 60%);border:1px solid rgba(234,106,17,0.2);border-radius:12px;padding:20px 22px;}
+.bt{font-size:13px;font-weight:600;color:#fff;margin-bottom:8px;}
+.bb{font-size:12px;color:#777;line-height:1.75;}
+.bb strong{color:#ea6a11;font-weight:600;}
+.context-box{background:#161616;border:1px solid rgba(255,255,255,0.05);border-radius:10px;padding:14px 18px;font-size:12px;color:#666;line-height:1.7;}
+.context-box strong{color:#aaa;font-weight:600;}
+</style>
+
+<div class="root">
+<div class="navbar">
+  <div class="nav-brand">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2L3 7v10l9 5 9-5V7L12 2z" stroke="#ea6a11" stroke-width="1.5" stroke-linejoin="round"/><path d="M12 2v20M3 7l9 5 9-5" stroke="#ea6a11" stroke-width="1.5" stroke-linejoin="round"/></svg>
+    CubeLit
+  </div>
+  <div class="nav-badge">Production Readiness Audit</div>
+</div>
+
+<div class="hero">
+  <div class="vpill">v0.1.7 · April 6, 2026</div>
+  <div class="hero-score">88<span>/100</span></div>
+  <div class="hero-sublabel">Overall Production Score</div>
+  <div class="hero-delta">→ unchanged from v0.1.6</div>
+  <div class="hero-desc">v0.1.7 is the first release focused squarely on the app itself rather than infrastructure. Accessibility improvements across all UI controls, a shared game registry that makes adding new games significantly cleaner, richer onboarding diagnostics on Windows, and three meaningful bug fixes including a silent updater failure that users would never have known about. The score holds at 88 — this release didn't close any remaining infrastructure gaps, but it meaningfully raised the bar on app quality and user experience.</div>
+</div>
+
+<div style="height:28px"></div>
+
+<div class="sec">
+  <div class="sl">What v0.1.7 focused on</div>
+  <div class="context-box">
+    v0.1.0–v0.1.6 were almost entirely about getting the infrastructure right — CI pipelines, signing, logging, observability, scoped workflows, audits. <strong>v0.1.7 is the first release that invested in the app itself.</strong> Accessibility, UX polish, a shared architecture for adding games, and fixing subtle bugs that real users would hit. This is the natural next phase — the scaffolding is done, now the product gets better.
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sl">Standout additions</div>
+  <div class="hl">
+    <div class="hl-title">Shared game registry <span class="hl-badge">ARCHITECTURE</span></div>
+    <div class="hl-body">Setup and dashboard component selection now flows through a centralised game registry rather than scattered conditional logic. This is a meaningful architectural improvement — adding a new game used to require touching multiple places; now it's wired through one registry. It directly supports the roadmap goal of shipping more games. This is the kind of refactor that looks boring from the outside but is essential groundwork.</div>
+  </div>
+  <div class="hl" style="margin-top:10px;">
+    <div class="hl-title">Accessibility pass across all UI controls <span class="hl-badge">UX QUALITY</span></div>
+    <div class="hl-body">Labeled inputs, explicit button types, and keyboard-friendly interactions across setup and dashboard screens. This matters for two reasons: it makes the app usable for more people, and it signals that you care about quality beyond "does it work with a mouse." Most side projects never get an accessibility pass at all.</div>
+  </div>
+  <div class="hl" style="margin-top:10px;">
+    <div class="hl-title">Silent updater failures now logged <span class="hl-badge">FIXES SILENT FAILURE</span></div>
+    <div class="hl-body">When the auto-updater check failed, it was doing so completely silently in the frontend — no log, no indication to the user or developer. This is now caught and logged. Users on networks that block GitHub releases would have had no idea why they weren't seeing updates. Fixed.</div>
+  </div>
+</div>
+
+<div class="div"></div>
+
+<div class="sec">
+  <div class="sl">Category scores</div>
+  <div class="score-grid">
+
+    <div class="sc g">
+      <div class="sc-top"><div class="sc-name">Architecture &amp; Code Quality</div><div class="sc-num">91</div></div>
+      <div class="sc-track"><div class="sc-fill" style="width:91%"></div></div>
+      <div class="sc-delta">↑ +3 from v0.1.6</div>
+      <div class="sc-note">Shared game registry centralises component dispatch — a real architectural improvement that makes future game additions cleaner and less error-prone.</div>
+    </div>
+
+    <div class="sc g">
+      <div class="sc-top"><div class="sc-name">CI / Release Pipeline</div><div class="sc-num">99</div></div>
+      <div class="sc-track"><div class="sc-fill" style="width:99%"></div></div>
+      <div class="sc-delta">↑ +1 from v0.1.6</div>
+      <div class="sc-note">Release workflow now publishes non-draft releases — updater metadata is actually delivered to clients. This was a subtle but important fix: draft releases don't expose the updater JSON endpoint that Tauri polls.</div>
+    </div>
+
+    <div class="sc a">
+      <div class="sc-top"><div class="sc-name">Testing</div><div class="sc-num">72</div></div>
+      <div class="sc-track"><div class="sc-fill" style="width:72%"></div></div>
+      <div class="sc-delta">— unchanged</div>
+      <div class="sc-note">No new tests in v0.1.7. The accessibility and registry changes are untested. Mock-Docker handler tests remain the top testing gap.</div>
+    </div>
+
+    <div class="sc r">
+      <div class="sc-top"><div class="sc-name">Feature Completeness</div><div class="sc-num">42</div></div>
+      <div class="sc-track"><div class="sc-fill" style="width:42%"></div></div>
+      <div class="sc-delta">— unchanged</div>
+      <div class="sc-note">Still 2 of 10 games available. The game registry refactor now makes adding a third game much easier — it's the obvious next step.</div>
+    </div>
+
+    <div class="sc g">
+      <div class="sc-top"><div class="sc-name">Documentation &amp; Presentation</div><div class="sc-num">96</div></div>
+      <div class="sc-track"><div class="sc-fill" style="width:96%"></div></div>
+      <div class="sc-delta">— unchanged</div>
+      <div class="sc-note">No changes to docs this release. Still essentially complete.</div>
+    </div>
+
+    <div class="sc g">
+      <div class="sc-top"><div class="sc-name">Security &amp; Error Handling</div><div class="sc-num">79</div></div>
+      <div class="sc-track"><div class="sc-fill" style="width:79%"></div></div>
+      <div class="sc-delta">↑ +2 from v0.1.6</div>
+      <div class="sc-note">Silent updater failures now caught and logged. WSL polling race condition fixed — onboarding no longer reports completion while commands are still running.</div>
+    </div>
+
+    <div class="sc g">
+      <div class="sc-top"><div class="sc-name">Observability &amp; Ops</div><div class="sc-num">80</div></div>
+      <div class="sc-track"><div class="sc-fill" style="width:80%"></div></div>
+      <div class="sc-delta">↑ +2 from v0.1.6</div>
+      <div class="sc-note">Frontend now logs updater check failures — first frontend-side observability improvement. Richer onboarding diagnostics give users and developers more context during Windows setup failures.</div>
+    </div>
+
+    <div class="sc g">
+      <div class="sc-top"><div class="sc-name">Packaging &amp; Distribution</div><div class="sc-num">86</div></div>
+      <div class="sc-track"><div class="sc-fill" style="width:86%"></div></div>
+      <div class="sc-delta">↑ +2 from v0.1.6</div>
+      <div class="sc-note">Non-draft releases mean the Tauri updater JSON endpoint is actually reachable now. Previously draft releases would have silently broken over-the-air updates for anyone already running the app.</div>
+    </div>
+
+  </div>
+</div>
+
+<div class="div"></div>
+
+<div class="sec">
+  <div class="sl">What was fixed / shipped</div>
+  <div class="fi-list">
+    <div class="fi"><div class="fi-icon">✓</div><div><div class="fi-title">Game registry centralises component dispatch</div><div class="fi-desc">Setup and dashboard pages now route to game-specific components through one shared registry instead of scattered conditionals. Clean, extensible, and directly enables shipping more games.</div></div></div>
+    <div class="fi"><div class="fi-icon">✓</div><div><div class="fi-title">Accessibility improvements across all UI controls</div><div class="fi-desc">Labeled inputs, explicit button types, keyboard navigation. First systematic accessibility pass — the app now works correctly for keyboard-only users.</div></div></div>
+    <div class="fi"><div class="fi-icon">✓</div><div><div class="fi-title">WSL onboarding polling race condition fixed</div><div class="fi-desc">Windows setup flow was reporting completion while WSL commands were still running. Polling now stays in-progress until commands actually finish.</div></div></div>
+    <div class="fi"><div class="fi-icon">✓</div><div><div class="fi-title">Keyboard events no longer stolen by server cards</div><div class="fi-desc">Enter/Space on a server card was swallowing keyboard events meant for the nested Start/Stop buttons. Fixed — keyboard interaction now behaves correctly.</div></div></div>
+    <div class="fi"><div class="fi-icon">✓</div><div><div class="fi-title">Silent updater failures now logged</div><div class="fi-desc">Frontend now catches and logs updater check failures instead of swallowing them silently. Users on restrictive networks will now have something in the log to reference.</div></div></div>
+    <div class="fi"><div class="fi-icon">✓</div><div><div class="fi-title">Releases now publish as non-draft</div><div class="fi-desc">Draft releases don't expose the updater JSON endpoint Tauri polls. Switching to non-draft means OTA updates actually reach users running previous versions.</div></div></div>
+  </div>
+</div>
+
+<div class="div"></div>
+
+<div class="sec">
+  <div class="sl">Remaining gaps</div>
+  <div class="gi-list">
+    <div class="gi"><div class="gi-dot r"></div><div><div class="gi-title">Still 2 of 10 games — but the registry makes this easier now</div><div class="gi-desc">The game registry refactor was the prerequisite for shipping more games cleanly. That work is done. Valheim or Terraria are both simple Docker images that should work with a JSON recipe only. This is now the #1 priority.</div></div></div>
+    <div class="gi"><div class="gi-dot a"></div><div><div class="gi-title">No external crash reporting (Sentry)</div><div class="gi-desc">Local logging and frontend observability are solid. Still no way to know when users hit crashes unless they report manually. Sentry's Tauri integration is a free tier, ~2 hours of work.</div></div></div>
+    <div class="gi"><div class="gi-dot a"></div><div><div class="gi-title">No tests for new accessibility or registry code</div><div class="gi-desc">The accessibility improvements and registry dispatch logic are untested. These are UI-layer concerns so unit testing is harder, but at minimum the registry's component resolution logic should have tests.</div></div></div>
+    <div class="gi"><div class="gi-dot a"></div><div><div class="gi-title">Mock-Docker integration tests for command handlers</div><div class="gi-desc">Still the longest-standing testing gap. The handlers have spans and are now better structured — they're more testable than ever. This is increasingly the most glaring remaining gap.</div></div></div>
+    <div class="gi"><div class="gi-dot g"></div><div><div class="gi-title">No Intel macOS build</div><div class="gi-desc">Apple Silicon only. Low priority given market share trends but still a gap for Intel Mac users.</div></div></div>
+  </div>
+</div>
+
+<div class="div"></div>
+
+<div class="sec">
+  <div class="sl">Score trajectory — all versions</div>
+  <div class="traj">
+    <div class="tbars">
+      <div class="tcol"><div class="tv">45</div><div class="tbar" style="height:29px;background:#2a2a2a"></div><div class="tl">v0.1.0</div></div>
+      <div class="tcol"><div class="tv">55</div><div class="tbar" style="height:35px;background:#333"></div><div class="tl">v0.1.1</div></div>
+      <div class="tcol"><div class="tv">63</div><div class="tbar" style="height:40px;background:#3d3d3d"></div><div class="tl">v0.1.2</div></div>
+      <div class="tcol"><div class="tv">74</div><div class="tbar" style="height:47px;background:#555"></div><div class="tl">v0.1.3</div></div>
+      <div class="tcol"><div class="tv">79</div><div class="tbar" style="height:50px;background:#666"></div><div class="tl">v0.1.4</div></div>
+      <div class="tcol"><div class="tv">84</div><div class="tbar" style="height:54px;background:#888"></div><div class="tl">v0.1.5</div></div>
+      <div class="tcol"><div class="tv">88</div><div class="tbar" style="height:57px;background:#aaa"></div><div class="tl">v0.1.6</div></div>
+      <div class="tcol"><div class="tv hi">88</div><div class="tbar" style="height:57px;background:linear-gradient(180deg,#ea6a11,#c45500)"></div><div class="tl hi">v0.1.7</div></div>
+    </div>
+    <div class="tcap">Score holds at 88 — a consolidation release. The app got meaningfully better even though the number didn't move. +43 points across 8 releases in 27 days.</div>
+  </div>
+</div>
+
+<div style="height:4px"></div>
+
+<div class="bottom">
+  <div class="bt">What gets you to 90+</div>
+  <div class="bb">The game registry refactor in v0.1.7 was the prerequisite for the next score jump — you removed the friction that made adding games messy. <strong>Ship one more game</strong> and feature completeness moves from 42 to ~55, which pushes the overall score past 90. Add Sentry on the same release and you're comfortably at 92+. Those two things are now the entire remaining story.</div>
+</div>
+
+</div>

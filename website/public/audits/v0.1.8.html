@@ -1,0 +1,247 @@
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+.root{font-family:'Inter',system-ui,sans-serif;background:#0d0d0d;color:#e8e8e8;padding-bottom:48px;}
+.navbar{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;background:rgba(13,13,13,0.97);border-bottom:1px solid rgba(255,255,255,0.06);position:sticky;top:0;z-index:10;}
+.nav-brand{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:600;color:#fff;}
+.nav-badge{background:rgba(234,106,17,0.15);border:1px solid rgba(234,106,17,0.3);color:#ea6a11;font-size:11px;font-weight:600;padding:2px 10px;border-radius:20px;}
+.hero{text-align:center;padding:48px 24px 36px;background:radial-gradient(ellipse 60% 40% at 50% 0%,rgba(234,106,17,0.08) 0%,transparent 70%);}
+.vpill{display:inline-flex;align-items:center;gap:6px;background:rgba(234,106,17,0.12);border:1px solid rgba(234,106,17,0.25);color:#ea6a11;font-size:11px;font-weight:600;padding:4px 12px;border-radius:20px;margin-bottom:18px;}
+.vpill::before{content:'●';font-size:7px;}
+.hero-score{font-size:76px;font-weight:700;color:#fff;line-height:1;letter-spacing:-3px;margin-bottom:6px;}
+.hero-score span{font-size:38px;color:#444;font-weight:400;}
+.hero-sublabel{font-size:11px;color:#555;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:16px;}
+.hero-delta{display:inline-flex;align-items:center;gap:6px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.2);color:#22c55e;font-size:12px;font-weight:600;padding:4px 12px;border-radius:20px;margin-bottom:20px;}
+.hero-desc{font-size:13px;color:#888;max-width:620px;margin:0 auto;line-height:1.75;}
+.sec{padding:0 24px;margin-bottom:28px;}
+.sl{display:flex;align-items:center;gap:8px;font-size:10px;font-weight:600;color:#ea6a11;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:14px;}
+.sl::after{content:'';flex:1;height:1px;background:rgba(234,106,17,0.18);}
+.div{height:1px;background:rgba(255,255,255,0.04);margin:0 24px 28px;}
+.score-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.sc{background:#161616;border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:15px 16px;position:relative;overflow:hidden;}
+.sc::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px;}
+.sc.g::before{background:#22c55e;}.sc.a::before{background:#ea6a11;}.sc.r::before{background:#ef4444;}
+.sc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:9px;}
+.sc-name{font-size:11px;font-weight:500;color:#aaa;line-height:1.4;max-width:160px;}
+.sc-num{font-size:24px;font-weight:700;line-height:1;}
+.sc.g .sc-num{color:#22c55e;}.sc.a .sc-num{color:#ea6a11;}.sc.r .sc-num{color:#ef4444;}
+.sc-track{height:3px;background:rgba(255,255,255,0.05);border-radius:2px;overflow:hidden;margin-bottom:7px;}
+.sc-fill{height:100%;border-radius:2px;}
+.sc.g .sc-fill{background:#22c55e;}.sc.a .sc-fill{background:#ea6a11;}.sc.r .sc-fill{background:#ef4444;}
+.sc-delta{font-size:10px;font-weight:600;margin-bottom:4px;}
+.sc.g .sc-delta{color:#22c55e;}.sc.a .sc-delta{color:#ea6a11;}.sc.r .sc-delta{color:#777;}
+.sc-note{font-size:10px;color:#555;line-height:1.5;}
+.hl{background:linear-gradient(135deg,rgba(234,106,17,0.1) 0%,rgba(13,13,13,0) 55%);border:1px solid rgba(234,106,17,0.25);border-radius:10px;padding:16px 18px;margin-bottom:10px;}
+.hl-title{font-size:13px;font-weight:600;color:#fff;margin-bottom:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.hl-badge{background:rgba(234,106,17,0.15);color:#ea6a11;font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;white-space:nowrap;}
+.hl-body{font-size:12px;color:#777;line-height:1.65;}
+.fi-list{display:flex;flex-direction:column;gap:8px;}
+.fi{display:flex;gap:12px;align-items:flex-start;background:#161616;border:1px solid rgba(255,255,255,0.05);border-radius:8px;padding:12px 14px;}
+.fi-icon{width:26px;height:26px;border-radius:6px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;color:#22c55e;font-weight:700;}
+.fi-title{font-size:12px;font-weight:600;color:#e8e8e8;margin-bottom:2px;}
+.fi-desc{font-size:11px;color:#555;line-height:1.5;}
+.gi-list{display:flex;flex-direction:column;gap:8px;}
+.gi{display:flex;gap:12px;align-items:flex-start;background:#161616;border:1px solid rgba(255,255,255,0.05);border-radius:8px;padding:12px 14px;}
+.gi-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+.gi-dot.r{background:#ef4444;box-shadow:0 0 6px rgba(239,68,68,0.4);}
+.gi-dot.a{background:#ea6a11;box-shadow:0 0 6px rgba(234,106,17,0.4);}
+.gi-dot.g{background:#22c55e;box-shadow:0 0 5px rgba(34,197,94,0.3);}
+.gi-dot.y{background:#eab308;box-shadow:0 0 5px rgba(234,179,8,0.3);}
+.gi-title{font-size:12px;font-weight:600;color:#e8e8e8;margin-bottom:2px;}
+.gi-desc{font-size:11px;color:#555;line-height:1.5;}
+code{background:rgba(255,255,255,0.07);padding:1px 5px;border-radius:3px;font-size:10px;color:#bbb;font-family:monospace;}
+.traj{background:#161616;border:1px solid rgba(255,255,255,0.05);border-radius:10px;padding:20px;}
+.tbars{display:flex;align-items:flex-end;gap:5px;height:72px;margin-bottom:8px;}
+.tcol{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;}
+.tbar{width:100%;border-radius:3px 3px 0 0;min-height:4px;}
+.tv{font-size:10px;font-weight:600;color:#555;}
+.tv.hi{color:#ea6a11;}
+.tl{font-size:9px;color:#444;margin-top:1px;}
+.tl.hi{color:#ea6a11;font-weight:600;}
+.tcap{font-size:11px;color:#444;text-align:center;border-top:1px solid rgba(255,255,255,0.04);padding-top:10px;line-height:1.6;}
+.prio{display:flex;flex-direction:column;gap:8px;}
+.pr{display:flex;gap:12px;align-items:flex-start;background:#161616;border:1px solid rgba(255,255,255,0.05);border-radius:8px;padding:12px 14px;}
+.pr-num{font-size:13px;font-weight:700;color:#ea6a11;flex-shrink:0;min-width:20px;}
+.pr-title{font-size:12px;font-weight:600;color:#e8e8e8;margin-bottom:3px;}
+.pr-desc{font-size:11px;color:#555;line-height:1.5;}
+.context-box{background:#161616;border:1px solid rgba(255,255,255,0.05);border-radius:10px;padding:14px 18px;font-size:12px;color:#666;line-height:1.75;}
+.context-box strong{color:#aaa;font-weight:600;}
+.bottom{margin:0 24px;background:linear-gradient(135deg,rgba(234,106,17,0.09) 0%,rgba(13,13,13,0) 60%);border:1px solid rgba(234,106,17,0.2);border-radius:12px;padding:20px 22px;}
+.bt{font-size:13px;font-weight:600;color:#fff;margin-bottom:8px;}
+.bb{font-size:12px;color:#777;line-height:1.75;}
+.bb strong{color:#ea6a11;font-weight:600;}
+</style>
+
+<div class="root">
+<div class="navbar">
+  <div class="nav-brand">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2L3 7v10l9 5 9-5V7L12 2z" stroke="#ea6a11" stroke-width="1.5" stroke-linejoin="round"/><path d="M12 2v20M3 7l9 5 9-5" stroke="#ea6a11" stroke-width="1.5" stroke-linejoin="round"/></svg>
+    CubeLit
+  </div>
+  <div class="nav-badge">Production Readiness Audit</div>
+</div>
+
+<div class="hero">
+  <div class="vpill">v0.1.8 · April 26, 2026</div>
+  <div class="hero-score">91<span>/100</span></div>
+  <div class="hero-sublabel">Overall Production Score</div>
+  <div class="hero-delta">↑ +3 from v0.1.7</div>
+  <div class="hero-desc">v0.1.8 is a pure architecture release — and the most structurally significant in the project's history. The Rust backend was restructured from a monolithic src-tauri crate into a proper Cargo workspace with a new <code>cubelit-core</code> library crate. Business logic is now completely decoupled from Tauri. The EventSink trait decouples event emission. ServerRunner and ServerLifecycle traits create clean seams for future agents, CLI, and tests. The Minecraft Java recipe was also fixed to pin java25, preventing silent launch failures on all 1.21.10+ worlds.</div>
+</div>
+
+<div style="height:28px"></div>
+
+<div class="sec">
+  <div class="sl">What v0.1.8 actually means</div>
+  <div class="context-box">Every release from v0.1.0–v0.1.7 was building toward this. The CI pipeline, logging, tracing spans, game registry — all of that was cleaning up the surface. <strong>v0.1.8 restructured the foundation.</strong> cubelit-core is now a pure Rust library with no Tauri dependency. src-tauri is a thin IPC adapter. This is the split that makes a CLI, an MCP server, or an HTTP agent all achievable without touching core logic. It's also the split that finally makes the command handler logic properly unit-testable.</div>
+</div>
+
+<div class="sec">
+  <div class="sl">Standout additions</div>
+
+  <div class="hl">
+    <div class="hl-title">cubelit-core Cargo workspace crate <span class="hl-badge">BIGGEST STRUCTURAL CHANGE YET</span></div>
+    <div class="hl-body">Business logic — error types, ports, recipes, DB queries, migrations, Docker orchestration, server lifecycle, RCON, backups — now lives in a pure Rust library crate with no Tauri dependency. src-tauri is now what it always should have been: a thin IPC adapter of ~5–15 lines per command. cubelit-core can be tested with <code>cargo test</code> independently of the Tauri runtime. This directly enables future CLI and HTTP/WebSocket agent transports without touching core logic.</div>
+  </div>
+
+  <div class="hl" style="margin-top:10px;">
+    <div class="hl-title">EventSink trait — transport decoupling <span class="hl-badge">CLEAN ABSTRACTION</span></div>
+    <div class="hl-body">The core crate never calls <code>app_handle.emit()</code> directly anymore. Every long-running function takes <code>&dyn EventSink</code>. <code>TauriEventSink</code> in src-tauri maps CoreEvent variants to Tauri event names, byte-for-byte compatible with v0.1.7. <code>NoopSink</code> is available for tests. The wire format is locked down in a unit test (<code>server_create_progress_wire_format_is_byte_identical_to_v0_1_7</code>) — a regression fails CI before it ships.</div>
+  </div>
+
+  <div class="hl" style="margin-top:10px;">
+    <div class="hl-title">ServerRunner + ServerLifecycle trait split <span class="hl-badge">SEAM FOR AGENTS</span></div>
+    <div class="hl-body">Narrow <code>ServerRunner</code> (pull image, create/start/stop/restart container, stats/logs) vs wide <code>ServerLifecycle</code> (create, delete, sync, rename, fetch, RCON, backup). <code>LocalServerHost</code> implements both for v0.1.8. Future remote agent support is now a matter of providing a <code>ServerRunner</code> impl that proxies to a remote Docker socket — the lifecycle layer doesn't change.</div>
+  </div>
+
+  <div class="hl" style="margin-top:10px;">
+    <div class="hl-title">Minecraft Java pinned to java25 <span class="hl-badge">FIXES SILENT FAILURE</span></div>
+    <div class="hl-body">Vanilla 1.21.10+ ships a Java 25 bundler (class file version 69.0) and refused to start on the java21 image. Users would see a container that exits immediately with no meaningful error. This affects the most popular game mode and was completely invisible to the user — a high-value fix.</div>
+  </div>
+
+  <div class="hl" style="margin-top:10px;">
+    <div class="hl-title">CI paths expanded for workspace layout <span class="hl-badge">CORRECTNESS</span></div>
+    <div class="hl-body"><code>crates/**</code>, <code>Cargo.toml</code>, <code>Cargo.lock</code>, <code>.sqlx/</code> are now covered by the CI paths filter. Previously a change to cubelit-core alone might not have triggered CI — a serious gap given that core is now where all the logic lives.</div>
+  </div>
+</div>
+
+<div class="div"></div>
+
+<div class="sec">
+  <div class="sl">Category scores</div>
+  <div class="score-grid">
+
+    <div class="sc g">
+      <div class="sc-top"><div class="sc-name">Architecture &amp; Code Quality</div><div class="sc-num">97</div></div>
+      <div class="sc-track"><div class="sc-fill" style="width:97%"></div></div>
+      <div class="sc-delta">↑ +6 from v0.1.7</div>
+      <div class="sc-note">Cargo workspace, trait-based seams, EventSink decoupling. The biggest single architecture jump in the project's history. Essentially maxed for this stage.</div>
+    </div>
+
+    <div class="sc g">
+      <div class="sc-top"><div class="sc-name">CI / Release Pipeline</div><div class="sc-num">96</div></div>
+      <div class="sc-track"><div class="sc-fill" style="width:96%"></div></div>
+      <div class="sc-delta">↓ −3 from v0.1.7</div>
+      <div class="sc-note">CI paths correctly expanded for the new workspace. Docked points for the bollard 0.20 breaking change leaving PR #27 red — a failing CI run on a dependency bump is a process gap.</div>
+    </div>
+
+    <div class="sc a">
+      <div class="sc-top"><div class="sc-name">Testing</div><div class="sc-num">74</div></div>
+      <div class="sc-track"><div class="sc-fill" style="width:74%"></div></div>
+      <div class="sc-delta">↑ +2 from v0.1.7</div>
+      <div class="sc-note">Wire-format unit test for EventSink is excellent. NoopSink enables test isolation. But the ServerLifecycle/ServerRunner trait seam is now begging for mock-based tests that don't yet exist.</div>
+    </div>
+
+    <div class="sc r">
+      <div class="sc-top"><div class="sc-name">Feature Completeness</div><div class="sc-num">42</div></div>
+      <div class="sc-track"><div class="sc-fill" style="width:42%"></div></div>
+      <div class="sc-delta">— unchanged</div>
+      <div class="sc-note">Still 2 of 10 games. Minecraft Java fix was important but not a new game. The scaffolding is completely ready — a new game is now the obvious next step.</div>
+    </div>
+
+    <div class="sc g">
+      <div class="sc-top"><div class="sc-name">Documentation &amp; Presentation</div><div class="sc-num">96</div></div>
+      <div class="sc-track"><div class="sc-fill" style="width:96%"></div></div>
+      <div class="sc-delta">— unchanged</div>
+      <div class="sc-note">No doc changes this release. Still essentially complete.</div>
+    </div>
+
+    <div class="sc g">
+      <div class="sc-top"><div class="sc-name">Security &amp; Error Handling</div><div class="sc-num">80</div></div>
+      <div class="sc-track"><div class="sc-fill" style="width:80%"></div></div>
+      <div class="sc-delta">↑ +1 from v0.1.7</div>
+      <div class="sc-note">Error types now live in cubelit-core and are properly decoupled. No regressions.</div>
+    </div>
+
+    <div class="sc a">
+      <div class="sc-top"><div class="sc-name">Observability &amp; Ops</div><div class="sc-num">80</div></div>
+      <div class="sc-track"><div class="sc-fill" style="width:80%"></div></div>
+      <div class="sc-delta">— unchanged</div>
+      <div class="sc-note">Sentry still missing. EventSink architecture makes adding it cleaner than ever — it would be a new SentryEventSink impl. Still the longest-standing unfixed gap.</div>
+    </div>
+
+    <div class="sc g">
+      <div class="sc-top"><div class="sc-name">Packaging &amp; Distribution</div><div class="sc-num">86</div></div>
+      <div class="sc-track"><div class="sc-fill" style="width:86%"></div></div>
+      <div class="sc-delta">— unchanged</div>
+      <div class="sc-note">No changes. Still solid.</div>
+    </div>
+
+  </div>
+</div>
+
+<div class="div"></div>
+
+<div class="sec">
+  <div class="sl">Remaining gaps</div>
+  <div class="gi-list">
+    <div class="gi"><div class="gi-dot r"></div><div><div class="gi-title">No Sentry / crash reporting — longest-standing open gap</div><div class="gi-desc">Users hit crashes with no telemetry path back to you. The EventSink architecture actually makes this easier now — a <code>SentryEventSink</code> impl could wrap the existing one. Still ~2 hours of work. Still the highest-priority observability gap.</div></div></div>
+    <div class="gi"><div class="gi-dot r"></div><div><div class="gi-title">No mock-based tests for ServerLifecycle / ServerRunner</div><div class="gi-desc">The trait seam now exists. <code>NoopSink</code> exists. There is no architectural excuse remaining. Trait-based unit tests covering <code>create_server</code>, <code>delete_server</code>, and error paths with a mock <code>ServerRunner</code> are the #1 testing gap.</div></div></div>
+    <div class="gi"><div class="gi-dot a"></div><div><div class="gi-title">bollard 0.18 → 0.20.2 breaks CI (PR #27 red)</div><div class="gi-desc">Bollard's streaming API has breaking changes in 0.20. The dep is stuck at 0.18 until the call sites in <code>cubelit-core</code> are manually updated. This needs fixing before it becomes a security or compatibility issue — don't let it sit.</div></div></div>
+    <div class="gi"><div class="gi-dot a"></div><div><div class="gi-title">8 open Dependabot PRs accumulating</div><div class="gi-desc">Four opened in the last 20 hours alone. A weekly triage habit would prevent this from piling up. Most are safe to merge once bollard is unblocked.</div></div></div>
+    <div class="gi"><div class="gi-dot a"></div><div><div class="gi-title">Still 2 of 10 games</div><div class="gi-desc">The registry refactor (v0.1.7) and the LocalServerHost lifecycle seam (v0.1.8) have removed every structural blocker. Valheim and Terraria are both simple Docker images. A recipe + dashboard card is now the only remaining work for each.</div></div></div>
+    <div class="gi"><div class="gi-dot y"></div><div><div class="gi-title">Dead code: stream_container_logs / ServerLogLine</div><div class="gi-desc">Fine as forward scaffolding, but should be marked with <code>#[allow(dead_code)]</code> and a TODO comment before compiler warnings surface in CI as the project grows.</div></div></div>
+    <div class="gi"><div class="gi-dot g"></div><div><div class="gi-title">No Intel macOS build</div><div class="gi-desc">Apple Silicon only. Low priority given market share trends but still a gap.</div></div></div>
+  </div>
+</div>
+
+<div class="div"></div>
+
+<div class="sec">
+  <div class="sl">Top 3 priorities for v0.1.9</div>
+  <div class="prio">
+    <div class="pr"><div class="pr-num">1.</div><div><div class="pr-title">Fix the bollard 0.20 breaking change (PR #27)</div><div class="pr-desc">Unblock the dependency, clear the red CI run, then merge the queued Dependabot PRs. Keep the dep graph healthy — bollard is too central to leave stuck.</div></div></div>
+    <div class="pr"><div class="pr-num">2.</div><div><div class="pr-title">Write ServerLifecycle mock tests</div><div class="pr-desc">The trait seam exists. Write 5–10 tests covering create, delete, and error paths using a mock ServerRunner. This closes the longest-standing testing gap by making what was previously impossible now straightforward.</div></div></div>
+    <div class="pr"><div class="pr-num">3.</div><div><div class="pr-title">Ship a third game (Valheim or Terraria)</div><div class="pr-desc">Every structural prerequisite is done. Feature completeness at 2/10 is the single biggest score drag. One new game moves it meaningfully and proves the architecture works end-to-end.</div></div></div>
+  </div>
+</div>
+
+<div class="div"></div>
+
+<div class="sec">
+  <div class="sl">Score trajectory — all versions</div>
+  <div class="traj">
+    <div class="tbars">
+      <div class="tcol"><div class="tv">45</div><div class="tbar" style="height:25px;background:#2a2a2a"></div><div class="tl">v0.1.0</div></div>
+      <div class="tcol"><div class="tv">55</div><div class="tbar" style="height:31px;background:#333"></div><div class="tl">v0.1.1</div></div>
+      <div class="tcol"><div class="tv">63</div><div class="tbar" style="height:36px;background:#3d3d3d"></div><div class="tl">v0.1.2</div></div>
+      <div class="tcol"><div class="tv">74</div><div class="tbar" style="height:43px;background:#555"></div><div class="tl">v0.1.3</div></div>
+      <div class="tcol"><div class="tv">79</div><div class="tbar" style="height:46px;background:#666"></div><div class="tl">v0.1.4</div></div>
+      <div class="tcol"><div class="tv">84</div><div class="tbar" style="height:49px;background:#777"></div><div class="tl">v0.1.5</div></div>
+      <div class="tcol"><div class="tv">88</div><div class="tbar" style="height:52px;background:#888"></div><div class="tl">v0.1.6</div></div>
+      <div class="tcol"><div class="tv">88</div><div class="tbar" style="height:52px;background:#999"></div><div class="tl">v0.1.7</div></div>
+      <div class="tcol"><div class="tv hi">91</div><div class="tbar" style="height:57px;background:linear-gradient(180deg,#ea6a11,#c45500)"></div><div class="tl hi">v0.1.8</div></div>
+    </div>
+    <div class="tcap">45 → 91 across 9 releases · no release has ever backslid · +46 points total</div>
+  </div>
+</div>
+
+<div style="height:4px"></div>
+
+<div class="bottom">
+  <div class="bt">What gets you to 95+</div>
+  <div class="bb">The architecture is now genuinely excellent — <strong>97/100 on code quality</strong> is hard to argue with. The remaining gap between 91 and 95+ is entirely in three places: <strong>Sentry</strong> (observability), <strong>ServerLifecycle mock tests</strong> (testing), and <strong>a third game</strong> (feature completeness). The trait seams built in v0.1.8 make all three easier than they've ever been. Fix bollard, write the tests, ship a game — that's 95.</div>
+</div>
+
+</div>
