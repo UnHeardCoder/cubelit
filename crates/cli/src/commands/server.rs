@@ -6,7 +6,7 @@ use tabled::{Table, Tabled};
 
 use cubelit_core::error::{CoreError, CoreResult};
 use cubelit_core::recipes::get_recipe;
-use cubelit_core::server::{CreateServerConfig, ServerLifecycle};
+use cubelit_core::server::{CreateServerConfig, ServerLifecycle, ServerRunner};
 
 use crate::context::Context;
 use crate::resolve::resolve_server_id;
@@ -28,17 +28,29 @@ struct ListRow {
 
 pub async fn list(ctx: &Context) -> CoreResult<()> {
     ctx.host.sync_all().await?;
-    let servers = ctx.host.list_servers().await?;
-    let rows: Vec<ListRow> = servers
-        .into_iter()
-        .map(|s| ListRow {
+    let mut rows = Vec::new();
+    for s in ctx.host.list_servers().await? {
+        let status = if s.status == "starting" {
+            if let Some(container_id) = s.container_id.as_deref() {
+                if ctx.host.is_running(container_id).await {
+                    "running".to_string()
+                } else {
+                    s.status.clone()
+                }
+            } else {
+                s.status.clone()
+            }
+        } else {
+            s.status.clone()
+        };
+        rows.push(ListRow {
             id: s.id.chars().take(8).collect(),
             game: s.game,
             name: s.name,
-            status: s.status,
+            status,
             created: s.created_at,
-        })
-        .collect();
+        });
+    }
     println!("{}", Table::new(rows));
     Ok(())
 }
@@ -104,7 +116,20 @@ pub async fn status(ctx: &Context, id: &str) -> CoreResult<()> {
     println!("name:           {}", s.name);
     println!("game:           {}", s.game);
     println!("recipe_id:      {}", s.recipe_id);
-    println!("status:         {}", s.status);
+    let display_status = if s.status == "starting" {
+        if let Some(container_id) = s.container_id.as_deref() {
+            if ctx.host.is_running(container_id).await {
+                "running".to_string()
+            } else {
+                s.status.clone()
+            }
+        } else {
+            s.status.clone()
+        }
+    } else {
+        s.status.clone()
+    };
+    println!("status:         {}", display_status);
     println!("container_id:   {}", s.container_id.as_deref().unwrap_or("—"));
     println!("docker_image:   {}", s.docker_image);
     println!("port_mappings:\n{}", ports_pretty);
