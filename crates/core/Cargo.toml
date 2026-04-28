@@ -21,7 +21,7 @@ bollard = "0.18"
 #   io-util         — `AsyncReadExt`/`AsyncWriteExt` for RCON
 #   net             — `TcpStream` for RCON
 # Avoids the giant compile-time hit (and surface area) of "full".
-tokio = { version = "1.51.0", features = ["macros", "rt-multi-thread", "time", "io-util", "net"] }
+tokio = { version = "1.52.1", features = ["macros", "rt-multi-thread", "time", "io-util", "net"] }
 sqlx = { version = "0.8", features = ["runtime-tokio", "sqlite", "macros", "migrate"] }
 thiserror = "2"
 futures-util = "0.3"
