@@ -22,7 +22,7 @@ use cubelit_core::CreateServerConfig;
 
 use crate::error::CoreError;
 use crate::event_sink::TauriEventSink;
-use crate::state::AppState;
+use crate::state::{capture_core_error, AppState};
 
 #[tauri::command]
 pub async fn check_docker_status(
@@ -38,7 +38,11 @@ pub async fn create_server(
     config: CreateServerConfig,
 ) -> Result<Cubelit, CoreError> {
     let events: Arc<dyn EventSink> = TauriEventSink::shared(app_handle);
-    state.host.create_server(config, events).await
+    state
+        .host
+        .create_server(config, events)
+        .await
+        .inspect_err(capture_core_error)
 }
 
 #[tauri::command]
@@ -48,12 +52,20 @@ pub async fn start_server(
     id: String,
 ) -> Result<(), CoreError> {
     let events: Arc<dyn EventSink> = TauriEventSink::shared(app_handle);
-    state.host.start_server(&id, events).await
+    state
+        .host
+        .start_server(&id, events)
+        .await
+        .inspect_err(capture_core_error)
 }
 
 #[tauri::command]
 pub async fn stop_server(state: State<'_, AppState>, id: String) -> Result<(), CoreError> {
-    state.host.stop_server(&id).await
+    state
+        .host
+        .stop_server(&id)
+        .await
+        .inspect_err(capture_core_error)
 }
 
 #[tauri::command]
@@ -63,7 +75,11 @@ pub async fn restart_server(
     id: String,
 ) -> Result<(), CoreError> {
     let events: Arc<dyn EventSink> = TauriEventSink::shared(app_handle);
-    state.host.restart_server(&id, events).await
+    state
+        .host
+        .restart_server(&id, events)
+        .await
+        .inspect_err(capture_core_error)
 }
 
 #[tauri::command]
@@ -72,7 +88,11 @@ pub async fn delete_server(
     id: String,
     delete_data: bool,
 ) -> Result<(), CoreError> {
-    state.host.delete_server(&id, delete_data).await
+    state
+        .host
+        .delete_server(&id, delete_data)
+        .await
+        .inspect_err(capture_core_error)
 }
 
 #[tauri::command]
@@ -100,6 +120,7 @@ pub async fn update_server_settings(
         .host
         .update_server_settings(&id, environment, events)
         .await
+        .inspect_err(capture_core_error)
 }
 
 #[tauri::command]

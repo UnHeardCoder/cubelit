@@ -1,10 +1,9 @@
 use std::collections::HashMap;
 
-use bollard::container::{
-    Config, CreateContainerOptions, RemoveContainerOptions, StartContainerOptions,
-    StopContainerOptions,
+use bollard::models::{ContainerCreateBody, HostConfig, PortBinding, RestartPolicy, RestartPolicyNameEnum};
+use bollard::query_parameters::{
+    CreateContainerOptions, RemoveContainerOptions, StartContainerOptions, StopContainerOptions,
 };
-use bollard::models::{HostConfig, PortBinding, RestartPolicy, RestartPolicyNameEnum};
 use bollard::Docker;
 
 use crate::db::models::Cubelit;
@@ -28,7 +27,8 @@ pub async fn create_container(docker: &Docker, cubelit: &Cubelit, extra_binds: &
         .map(|(k, v)| format!("{}={}", k, v))
         .collect();
 
-    let mut exposed_ports: HashMap<String, HashMap<(), ()>> = HashMap::new();
+    // bollard 0.20: exposed_ports is Vec<String> (port keys only, e.g. "25565/tcp").
+    let mut exposed_ports: Vec<String> = Vec::new();
     let mut port_bindings: HashMap<String, Option<Vec<PortBinding>>> = HashMap::new();
 
     for (container_port, host_port) in &port_mappings {
@@ -38,7 +38,7 @@ pub async fn create_container(docker: &Docker, cubelit: &Cubelit, extra_binds: &
             format!("{}/tcp", container_port)
         };
 
-        exposed_ports.insert(port_key.clone(), HashMap::new());
+        exposed_ports.push(port_key.clone());
         port_bindings.insert(
             port_key,
             Some(vec![PortBinding {
@@ -67,7 +67,7 @@ pub async fn create_container(docker: &Docker, cubelit: &Cubelit, extra_binds: &
         ..Default::default()
     };
 
-    let config = Config {
+    let config = ContainerCreateBody {
         image: Some(cubelit.docker_image.clone()),
         env: Some(env),
         exposed_ports: Some(exposed_ports),
@@ -78,8 +78,8 @@ pub async fn create_container(docker: &Docker, cubelit: &Cubelit, extra_binds: &
 
     let container_name = format!("cubelit-{}", cubelit.id);
     let options = CreateContainerOptions {
-        name: container_name,
-        platform: None,
+        name: Some(container_name),
+        platform: String::from(""),
     };
 
     let response = docker.create_container(Some(options), config).await?;
@@ -88,20 +88,34 @@ pub async fn create_container(docker: &Docker, cubelit: &Cubelit, extra_binds: &
 
 pub async fn start_container(docker: &Docker, container_id: &str) -> Result<(), CoreError> {
     docker
-        .start_container(container_id, None::<StartContainerOptions<String>>)
+        .start_container(container_id, None::<StartContainerOptions>)
         .await?;
     Ok(())
 }
 
 pub async fn stop_container(docker: &Docker, container_id: &str) -> Result<(), CoreError> {
     docker
-        .stop_container(container_id, Some(StopContainerOptions { t: 10 }))
+        .stop_container(
+            container_id,
+            Some(StopContainerOptions {
+                t: Some(10),
+                ..Default::default()
+            }),
+        )
         .await?;
     Ok(())
 }
 
 pub async fn restart_container(docker: &Docker, container_id: &str) -> Result<(), CoreError> {
-    docker.restart_container(container_id, Some(bollard::container::RestartContainerOptions { t: 10 })).await?;
+    docker
+        .restart_container(
+            container_id,
+            Some(bollard::query_parameters::RestartContainerOptions {
+                t: Some(10),
+                ..Default::default()
+            }),
+        )
+        .await?;
     Ok(())
 }
 

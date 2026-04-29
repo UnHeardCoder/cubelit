@@ -13,6 +13,15 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [0.1.10] — 2026-04-28
 
+### Added
+- Sentry crash reporting initialized in both the desktop app and CLI.
+  Pass `SENTRY_DSN` at build time (or set the env var at runtime) to enable.
+  Panics and `CoreError` failures on key lifecycle commands are automatically
+  captured. No-op if the DSN is empty — existing behaviour preserved.
+- Intel macOS (x86_64) added to the desktop and CLI release matrices
+  (`macos-13` GitHub Actions runner, `--target x86_64-apple-darwin`).
+  Artifact: `cubelit-cli-macos-intel`.
+
 ### Fixed
 - `resolve_data_dir()` in the CLI now returns `CoreResult` instead of panicking
   when the platform config/data directory is unavailable.
@@ -30,12 +39,28 @@ Versions follow [Semantic Versioning](https://semver.org/).
   CRLF to LF; `.gitattributes` added to enforce LF repo-wide.
 - Release `check-version` CI no longer false-fails due to `\r` in extracted
   version strings from CRLF-encoded files.
+- `bollard` bumped from 0.18 to 0.20 across all three crates (`crates/core`,
+  `crates/cli`, `src-tauri`). Updated call sites in `stats.rs`, `images.rs`,
+  `logs.rs`, `containers.rs`, `local.rs`, `watchers.rs`, and
+  `crates/cli/src/commands/logs.rs` to match the new API (options types moved
+  to `bollard::query_parameters`, `Config` → `ContainerCreateBody`, network
+  types to `bollard::models`).
+- `ServerLogLine` enum variant now carries `#[allow(dead_code)]` to suppress
+  clippy warnings as the workspace grows.
+- Stale pre-workspace Dependabot PRs (#22, #23, #24) closed; bollard Dependabot
+  PR (#27) closed (resolved manually); safe dependency updates previously merged:
+  tokio 1.52.1 (#28), tauri-plugin-updater 2.10.1 (#29), uuid 1.23.1 (#30).
 
 ### Changed
 - CLI macOS release binary is now pinned to `aarch64-apple-darwin` (matching
   the desktop job) for deterministic architecture.
 - Integration test scaffold in `crates/cli/tests/integration.rs` now contains
   a real Docker-backed flow body (guarded by `#[ignore]`).
+
+### Tests
+- Added `#[tokio::test]` unit tests to `crates/core/src/server/local.rs`
+  covering `list_servers` (empty DB), `get_server` (NotFound), and
+  `rename_server` (NotFound) — no Docker daemon required.
 
 ---
 

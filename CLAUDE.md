@@ -198,6 +198,7 @@ Four workflows in `.github/workflows/`:
 | `TAURI_SIGNING_PRIVATE_KEY` | release.yml — signs updater artifacts |
 | `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | release.yml |
 | `VPS_SSH_KEY` | deploy-website.yml — SSH key for `unheard@benlundy.com` |
+| `SENTRY_DSN` | release.yml — Sentry error reporting DSN (no-op if absent) |
 | `GITHUB_TOKEN` | deploy-website.yml — GHCR login (automatic) |
 
 ### Deploying the website manually

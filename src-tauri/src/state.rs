@@ -22,3 +22,9 @@ impl AppState {
         Ok(Self { host })
     }
 }
+
+/// Send a `CoreError` to Sentry at Error level. This is a no-op when Sentry
+/// is not initialized (i.e. `SENTRY_DSN` was empty at startup).
+pub fn capture_core_error(e: &CoreError) {
+    sentry::capture_message(&e.to_string(), sentry::Level::Error);
+}

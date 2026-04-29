@@ -1,4 +1,4 @@
-use bollard::container::LogsOptions;
+use bollard::query_parameters::LogsOptions;
 use bollard::Docker;
 use futures_util::StreamExt;
 
@@ -13,7 +13,7 @@ pub async fn stream_container_logs(
     events: &dyn EventSink,
     server_id: &str,
 ) {
-    let options = LogsOptions::<String> {
+    let options = LogsOptions {
         follow: true,
         stdout: true,
         stderr: true,

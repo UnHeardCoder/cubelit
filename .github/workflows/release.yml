@@ -41,6 +41,8 @@ jobs:
         include:
           - platform: macos-latest
             args: '--target aarch64-apple-darwin'
+          - platform: macos-13
+            args: '--target x86_64-apple-darwin'
           - platform: windows-latest
             args: '--target x86_64-pc-windows-msvc'
           - platform: ubuntu-22.04
@@ -54,7 +56,7 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.platform == 'windows-latest' && 'x86_64-pc-windows-msvc' || matrix.platform == 'macos-latest' && 'aarch64-apple-darwin' || '' }}
+          targets: ${{ matrix.platform == 'windows-latest' && 'x86_64-pc-windows-msvc' || matrix.platform == 'macos-latest' && 'aarch64-apple-darwin' || matrix.platform == 'macos-13' && 'x86_64-apple-darwin' || '' }}
 
       - name: Install Linux system dependencies
         if: matrix.platform == 'ubuntu-22.04'
@@ -99,6 +101,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SQLX_OFFLINE: "true"
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
         with:
           tagName: ${{ github.ref_name }}
           releaseName: 'Cubelit ${{ github.ref_name }}'
@@ -124,6 +127,10 @@ jobs:
             artifact: cubelit-cli-macos
             src: target/aarch64-apple-darwin/release/cubelit
             target: aarch64-apple-darwin
+          - platform: macos-13
+            artifact: cubelit-cli-macos-intel
+            src: target/x86_64-apple-darwin/release/cubelit
+            target: x86_64-apple-darwin
           - platform: windows-latest
             artifact: cubelit-cli-windows.exe
             src: target/release/cubelit.exe

@@ -114,11 +114,11 @@ pub fn spawn_readiness_watcher(
             - 10)
             .max(0);
 
-        let opts = bollard::container::LogsOptions::<String> {
+        let opts = bollard::query_parameters::LogsOptions {
             stdout: true,
             stderr: true,
             follow: true,
-            since,
+            since: since as i32,
             ..Default::default()
         };
 
@@ -204,8 +204,8 @@ pub fn spawn_crash_watcher(
                 vec!["cubelit.role=primary".to_string()],
             );
 
-            let opts = bollard::system::EventsOptions::<String> {
-                filters,
+            let opts = bollard::query_parameters::EventsOptions {
+                filters: Some(filters),
                 ..Default::default()
             };
 

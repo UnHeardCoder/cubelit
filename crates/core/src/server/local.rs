@@ -135,9 +135,9 @@ impl LocalServerHost {
 
         // Create Docker network
         let network_name = format!("cubelit-{}-net", id);
-        let network_config = bollard::network::CreateNetworkOptions {
+        let network_config = bollard::models::NetworkCreateRequest {
             name: network_name.clone(),
-            driver: "bridge".to_string(),
+            driver: Some("bridge".to_string()),
             ..Default::default()
         };
         let _ = self.docker.create_network(network_config).await;
@@ -182,7 +182,7 @@ impl LocalServerHost {
             ..Default::default()
         };
 
-        let db_config = bollard::container::Config {
+        let db_config = bollard::models::ContainerCreateBody {
             image: Some(mariadb_image.to_string()),
             env: Some(db_env),
             labels: Some(db_labels),
@@ -190,9 +190,9 @@ impl LocalServerHost {
             ..Default::default()
         };
 
-        let db_create_opts = bollard::container::CreateContainerOptions {
-            name: db_container_name.clone(),
-            platform: None,
+        let db_create_opts = bollard::query_parameters::CreateContainerOptions {
+            name: Some(db_container_name.clone()),
+            platform: String::from(""),
         };
 
         let db_response = self
@@ -206,9 +206,9 @@ impl LocalServerHost {
             .docker
             .connect_network(
                 &network_name,
-                bollard::network::ConnectNetworkOptions {
+                bollard::models::NetworkConnectRequest {
                     container: db_container_name.clone(),
-                    ..Default::default()
+                    endpoint_config: None,
                 },
             )
             .await;
@@ -284,10 +284,10 @@ impl ServerRunner for LocalServerHost {
     }
 
     async fn container_logs(&self, container_id: &str, lines: u64) -> CoreResult<Vec<String>> {
-        use bollard::container::LogsOptions;
+        use bollard::query_parameters::LogsOptions;
         use futures_util::StreamExt;
 
-        let opts = LogsOptions::<String> {
+        let opts = LogsOptions {
             stdout: true,
             stderr: true,
             tail: lines.to_string(),
@@ -452,9 +452,9 @@ impl ServerLifecycle for LocalServerHost {
                 .docker
                 .connect_network(
                     &network_name,
-                    bollard::network::ConnectNetworkOptions {
+                    bollard::models::NetworkConnectRequest {
                         container: container_name,
-                        ..Default::default()
+                        endpoint_config: None,
                     },
                 )
                 .await;
@@ -714,9 +714,9 @@ impl ServerLifecycle for LocalServerHost {
                 .docker
                 .connect_network(
                     &network_name,
-                    bollard::network::ConnectNetworkOptions {
+                    bollard::models::NetworkConnectRequest {
                         container: container_name,
-                        ..Default::default()
+                        endpoint_config: None,
                     },
                 )
                 .await;
@@ -895,4 +895,64 @@ pub async fn sync_all_servers(
         }
     }
     queries::list_cubelits(db).await
+}
+
+// ─── Unit tests (no Docker required) ─────────────────────────────────────────
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::tempdir;
+
+    /// Build a `LocalServerHost` backed by a real SQLite DB in a temp dir.
+    /// `bollard::Docker::connect_with_local_defaults()` succeeds even without
+    /// a daemon running — it only fails when an actual API call is made.
+    /// Tests here only exercise DB-level methods so no Docker is needed.
+    async fn test_host() -> LocalServerHost {
+        let dir = tempdir().unwrap();
+        let data_dir = dir.keep(); // prevent temp dir cleanup; PathBuf remains valid
+        let recipes_dir = data_dir.join("recipes");
+        std::fs::create_dir_all(&recipes_dir).unwrap();
+
+        let db_url = format!("sqlite://{}?mode=rwc", data_dir.join("cubelit.db").display());
+        let db = sqlx::SqlitePool::connect(&db_url).await.unwrap();
+        sqlx::query("PRAGMA journal_mode=WAL").execute(&db).await.unwrap();
+        crate::db::run_migrations(&db).await.unwrap();
+
+        LocalServerHost {
+            docker: bollard::Docker::connect_with_local_defaults().unwrap(),
+            db,
+            data_dir,
+            recipes_dir,
+        }
+    }
+
+    #[tokio::test]
+    async fn list_servers_empty_db() {
+        let host = test_host().await;
+        let servers = host.list_servers().await.unwrap();
+        assert!(servers.is_empty(), "expected no servers in a fresh DB");
+    }
+
+    #[tokio::test]
+    async fn get_server_not_found() {
+        let host = test_host().await;
+        let err = host.get_server("nonexistent-id").await.unwrap_err();
+        assert!(
+            matches!(err, crate::error::CoreError::NotFound(_)),
+            "expected NotFound, got: {:?}",
+            err
+        );
+    }
+
+    #[tokio::test]
+    async fn rename_server_not_found() {
+        let host = test_host().await;
+        let err = host.rename_server("nonexistent-id", "new-name").await.unwrap_err();
+        assert!(
+            matches!(err, crate::error::CoreError::NotFound(_)),
+            "expected NotFound, got: {:?}",
+            err
+        );
+    }
 }
