@@ -41,7 +41,7 @@ jobs:
         include:
           - platform: macos-latest
             args: '--target aarch64-apple-darwin'
-          - platform: macos-13
+          - platform: macos-15-intel
             args: '--target x86_64-apple-darwin'
           - platform: windows-latest
             args: '--target x86_64-pc-windows-msvc'
@@ -56,7 +56,7 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.platform == 'windows-latest' && 'x86_64-pc-windows-msvc' || matrix.platform == 'macos-latest' && 'aarch64-apple-darwin' || matrix.platform == 'macos-13' && 'x86_64-apple-darwin' || '' }}
+          targets: ${{ matrix.platform == 'windows-latest' && 'x86_64-pc-windows-msvc' || matrix.platform == 'macos-latest' && 'aarch64-apple-darwin' || matrix.platform == 'macos-15-intel' && 'x86_64-apple-darwin' || '' }}
 
       - name: Install Linux system dependencies
         if: matrix.platform == 'ubuntu-22.04'
@@ -127,7 +127,7 @@ jobs:
             artifact: cubelit-cli-macos
             src: target/aarch64-apple-darwin/release/cubelit
             target: aarch64-apple-darwin
-          - platform: macos-13
+          - platform: macos-15-intel
             artifact: cubelit-cli-macos-intel
             src: target/x86_64-apple-darwin/release/cubelit
             target: x86_64-apple-darwin
