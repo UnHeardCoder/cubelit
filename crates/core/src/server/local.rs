@@ -140,7 +140,7 @@ impl LocalServerHost {
             driver: Some("bridge".to_string()),
             ..Default::default()
         };
-        let _ = self.docker.create_network(network_config).await;
+        self.docker.create_network(network_config).await?;
 
         // Create MariaDB data directory
         let db_data_dir = self.data_dir.join("servers").join(id).join("db");
@@ -202,8 +202,7 @@ impl LocalServerHost {
         let sidecar_id = db_response.id;
 
         // Connect MariaDB container to the network
-        let _ = self
-            .docker
+        self.docker
             .connect_network(
                 &network_name,
                 bollard::models::NetworkConnectRequest {
@@ -211,7 +210,7 @@ impl LocalServerHost {
                     endpoint_config: None,
                 },
             )
-            .await;
+            .await?;
 
         // Start MariaDB
         containers::start_container(&self.docker, &sidecar_id).await?;
@@ -448,8 +447,7 @@ impl ServerLifecycle for LocalServerHost {
         if cubelit.recipe_id == "fivem" {
             let network_name = format!("cubelit-{}-net", id);
             let container_name = format!("cubelit-{}", id);
-            let _ = self
-                .docker
+            self.docker
                 .connect_network(
                     &network_name,
                     bollard::models::NetworkConnectRequest {
@@ -457,7 +455,7 @@ impl ServerLifecycle for LocalServerHost {
                         endpoint_config: None,
                     },
                 )
-                .await;
+                .await?;
         }
 
         events.emit(CoreEvent::ServerCreateProgress(ServerCreateProgress {
@@ -710,8 +708,7 @@ impl ServerLifecycle for LocalServerHost {
         if cubelit.recipe_id == "fivem" {
             let network_name = format!("cubelit-{}-net", id);
             let container_name = format!("cubelit-{}", id);
-            let _ = self
-                .docker
+            self.docker
                 .connect_network(
                     &network_name,
                     bollard::models::NetworkConnectRequest {
@@ -719,7 +716,7 @@ impl ServerLifecycle for LocalServerHost {
                         endpoint_config: None,
                     },
                 )
-                .await;
+                .await?;
         }
 
         if was_running {

@@ -147,9 +147,9 @@ async fn run(cli: Cli) -> Result<(), CoreError> {
 
 #[tokio::main]
 async fn main() -> Result<(), ()> {
-    // Initialize Sentry crash reporting. The DSN is supplied via SENTRY_DSN
-    // at build time (set in release.yml). If absent or empty, Sentry is a
-    // no-op and the guard drops harmlessly.
+    // Initialize Sentry crash reporting. The DSN is read from the SENTRY_DSN
+    // environment variable at runtime. If absent or empty, Sentry is a no-op
+    // and the guard drops harmlessly.
     let _sentry_guard = sentry::init((
         std::env::var("SENTRY_DSN").unwrap_or_default(),
         sentry::ClientOptions {
