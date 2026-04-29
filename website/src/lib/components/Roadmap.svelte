@@ -103,7 +103,7 @@
       num: 'PHASE 02',
       status: 'shipped',
       title: 'A command-line tool for power users',
-      version: 'v0.1.9 — v0.1.10',
+      version: 'v0.1.9',
       progress: 100,
       plainEnglish: `We built a <strong>CLI (command-line interface)</strong> — a text-based tool that lets you control Cubelit by typing commands instead of clicking buttons. This is especially useful for people running servers on a <strong>remote computer or VPS</strong> that has no screen attached, where you can't open a regular app. The CLI uses the exact same backend code as the desktop app, so it's not a different product — it's just a different way to talk to the same engine.`,
       personas: {
@@ -111,7 +111,7 @@
         developer: `CLI calls <code>cubelit-core</code> directly as a library — no HTTP layer. <code>CliEventSink</code> implements <code>EventSink</code> and sends progress to stderr while streaming log lines to stdout. Using <code>clap</code> for argument parsing. Cross-compiled binaries shipped as GitHub release artifacts via CI. Fuzzy identifier resolver: exact UUID → name → ≥4-char UUID prefix.`,
         investor: `The CLI is the proof that the core architecture is truly decoupled. It validates the entire multi-client strategy and opens up the self-hosting market to sysadmins and VPS users — a segment that doesn't use GUIs.`,
       },
-      archTitle: 'What changed in v0.1.9–v0.1.10',
+      archTitle: 'What changed in v0.1.9',
       arch: [
         { label: 'Desktop App', sub: 'Tauri + Svelte 5', style: 'done', col: true },
         { label: 'CLI Tool', sub: 'new · type commands', style: 'highlight' },
@@ -384,7 +384,7 @@
           <span class="phase-num">{phase.num}</span>
           <span class="status-chip status-{phase.status}">{statusLabel(phase.status)}</span>
           {#if phase.showLiveBadge}
-            <span class="live-badge"><span class="live-dot"></span>v0.1.10 live</span>
+            <span class="live-badge"><span class="live-dot"></span>v0.1.9 live</span>
           {/if}
         </div>
 

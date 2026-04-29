@@ -1,6 +1,6 @@
 [package]
 name = "cubelit-cli"
-version = "0.1.10"
+version = "0.1.9"
 edition = "2021"
 description = "Standalone CLI for Cubelit — same core, no GUI."
 license = "MIT"
@@ -13,7 +13,7 @@ path = "src/main.rs"
 cubelit-core = { path = "../core" }
 bollard = "0.20"
 clap = { version = "4", features = ["derive"] }
-tokio = { version = "1.51.0", features = ["macros", "rt-multi-thread", "signal"] }
+tokio = { version = "1.52.1", features = ["macros", "rt-multi-thread", "signal"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 sentry = { version = "0.34", features = ["tokio", "panic"] }

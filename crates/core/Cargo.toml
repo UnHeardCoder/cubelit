@@ -1,6 +1,6 @@
 [package]
 name = "cubelit-core"
-version = "0.1.10"
+version = "0.1.9"
 edition = "2021"
 description = "Core business logic for Cubelit (DB, Docker, recipes, server lifecycle)."
 authors = ["Cubelit Contributors"]
@@ -21,13 +21,13 @@ bollard = "0.20"
 #   io-util         — `AsyncReadExt`/`AsyncWriteExt` for RCON
 #   net             — `TcpStream` for RCON
 # Avoids the giant compile-time hit (and surface area) of "full".
-tokio = { version = "1.51.0", features = ["macros", "rt-multi-thread", "time", "io-util", "net"] }
+tokio = { version = "1.52.1", features = ["macros", "rt-multi-thread", "time", "io-util", "net"] }
 sqlx = { version = "0.8", features = ["runtime-tokio", "sqlite", "macros", "migrate"] }
 thiserror = "2"
 futures-util = "0.3"
 chrono = { version = "0.4", features = ["serde"] }
 async-trait = "0.1"
-uuid = { version = "1.23.0", features = ["v4", "serde"] }
+uuid = { version = "1.23.1", features = ["v4", "serde"] }
 dirs = "6"
 tracing = "0.1"
 
