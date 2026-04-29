@@ -1,4 +1,4 @@
-use bollard::container::StatsOptions;
+use bollard::query_parameters::StatsOptions;
 use bollard::Docker;
 use futures_util::StreamExt;
 use serde::Serialize;
@@ -24,23 +24,38 @@ pub async fn get_container_stats(
     let mut stream = docker.stats(container_id, Some(options));
 
     if let Some(Ok(stats)) = stream.next().await {
-        let cpu_delta = stats
+        // In bollard 0.20, cpu_stats / precpu_stats / memory_stats are
+        // Option<...>; unwrap gracefully with defaults.
+        let cpu_total = stats
             .cpu_stats
-            .cpu_usage
-            .total_usage
-            .saturating_sub(stats.precpu_stats.cpu_usage.total_usage)
-            as f64;
+            .as_ref()
+            .and_then(|c| c.cpu_usage.as_ref())
+            .and_then(|u| u.total_usage)
+            .unwrap_or(0);
+        let precpu_total = stats
+            .precpu_stats
+            .as_ref()
+            .and_then(|c| c.cpu_usage.as_ref())
+            .and_then(|u| u.total_usage)
+            .unwrap_or(0);
+        let cpu_delta = cpu_total.saturating_sub(precpu_total) as f64;
 
-        let system_delta = stats
+        let sys_usage = stats
             .cpu_stats
-            .system_cpu_usage
-            .unwrap_or(0)
-            .saturating_sub(stats.precpu_stats.system_cpu_usage.unwrap_or(0))
-            as f64;
+            .as_ref()
+            .and_then(|c| c.system_cpu_usage)
+            .unwrap_or(0);
+        let presys_usage = stats
+            .precpu_stats
+            .as_ref()
+            .and_then(|c| c.system_cpu_usage)
+            .unwrap_or(0);
+        let system_delta = sys_usage.saturating_sub(presys_usage) as f64;
 
         let num_cpus = stats
             .cpu_stats
-            .online_cpus
+            .as_ref()
+            .and_then(|c| c.online_cpus)
             .unwrap_or(1) as f64;
 
         let cpu_percent = if system_delta > 0.0 {
@@ -49,8 +64,16 @@ pub async fn get_container_stats(
             0.0
         };
 
-        let memory_usage = stats.memory_stats.usage.unwrap_or(0) as f64;
-        let memory_limit = stats.memory_stats.limit.unwrap_or(0) as f64;
+        let memory_usage = stats
+            .memory_stats
+            .as_ref()
+            .and_then(|m| m.usage)
+            .unwrap_or(0) as f64;
+        let memory_limit = stats
+            .memory_stats
+            .as_ref()
+            .and_then(|m| m.limit)
+            .unwrap_or(0) as f64;
 
         Ok(ContainerStats {
             cpu_percent,

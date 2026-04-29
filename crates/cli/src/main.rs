@@ -147,11 +147,23 @@ async fn run(cli: Cli) -> Result<(), CoreError> {
 
 #[tokio::main]
 async fn main() -> Result<(), ()> {
+    // Initialize Sentry crash reporting. The DSN is supplied via SENTRY_DSN
+    // at build time (set in release.yml). If absent or empty, Sentry is a
+    // no-op and the guard drops harmlessly.
+    let _sentry_guard = sentry::init((
+        std::env::var("SENTRY_DSN").unwrap_or_default(),
+        sentry::ClientOptions {
+            release: sentry::release_name!(),
+            ..Default::default()
+        },
+    ));
+
     let cli = Cli::parse();
     // Resolve data_dir early (best-effort) so tracing can write to cubelit.log.
     let data_dir_for_logging = context::resolve_data_dir().ok();
     init_tracing(data_dir_for_logging.as_deref());
     if let Err(e) = run(cli).await {
+        sentry::capture_message(&format_cli_error(&e), sentry::Level::Error);
         eprintln!("error: {}", format_cli_error(&e));
         std::process::exit(exit_code(&e));
     }

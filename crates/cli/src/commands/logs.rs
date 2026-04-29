@@ -1,6 +1,6 @@
 use std::io::Write;
 
-use bollard::container::LogsOptions;
+use bollard::query_parameters::LogsOptions;
 use futures_util::StreamExt;
 
 use cubelit_core::error::{CoreError, CoreResult};
@@ -17,7 +17,7 @@ pub async fn follow(ctx: &Context, id: &str, tail: u64) -> CoreResult<()> {
         CoreError::NotFound("No container associated with this server".into())
     })?;
 
-    let opts = LogsOptions::<String> {
+    let opts = LogsOptions {
         follow: true,
         stdout: true,
         stderr: true,

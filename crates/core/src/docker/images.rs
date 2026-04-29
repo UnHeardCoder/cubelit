@@ -1,4 +1,4 @@
-use bollard::image::CreateImageOptions;
+use bollard::query_parameters::CreateImageOptions;
 use bollard::Docker;
 use futures_util::StreamExt;
 
@@ -34,8 +34,8 @@ pub async fn pull_image(
     let (repo, tag) = split_image_ref(image);
 
     let options = CreateImageOptions {
-        from_image: repo,
-        tag,
+        from_image: Some(repo.to_string()),
+        tag: Some(tag.to_string()),
         ..Default::default()
     };
 
@@ -47,7 +47,9 @@ pub async fn pull_image(
                 events.emit(CoreEvent::ImagePullProgress(ImagePullProgress {
                     layer: info.id.clone(),
                     status: info.status.unwrap_or_default(),
-                    progress: info.progress,
+                    // bollard 0.20 removed the formatted `progress` string;
+                    // progress_detail carries raw current/total bytes instead.
+                    progress: None,
                 }));
             }
             Err(e) => return Err(CoreError::Docker(e)),

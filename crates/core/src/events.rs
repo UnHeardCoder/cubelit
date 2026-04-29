@@ -44,6 +44,7 @@ pub enum CoreEvent {
     /// `"server-logs-{server_id}"` with the line as payload. (Currently
     /// only used by the dead-code `stream_container_logs` helper kept for
     /// the upcoming real-time log feature.)
+    #[allow(dead_code)]
     ServerLogLine { server_id: String, line: String },
 }
 
