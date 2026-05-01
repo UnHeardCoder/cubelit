@@ -149,14 +149,13 @@
                     style="text-shadow: 0 2px 6px rgba(0,0,0,0.6);"
                   />
                 {:else}
-                  <h1
-                    class="text-2xl font-bold text-white cursor-pointer hover:opacity-80 transition-opacity"
-                    style="text-shadow: 0 2px 6px rgba(0,0,0,0.6);"
+                  <button
+                    type="button"
+                    class="text-2xl font-bold text-white cursor-pointer hover:opacity-80 transition-opacity bg-transparent border-0 p-0 text-left"
+                    style="text-shadow: 0 2px 6px rgba(0,0,0,0.6); font-family: inherit;"
                     onclick={startEditing}
-                    onkeydown={(e) => { if (e.key === 'Enter') startEditing(); }}
-                    role="button"
-                    tabindex="0"
-                  >{server.name}</h1>
+                    title="Click to rename"
+                  >{server.name}</button>
                 {/if}
                 <StatusPill status={server.status} glass />
               </div>
@@ -210,13 +209,13 @@
                   onblur={saveName}
                 />
               {:else}
-                <h1
-                  class="text-xl font-semibold text-cubelit-text cursor-pointer hover:opacity-80 transition-opacity tracking-tight"
+                <button
+                  type="button"
+                  class="text-xl font-semibold text-cubelit-text cursor-pointer hover:opacity-80 transition-opacity tracking-tight bg-transparent border-0 p-0 text-left"
+                  style="font-family: inherit;"
                   onclick={startEditing}
-                  onkeydown={(e) => { if (e.key === 'Enter') startEditing(); }}
-                  role="button"
-                  tabindex="0"
-                >{server.name}</h1>
+                  title="Click to rename"
+                >{server.name}</button>
               {/if}
               <StatusPill status={server.status} />
             </div>

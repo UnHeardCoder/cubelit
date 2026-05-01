@@ -394,6 +394,7 @@
           </div>
           <button
             type="button"
+            aria-label="Delete {file.name}"
             onclick={() => handleDeleteFile(file.name)}
             class="text-cubelit-muted hover:text-cubelit-error transition-colors p-1"
           >
