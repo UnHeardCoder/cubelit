@@ -159,11 +159,11 @@
   {:else if step === 1}
     <!-- Step 1: game picker grid -->
     <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px;">
-      {#each recipesStore.recipes as recipe (recipe.id)}
+      {#each recipesStore.recipes as recipe, i (recipe.id)}
         {@const def = getGameDefinition(recipe.id)}
         {#if !recipe.available}
           <!-- Coming soon -->
-          <div class="rounded-xl border-2 border-cubelit-border bg-cubelit-surface opacity-55 cursor-not-allowed overflow-hidden relative">
+          <div class="animate-scale-in stagger-{Math.min(i + 1, 8)} rounded-xl border-2 border-cubelit-border bg-cubelit-surface opacity-55 cursor-not-allowed overflow-hidden relative">
             <div class="absolute top-2 right-2 z-10">
               <span class="pill text-[10px]">Soon</span>
             </div>
@@ -177,7 +177,7 @@
           <button
             type="button"
             onclick={() => selectRecipe(recipe.id)}
-            class="text-left rounded-xl border-2 overflow-hidden transition-all
+            class="card-lift animate-scale-in stagger-{Math.min(i + 1, 8)} text-left rounded-xl border-2 overflow-hidden
               {selectedRecipeId === recipe.id ? 'border-cubelit-accent' : 'border-cubelit-border hover:border-cubelit-border-2'}"
           >
             <GameArt recipeId={recipe.id} gameName={recipe.name} monogram={def.tileMonogram ?? recipe.name.charAt(0)} height={110} variant="dim" showLogo={false} />

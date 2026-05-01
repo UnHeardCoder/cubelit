@@ -212,14 +212,14 @@
         {/if}
 
         <div class="overflow-y-auto flex flex-col {iconMode ? 'items-center gap-1.5' : 'gap-0.5'}">
-          {#each servers.servers as server (server.id)}
+          {#each servers.servers as server, i (server.id)}
             {#if iconMode}
               <!-- Icon mode: game icon with status dot -->
               <button
                 type="button"
                 onclick={() => goto(`/server/${server.id}`)}
                 title="{server.name} · {server.status}"
-                class="relative p-1 rounded-xl transition-colors
+                class="animate-fade-in stagger-{Math.min(i + 1, 8)} relative p-1 rounded-xl transition-colors
                   {isServerActive(server.id) ? 'ring-2 ring-cubelit-accent' : 'hover:bg-cubelit-surface'}"
               >
                 <GameIcon recipeId={server.recipe_id} gameName={server.game} size={32} radius={7} />
@@ -233,7 +233,7 @@
               <button
                 type="button"
                 onclick={() => goto(`/server/${server.id}`)}
-                class="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg transition-colors text-left
+                class="animate-slide-in-left stagger-{Math.min(i + 1, 8)} w-full flex items-center gap-2 px-2 py-1.5 rounded-lg transition-colors text-left
                   {isServerActive(server.id)
                     ? 'bg-cubelit-surface border border-cubelit-border text-cubelit-text'
                     : 'text-cubelit-text-dim hover:bg-cubelit-surface border border-transparent'}"
@@ -271,6 +271,26 @@
         {/if}
       </button>
 
+      <!-- Grid toggle -->
+      <button
+        type="button"
+        onclick={themeStore.cycleGrid}
+        title="Cycle grid background ({themeStore.gridMode})"
+        class="flex items-center gap-2 rounded-lg border border-cubelit-border bg-cubelit-surface transition-colors hover:border-cubelit-border-2 text-cubelit-text-dim hover:text-cubelit-text
+          {iconMode ? 'justify-center p-2' : 'px-3 py-2'} text-[12px]"
+      >
+        <!-- Grid icon -->
+        <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+          <rect x="3" y="3" width="7" height="7" rx="1"/>
+          <rect x="14" y="3" width="7" height="7" rx="1"/>
+          <rect x="3" y="14" width="7" height="7" rx="1"/>
+          <rect x="14" y="14" width="7" height="7" rx="1"/>
+        </svg>
+        {#if !iconMode}
+          <span class="capitalize">{themeStore.gridMode === 'none' ? 'No grid' : themeStore.gridMode + ' grid'}</span>
+        {/if}
+      </button>
+
       <!-- Docker status footer -->
       <div
         class="flex items-center gap-2 rounded-xl border border-cubelit-border bg-cubelit-surface
@@ -289,7 +309,7 @@
     </aside>
 
     <!-- ── Main content ── -->
-    <main class="overflow-y-auto bg-cubelit-bg min-w-0">
+    <main class="app-main overflow-y-auto bg-cubelit-bg min-w-0">
       {@render children()}
     </main>
   </div>

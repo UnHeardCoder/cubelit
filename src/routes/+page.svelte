@@ -49,28 +49,18 @@
   {#if total > 0}
     <!-- Stat strip -->
     <div class="grid grid-cols-4 gap-3 mb-6">
-      <div class="bg-cubelit-surface border border-cubelit-border rounded-xl p-4">
-        <div class="text-[11px] text-cubelit-muted font-mono uppercase tracking-widest">Servers</div>
-        <div class="text-2xl font-semibold tracking-tight text-cubelit-text mt-1">{total}</div>
-        <div class="text-xs text-cubelit-text-dim mt-0.5">{running} online</div>
-      </div>
-      <div class="bg-cubelit-surface border border-cubelit-border rounded-xl p-4">
-        <div class="text-[11px] text-cubelit-muted font-mono uppercase tracking-widest">Status</div>
-        <div class="text-2xl font-semibold tracking-tight text-cubelit-text mt-1">{running}</div>
-        <div class="text-xs text-cubelit-text-dim mt-0.5">running</div>
-      </div>
-      <div class="bg-cubelit-surface border border-cubelit-border rounded-xl p-4">
-        <div class="text-[11px] text-cubelit-muted font-mono uppercase tracking-widest">Stopped</div>
-        <div class="text-2xl font-semibold tracking-tight text-cubelit-text mt-1">{total - running}</div>
-        <div class="text-xs text-cubelit-text-dim mt-0.5">offline</div>
-      </div>
-      <div class="bg-cubelit-surface border border-cubelit-border rounded-xl p-4">
-        <div class="text-[11px] text-cubelit-muted font-mono uppercase tracking-widest">Games</div>
-        <div class="text-2xl font-semibold tracking-tight text-cubelit-text mt-1">
-          {new Set(servers.servers.map(s => s.recipe_id)).size}
+      {#each [
+        { label: 'Servers',  value: total,                        sub: `${running} online` },
+        { label: 'Running',  value: running,                      sub: 'right now' },
+        { label: 'Stopped',  value: total - running,              sub: 'offline' },
+        { label: 'Games',    value: new Set(servers.servers.map(s => s.recipe_id)).size, sub: 'unique' },
+      ] as stat, i}
+        <div class="bg-cubelit-surface border border-cubelit-border rounded-xl p-4 animate-fade-up stagger-{i + 1}">
+          <div class="text-[11px] text-cubelit-muted font-mono uppercase tracking-widest">{stat.label}</div>
+          <div class="text-2xl font-semibold tracking-tight text-cubelit-text mt-1">{stat.value}</div>
+          <div class="text-xs text-cubelit-text-dim mt-0.5">{stat.sub}</div>
         </div>
-        <div class="text-xs text-cubelit-text-dim mt-0.5">unique</div>
-      </div>
+      {/each}
     </div>
   {/if}
 

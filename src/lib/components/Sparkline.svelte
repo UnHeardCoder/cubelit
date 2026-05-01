@@ -33,6 +33,19 @@
   preserveAspectRatio="none"
   style="width: 100%; height: {height}px;"
 >
-  <path d={fillPath} fill="oklch(0.6 0.15 {hue} / 0.18)" />
-  <path d={linePath} stroke="oklch(0.7 0.17 {hue})" stroke-width="1.2" fill="none" vector-effect="non-scaling-stroke" />
+  <defs>
+    <linearGradient id="spark-{hue}-{seed}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="oklch(0.62 0.16 {hue})" stop-opacity="0.30" />
+      <stop offset="100%" stop-color="oklch(0.62 0.16 {hue})" stop-opacity="0.02" />
+    </linearGradient>
+  </defs>
+  <path d={fillPath} fill="url(#spark-{hue}-{seed})" />
+  <path
+    d={linePath}
+    stroke="oklch(0.72 0.18 {hue})"
+    stroke-width="1.4"
+    fill="none"
+    class="sparkline-path"
+    vector-effect="non-scaling-stroke"
+  />
 </svg>

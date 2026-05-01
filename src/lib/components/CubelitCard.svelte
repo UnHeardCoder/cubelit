@@ -53,7 +53,7 @@
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
-  class="bg-cubelit-surface border border-cubelit-border rounded-2xl overflow-hidden cursor-pointer hover:border-cubelit-border-2 transition-all"
+  class="card-lift animate-fade-up bg-cubelit-surface border border-cubelit-border rounded-2xl overflow-hidden cursor-pointer hover:border-cubelit-border-2"
   onclick={() => onclick(server.id)}
   onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onclick(server.id); } }}
   role="button"
