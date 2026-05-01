@@ -58,11 +58,17 @@ export function getThemeStore() {
     applyGrid(next);
   }
 
+  function setGrid(g: GridMode) {
+    gridMode = g;
+    applyGrid(g);
+  }
+
   return {
     get theme()    { return theme; },
     get gridMode() { return gridMode; },
     init,
     toggle,
     cycleGrid,
+    setGrid,
   };
 }

@@ -198,6 +198,24 @@
           </svg>
           {#if !iconMode}<span>New server</span>{/if}
         </button>
+
+        <!-- Settings -->
+        <button
+          type="button"
+          onclick={() => goto('/settings')}
+          title={iconMode ? 'Settings' : undefined}
+          class="flex items-center gap-2.5 rounded-lg transition-colors text-[13px] font-medium
+            {iconMode ? 'justify-center p-2.5' : 'px-2.5 py-2'}
+            {page.url.pathname === '/settings'
+              ? 'bg-cubelit-accent/15 text-cubelit-accent'
+              : 'text-cubelit-text-dim hover:text-cubelit-text hover:bg-cubelit-surface'}"
+        >
+          <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+            <circle cx="12" cy="12" r="3"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 0 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 0 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 0 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 0 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>
+          </svg>
+          {#if !iconMode}<span>Settings</span>{/if}
+        </button>
       </nav>
 
       <!-- Server list -->
@@ -246,50 +264,6 @@
           {/each}
         </div>
       </div>
-
-      <!-- Theme toggle -->
-      <button
-        type="button"
-        onclick={themeStore.toggle}
-        title="{themeStore.theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}"
-        class="flex items-center gap-2 rounded-lg border border-cubelit-border bg-cubelit-surface transition-colors hover:border-cubelit-border-2 text-cubelit-text-dim hover:text-cubelit-text
-          {iconMode ? 'justify-center p-2' : 'px-3 py-2'} text-[12px]"
-      >
-        {#if themeStore.theme === 'dark'}
-          <!-- Sun icon -->
-          <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
-            <circle cx="12" cy="12" r="4"/>
-            <path stroke-linecap="round" d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>
-          </svg>
-          {#if !iconMode}<span>Light mode</span>{/if}
-        {:else}
-          <!-- Moon icon -->
-          <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>
-          </svg>
-          {#if !iconMode}<span>Dark mode</span>{/if}
-        {/if}
-      </button>
-
-      <!-- Grid toggle -->
-      <button
-        type="button"
-        onclick={themeStore.cycleGrid}
-        title="Cycle grid background ({themeStore.gridMode})"
-        class="flex items-center gap-2 rounded-lg border border-cubelit-border bg-cubelit-surface transition-colors hover:border-cubelit-border-2 text-cubelit-text-dim hover:text-cubelit-text
-          {iconMode ? 'justify-center p-2' : 'px-3 py-2'} text-[12px]"
-      >
-        <!-- Grid icon -->
-        <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
-          <rect x="3" y="3" width="7" height="7" rx="1"/>
-          <rect x="14" y="3" width="7" height="7" rx="1"/>
-          <rect x="3" y="14" width="7" height="7" rx="1"/>
-          <rect x="14" y="14" width="7" height="7" rx="1"/>
-        </svg>
-        {#if !iconMode}
-          <span class="capitalize">{themeStore.gridMode === 'none' ? 'No grid' : themeStore.gridMode + ' grid'}</span>
-        {/if}
-      </button>
 
       <!-- Docker status footer -->
       <div

@@ -158,7 +158,7 @@
 
   {:else if step === 1}
     <!-- Step 1: game picker grid -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px;">
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px;">
       {#each recipesStore.recipes as recipe, i (recipe.id)}
         {@const def = getGameDefinition(recipe.id)}
         {#if !recipe.available}
@@ -167,7 +167,7 @@
             <div class="absolute top-2 right-2 z-10">
               <span class="pill text-[10px]">Soon</span>
             </div>
-            <GameArt recipeId={recipe.id} gameName={recipe.name} monogram={def.tileMonogram ?? recipe.name.charAt(0)} height={110} variant="dim" showLogo={false} />
+            <GameArt recipeId={recipe.id} gameName={recipe.name} monogram={def.tileMonogram ?? recipe.name.charAt(0)} height={160} variant="dim" showLogo={true} />
             <div class="p-3.5">
               <div class="text-sm font-semibold text-cubelit-text">{recipe.name}</div>
               <div class="text-xs text-cubelit-text-dim mt-0.5">{def.cardStyle?.subtitle ?? recipe.description}</div>
@@ -180,7 +180,7 @@
             class="card-lift animate-scale-in stagger-{Math.min(i + 1, 8)} text-left rounded-xl border-2 overflow-hidden
               {selectedRecipeId === recipe.id ? 'border-cubelit-accent' : 'border-cubelit-border hover:border-cubelit-border-2'}"
           >
-            <GameArt recipeId={recipe.id} gameName={recipe.name} monogram={def.tileMonogram ?? recipe.name.charAt(0)} height={110} variant="dim" showLogo={false} />
+            <GameArt recipeId={recipe.id} gameName={recipe.name} monogram={def.tileMonogram ?? recipe.name.charAt(0)} height={160} variant="dim" showLogo={true} />
             <div class="p-3.5 {selectedRecipeId === recipe.id ? 'bg-cubelit-accent/8' : 'bg-cubelit-surface'}">
               <div class="text-sm font-semibold text-cubelit-text">{recipe.name}</div>
               <div class="text-xs text-cubelit-text-dim mt-0.5">{def.cardStyle?.subtitle ?? recipe.description}</div>

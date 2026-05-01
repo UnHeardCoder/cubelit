@@ -2,6 +2,7 @@
   import { goto } from '$app/navigation';
   import { getServersStore } from '$lib/stores/servers.svelte';
   import CubelitCard from '$lib/components/CubelitCard.svelte';
+  import SkeletonCard from '$lib/components/SkeletonCard.svelte';
   import Cube from '$lib/components/Cube.svelte';
 
   const servers = getServersStore();
@@ -67,7 +68,7 @@
   {#if total === 0}
     <!-- Empty state -->
     <div class="flex flex-col items-center justify-center py-24">
-      <div class="mb-6 opacity-40">
+      <div class="mb-6 opacity-40 float-cube">
         <Cube size={56} />
       </div>
       <h2 class="text-xl font-semibold text-cubelit-text mb-2">No servers yet</h2>
@@ -87,6 +88,11 @@
   {:else}
     <!-- Server grid -->
     <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px;">
+      {#if servers.loading && servers.servers.length === 0}
+        {#each Array(4) as _, i}
+          <SkeletonCard />
+        {/each}
+      {:else}
       {#each servers.servers as server (server.id)}
         <CubelitCard
           {server}
@@ -95,6 +101,7 @@
           onclick={(id) => goto(`/server/${id}`)}
         />
       {/each}
+      {/if}
       <!-- New server dashed card -->
       <button
         type="button"

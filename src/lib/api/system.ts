@@ -30,3 +30,8 @@ export async function enableWsl2(): Promise<void> {
 export async function setWslDefaultVersion(): Promise<void> {
   return invoke("set_wsl_default_version");
 }
+
+/** Fetches this machine's external (public) IP address via the Tauri backend. */
+export async function getPublicIp(): Promise<string> {
+  return invoke<string>('get_public_ip');
+}

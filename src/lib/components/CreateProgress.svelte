@@ -20,9 +20,36 @@
     starting: 'container created',
     ready:    'port bound · server started',
   };
+
+  // Boot stage status
+  function stageStatus(stage: 'prepare' | 'pull' | 'boot'): 'done' | 'active' | 'todo' {
+    const stageMap = {
+      prepare: 0,
+      pull:    1,
+      boot:    3,
+    };
+    const threshold = stageMap[stage];
+    if (currentIdx > threshold) return 'done';
+    if (currentIdx === threshold) return 'active';
+    return 'todo';
+  }
 </script>
 
 <div class="bg-cubelit-surface border border-cubelit-border rounded-2xl p-6">
+  <!-- Boot stages -->
+  <div class="boot-stages mb-5">
+    {#each [
+      { key: 'prepare' as const, label: 'PREPARE' },
+      { key: 'pull'    as const, label: 'PULL' },
+      { key: 'boot'    as const, label: 'BOOT' },
+    ] as s}
+      <div class="st {stageStatus(s.key)}">
+        <div class="lab">{s.label}</div>
+        <div class="bar"></div>
+      </div>
+    {/each}
+  </div>
+
   <!-- Terminal command line -->
   <div class="font-mono text-xs text-cubelit-text-dim mb-4">
     $ cubelit create {recipeName ? `--recipe ${recipeName}` : ''}{serverName ? ` --name "${serverName}"` : ''}

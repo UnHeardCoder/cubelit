@@ -26,7 +26,7 @@
   const base = 'inline-flex items-center justify-center gap-1.5 font-medium transition-all focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap';
 
   const variants: Record<string, string> = {
-    primary:   'bg-cubelit-accent text-white border border-cubelit-accent hover:brightness-110 shadow-sm',
+    primary:   'btn-shimmer bg-cubelit-accent text-white border border-cubelit-accent hover:brightness-110 shadow-sm relative overflow-hidden',
     secondary: 'bg-cubelit-surface text-cubelit-text border border-cubelit-border hover:bg-cubelit-surface-2 hover:border-cubelit-border-2',
     danger:    'text-cubelit-error border border-cubelit-error/40 bg-cubelit-error/10 hover:bg-cubelit-error/18',
     ghost:     'text-cubelit-text-dim bg-transparent border border-transparent hover:text-cubelit-text hover:bg-cubelit-surface',
@@ -47,10 +47,9 @@
   {onclick}
 >
   {#if loading}
-    <svg class="animate-spin w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24">
-      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-    </svg>
+    <div class="spin-voxel-stack shrink-0" style="width: 14px; height: 14px; gap: 1.5px;">
+      {#each Array(9) as _}<i style="border-radius: 1px;"></i>{/each}
+    </div>
   {/if}
   {@render children()}
 </button>

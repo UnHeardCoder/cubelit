@@ -1,6 +1,6 @@
 <script lang="ts">
   import { page } from '$app/state';
-  import { onMount, onDestroy, tick } from 'svelte';
+  import { onDestroy, tick } from 'svelte';
   import { goto } from '$app/navigation';
   import { listen } from '@tauri-apps/api/event';
   import { syncServerStatus, renameServer } from '$lib/api/servers';
@@ -19,9 +19,7 @@
   let server = $state<Cubelit | null>(null);
   let loading = $state(true);
   let actionLoading = $state(false);
-
   let showRestartModal = $state(false);
-
   let editing = $state(false);
   let isSavingName = $state(false);
   let editName = $state('');
@@ -32,7 +30,37 @@
   const hasHero = $derived(!!art.hero);
   const hue = $derived(server ? (GAME_HUE[server.recipe_id] ?? 30) : 30);
 
+  // Unlisten function — stored so we can cancel when ID changes
   let statusUnlisten: (() => void) | null = null;
+
+  // Re-load whenever the server ID in the URL changes
+  $effect(() => {
+    const id = page.params.id;
+    if (!id) { goto('/'); return; }
+
+    // Cancel previous status listener
+    if (statusUnlisten) { statusUnlisten(); statusUnlisten = null; }
+
+    loading = true;
+    server = null;
+
+    syncServerStatus(id)
+      .then(async (s) => {
+        server = s;
+        // Subscribe to live status changes for this server
+        statusUnlisten = await listen<string>('server-status-changed', async (event) => {
+          if (server && event.payload === server.id) {
+            server = await syncServerStatus(server.id);
+          }
+        });
+      })
+      .catch(() => goto('/'))
+      .finally(() => { loading = false; });
+  });
+
+  onDestroy(() => {
+    if (statusUnlisten) statusUnlisten();
+  });
 
   async function startEditing() {
     if (!server) return;
@@ -58,22 +86,6 @@
   }
 
   function cancelEdit() { editing = false; }
-
-  onMount(async () => {
-    try {
-      const id = page.params.id;
-      if (!id) { await goto('/'); return; }
-      server = await syncServerStatus(id);
-      statusUnlisten = await listen<string>('server-status-changed', async (event) => {
-        if (server && event.payload === server.id) {
-          server = await syncServerStatus(server.id);
-        }
-      });
-    } catch { await goto('/'); }
-    finally { loading = false; }
-  });
-
-  onDestroy(() => { if (statusUnlisten) statusUnlisten(); });
 
   async function handleStart() {
     if (!server) return;

@@ -3,6 +3,7 @@
   import { open } from '@tauri-apps/plugin-dialog';
   import { invoke } from '@tauri-apps/api/core';
   import { getServerStats, updateServerSettings } from '$lib/api/docker';
+  import { getPublicIp } from '$lib/api/system';
   import { getServerLogs, listServerFiles, copyFileToServer, deleteServerFile } from '$lib/api/files';
   import { backupServer } from '$lib/api/minecraft';
   import { getServersStore } from '$lib/stores/servers.svelte';
@@ -26,6 +27,7 @@
   let memUsed = $state(0);
   let memTotal = $state(1);
   let statsInterval: ReturnType<typeof setInterval> | null = null;
+  let publicIp = $state<string | null>(null);
 
   async function loadStats() {
     try {
@@ -156,6 +158,7 @@
       await loadStats();
       statsInterval = setInterval(loadStats, 5000);
     }
+    getPublicIp().then(ip => { publicIp = ip; }).catch(() => { publicIp = null; });
     loadEnv();
     await loadLogs();
     logInterval = setInterval(() => {
@@ -243,7 +246,7 @@
         <div class="text-[11px] text-cubelit-muted font-mono uppercase tracking-widest mb-3">Connect</div>
         <div class="flex flex-col gap-2">
           <ConnRow label="Local" value={getAddress()} />
-          <ConnRow label="Public" value={getPublicAddress()} />
+          <ConnRow label="Public" value={publicIp ? `${publicIp}:${getAddress().split(':')[1] ?? ''}` : '—'} />
         </div>
         <p class="text-[11px] text-cubelit-muted mt-3">Share your public address with friends. Port forwarding may be required.</p>
       </div>

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { getGameDefinition } from '$lib/games/registry';
   import { GAME_ART, GAME_HUE } from '$lib/games/art';
+  import { getServerStats } from '$lib/api/docker';
   import GameIcon from './GameIcon.svelte';
   import StatusPill from './StatusPill.svelte';
   import type { Cubelit } from '$lib/types/server';
@@ -15,10 +16,25 @@
   let { server, onstart, onstop, onclick }: Props = $props();
 
   let actionLoading = $state(false);
+  let cpuPct = $state<number | null>(null);
+  let memUsedGb = $state<number | null>(null);
 
   const art = $derived(GAME_ART[server.recipe_id] ?? {});
   const hue = $derived(GAME_HUE[server.recipe_id] ?? 30);
   const gameDef = $derived(getGameDefinition(server.recipe_id));
+
+  // Fetch live stats for running servers
+  $effect(() => {
+    if (server.status !== 'running') {
+      cpuPct = null;
+      memUsedGb = null;
+      return;
+    }
+    getServerStats(server.id).then(s => {
+      cpuPct = s.cpu_percent;
+      memUsedGb = s.memory_usage_mb / 1024;
+    }).catch(() => {});
+  });
 
   function getAddress(): string {
     try {
@@ -26,11 +42,6 @@
       const first = Object.values(ports)[0];
       if (first) return `localhost:${first}`;
     } catch { /* ignore */ }
-    return '—';
-  }
-
-  function fmtUptime(createdAt: string): string {
-    // We don't have a real started_at; show created_at as a rough indicator
     return '—';
   }
 
@@ -103,25 +114,23 @@
     </div>
   </div>
 
-  <!-- Footer -->
+  <!-- Footer: live stats + start/stop -->
   <div class="px-4 py-2.5 border-t border-cubelit-border flex items-center justify-between">
     <div class="flex items-center gap-3 text-[11px] text-cubelit-text-dim">
       <div class="flex items-center gap-1">
-        <!-- CPU icon -->
         <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
           <rect x="5" y="5" width="14" height="14" rx="1"/>
           <rect x="9" y="9" width="6" height="6"/>
           <path d="M9 1v3M15 1v3M9 20v3M15 20v3M1 9h3M1 15h3M20 9h3M20 15h3"/>
         </svg>
-        <span>—</span>
+        <span>{cpuPct !== null ? cpuPct.toFixed(0) + '%' : '—'}</span>
       </div>
       <div class="flex items-center gap-1">
-        <!-- Memory icon -->
         <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
           <rect x="3" y="8" width="18" height="9" rx="1"/>
           <path d="M7 8V5M11 8V5M15 8V5M19 8V5"/>
         </svg>
-        <span>—</span>
+        <span>{memUsedGb !== null ? memUsedGb.toFixed(1) + 'G' : '—'}</span>
       </div>
     </div>
 
@@ -132,18 +141,14 @@
           class="px-2.5 py-1 text-xs font-medium rounded-md text-cubelit-error border border-cubelit-error/40 bg-cubelit-error/10 hover:bg-cubelit-error/20 transition-colors disabled:opacity-50"
           onclick={handleStop}
           disabled={actionLoading}
-        >
-          Stop
-        </button>
+        >Stop</button>
       {:else if canStart}
         <button
           type="button"
           class="px-2.5 py-1 text-xs font-medium rounded-md text-cubelit-accent border border-cubelit-accent/40 bg-cubelit-accent/10 hover:bg-cubelit-accent/20 transition-colors disabled:opacity-50"
           onclick={handleStart}
           disabled={actionLoading}
-        >
-          Start
-        </button>
+        >Start</button>
       {/if}
     </div>
   </div>
