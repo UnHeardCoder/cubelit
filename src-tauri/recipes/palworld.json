@@ -3,7 +3,7 @@
   "name": "Palworld",
   "description": "Open-world survival crafting game with creature collection.",
   "icon": "palworld",
-  "available": false,
+  "available": true,
   "docker_image": "thijsvanloef/palworld-server-docker",
   "default_tag": "latest",
   "ports": [

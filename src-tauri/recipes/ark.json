@@ -3,7 +3,7 @@
   "name": "ARK: Survival Evolved",
   "description": "Dinosaur survival game with taming, building, and multiplayer combat.",
   "icon": "ark",
-  "available": false,
+  "available": true,
   "docker_image": "hermsi/ark-server",
   "default_tag": "latest",
   "ports": [

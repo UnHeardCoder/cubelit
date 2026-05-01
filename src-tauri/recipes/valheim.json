@@ -3,7 +3,7 @@
   "name": "Valheim",
   "description": "Viking survival and exploration game set in a procedurally generated world.",
   "icon": "valheim",
-  "available": false,
+  "available": true,
   "docker_image": "lloesche/valheim-server",
   "default_tag": "latest",
   "ports": [

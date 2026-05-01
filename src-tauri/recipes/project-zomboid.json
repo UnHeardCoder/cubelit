@@ -3,7 +3,7 @@
   "name": "Project Zomboid",
   "description": "Open-world zombie survival with deep crafting and building mechanics.",
   "icon": "project-zomboid",
-  "available": false,
+  "available": true,
   "docker_image": "dandoby/project-zomboid",
   "default_tag": "latest",
   "ports": [

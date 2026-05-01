@@ -3,7 +3,7 @@
   "name": "Counter-Strike 2",
   "description": "Competitive tactical FPS. Run your own community server.",
   "icon": "cs2",
-  "available": false,
+  "available": true,
   "docker_image": "joedwards32/cs2",
   "default_tag": "latest",
   "ports": [

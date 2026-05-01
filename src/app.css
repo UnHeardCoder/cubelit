@@ -1,25 +1,129 @@
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+@import "@fontsource/inter/700.css";
+@import "@fontsource/jetbrains-mono/400.css";
+@import "@fontsource/jetbrains-mono/500.css";
 @import "tailwindcss";
 
-@theme {
-  --color-cubelit-bg: #23272f;
-  --color-cubelit-surface: #33373d;
-  --color-cubelit-border: #4b5058;
-  --color-cubelit-text: #f5f5f6;
-  --color-cubelit-muted: #b0b1b5;
-  --color-cubelit-accent: #ff8800;
-  --color-cubelit-accent-hover: #e26600;
-  --color-cubelit-success: #00ff00;
-  --color-cubelit-warning: #ffff00;
-  --color-cubelit-error: #ff0000;
+/* ── CSS custom properties (dark theme defaults) ─────────────────── */
+:root {
+  --c-bg:          #0e1012;
+  --c-bg-2:        #15181c;
+  --c-surface:     #1a1e24;
+  --c-surface-2:   #20252c;
+  --c-border:      #262c34;
+  --c-border-2:    #323944;
+  --c-text:        #e7eaee;
+  --c-text-dim:    #a7adb6;
+  --c-muted:       #6b7280;
+  --c-accent:      #f6851f;
+  --c-accent-2:    #ffb26b;
+  --c-accent-soft: #f6851f22;
+  --c-success:     #4ade80;
+  --c-warning:     #f5c93a;
+  --c-error:       #f16a6a;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
-/* Hide browser-native number input spinners */
+/* ── Light theme overrides ─────────────────────────────────────────── */
+[data-theme="light"] {
+  --c-bg:          #f6f5f2;
+  --c-bg-2:        #ecebe6;
+  --c-surface:     #ffffff;
+  --c-surface-2:   #f9f8f5;
+  --c-border:      #e5e3dc;
+  --c-border-2:    #d3d1c9;
+  --c-text:        #171a1f;
+  --c-text-dim:    #4c525c;
+  --c-muted:       #8b8f97;
+  --c-accent:      #d96a0f;
+  --c-accent-2:    #f6851f;
+  --c-accent-soft: #d96a0f18;
+  --c-success:     #17874a;
+  --c-warning:     #b7860b;
+  --c-error:       #c5382f;
+}
+
+/* ── Tailwind v4 theme — maps utilities to CSS vars ─────────────────── */
+@theme {
+  --color-cubelit-bg:           var(--c-bg);
+  --color-cubelit-bg-2:         var(--c-bg-2);
+  --color-cubelit-surface:      var(--c-surface);
+  --color-cubelit-surface-2:    var(--c-surface-2);
+  --color-cubelit-border:       var(--c-border);
+  --color-cubelit-border-2:     var(--c-border-2);
+  --color-cubelit-text:         var(--c-text);
+  --color-cubelit-text-dim:     var(--c-text-dim);
+  --color-cubelit-muted:        var(--c-muted);
+  --color-cubelit-accent:       var(--c-accent);
+  --color-cubelit-accent-2:     var(--c-accent-2);
+  --color-cubelit-accent-soft:  var(--c-accent-soft);
+  --color-cubelit-accent-hover: color-mix(in oklab, var(--c-accent) 85%, black);
+  --color-cubelit-success:      var(--c-success);
+  --color-cubelit-warning:      var(--c-warning);
+  --color-cubelit-error:        var(--c-error);
+  --font-family-sans: var(--font-sans);
+  --font-family-mono: var(--font-mono);
+}
+
+/* ── Base ─────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0; height: 100%;
+  font-family: var(--font-sans);
+  background: var(--c-bg);
+  color: var(--c-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'cv11','ss01','ss03';
+}
+
+/* ── Scrollbar ────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--c-border-2); border-radius: 6px; border: 2px solid var(--c-bg); }
+::-webkit-scrollbar-thumb:hover { background: var(--c-muted); }
+
+/* ── Animations ───────────────────────────────────────────────────── */
+.cursor-blink { animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+
+@keyframes pulse {
+  0%,100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* ── Number input — hide spinners ────────────────────────────────── */
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
-input[type="number"] {
-  appearance: textfield;
-}
+input[type="number"] { appearance: textfield; }
 
+/* ── Status dots ──────────────────────────────────────────────────── */
+.status-dot {
+  width: 8px; height: 8px; border-radius: 999px;
+  background: var(--c-muted); display: inline-block; flex-shrink: 0;
+}
+.status-dot.running  { background: var(--c-success); box-shadow: 0 0 0 3px color-mix(in oklab, var(--c-success) 20%, transparent); animation: pulse 2s infinite; }
+.status-dot.starting { background: var(--c-warning); box-shadow: 0 0 0 3px color-mix(in oklab, var(--c-warning) 20%, transparent); animation: pulse 1s infinite; }
+.status-dot.stopped  { background: var(--c-muted); }
+.status-dot.error    { background: var(--c-error); }
+
+/* ── Pill badges ──────────────────────────────────────────────────── */
+.pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 8px; border-radius: 999px;
+  font-size: 11px; font-weight: 500;
+  border: 1px solid var(--c-border);
+  background: var(--c-surface);
+  color: var(--c-text-dim);
+  white-space: nowrap;
+}
+.pill.success { color: var(--c-success); border-color: color-mix(in oklab, var(--c-success) 40%, var(--c-border)); background: color-mix(in oklab, var(--c-success) 10%, transparent); }
+.pill.warning { color: var(--c-warning); border-color: color-mix(in oklab, var(--c-warning) 40%, var(--c-border)); background: color-mix(in oklab, var(--c-warning) 10%, transparent); }
+.pill.error   { color: var(--c-error);   border-color: color-mix(in oklab, var(--c-error)   40%, var(--c-border)); background: color-mix(in oklab, var(--c-error)   10%, transparent); }
+.pill.accent  { color: var(--c-accent);  border-color: color-mix(in oklab, var(--c-accent)  40%, var(--c-border)); background: var(--c-accent-soft); }

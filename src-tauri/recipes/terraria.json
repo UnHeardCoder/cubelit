@@ -3,7 +3,7 @@
   "name": "Terraria",
   "description": "2D sandbox adventure game with exploration, building, and combat.",
   "icon": "terraria",
-  "available": false,
+  "available": true,
   "docker_image": "ryshe/terraria",
   "default_tag": "latest",
   "ports": [

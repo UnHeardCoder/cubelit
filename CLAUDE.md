@@ -39,10 +39,11 @@ SQLX_OFFLINE=true cargo test --workspace <test_name>
 
 ## Architecture
 
-Cargo workspace with two Rust members:
+Cargo workspace with three Rust members:
 
 - **`crates/core/`** (`cubelit-core`) — All business logic: error type, sqlx schema/queries/migrations, Docker helpers (containers/images/logs/health/stats), recipe loader, port utilities, transport-agnostic event types + `EventSink` trait, and the `ServerRunner` + `ServerLifecycle` traits with the `LocalServerHost` impl that orchestrates create/start/stop/restart/delete/sync/rename/RCON/backup. No Tauri, no IPC, no UI. The `.sqlx/` offline query cache lives here.
 - **`src-tauri/`** (`cubelit`) — Tauri v2 desktop binary. Owns only the transport layer: `#[tauri::command]` shims that delegate to `state.host.<method>(...).await`, `TauriEventSink` (maps `CoreEvent` variants onto Tauri event names byte-for-byte), `AppState` (a one-field wrapper around `LocalServerHost`), and the desktop wiring (`lib.rs`).
+- **`crates/cli/`** (`cubelit-cli`) — Standalone CLI binary sharing `cubelit-core`. Same `LocalServerHost`, same DB, no Tauri. Uses `NoopSink` for event emission. Build/run with `SQLX_OFFLINE=true cargo build -p cubelit-cli`. Integration test scaffold in `crates/cli/tests/integration.rs` (tests marked `#[ignore]` pending Docker-backed CI).
 
 Tauri v2 desktop app: Rust backend manages Docker containers and SQLite persistence, SvelteKit 5 frontend communicates via Tauri IPC (`invoke()`/`emit()`).
 
@@ -94,9 +95,9 @@ To update the sqlx offline cache after changing queries: `DATABASE_URL=sqlite://
 
 ### Frontend (`src/`)
 
-- **Svelte 5 runes** — Stores use `$state` + exported getter functions (not Svelte 4 writable stores).
+- **Svelte 5 runes** — State uses `$state`, `$derived`, `$bindable` (not Svelte 4 writable stores). Component props are typed via `interface XxxProps { ... }` with `let { prop }: XxxProps = $props()`.
 - **API layer** (`lib/api/`) — Thin wrappers around `invoke()`. Each file maps to a Rust command module. Vitest unit tests live alongside the modules (`docker.test.ts`, `servers.test.ts`); run with `bun run test`.
-- **Stores** (`lib/stores/`) — `servers.svelte.ts`, `docker.svelte.ts`, `recipes.svelte.ts`. Stores are created via `getXxxStore()` factory functions.
+- **Stores** (`lib/stores/`) — `servers.svelte.ts`, `docker.svelte.ts`, `recipes.svelte.ts`. Each exports a `getXxxStore()` factory that returns a `$state`-backed object with methods. Call the factory once at the top of the component that owns the data, then pass state down via props.
 - **Game registry** (`lib/games/registry.ts`) — Single source of truth for the game dispatch pattern. Maps `recipe_id` → `{ setupComponent, dashboardComponent, reviewNotes?, tileMonogram?, cardStyle? }`. The create wizard and the server detail page both call `getGameDefinition(recipeId)` and fall back to `ServerConfigForm` + `GenericDashboard` for unregistered recipes. Adding a complex game means adding an entry here in addition to creating the Svelte components.
 - **Component layout** — `lib/components/` holds shared UI (Card, Button, LogViewer, StatsCards, StatusRibbon, DockerOnboarding, etc.). Game-specific Setup/Dashboard components live under `lib/components/games/<game>/`.
 - **Routes**: `/` (dashboard), `/create` (3-step wizard), `/server/[id]` (detail page).
@@ -136,6 +137,14 @@ Schema:
 - **Frontend**: register the game in `src/lib/games/registry.ts` with custom `setupComponent` / `dashboardComponent` (and optional `reviewNotes`, `tileMonogram`, `cardStyle`). Currently `minecraft-java` → `MinecraftSetup`/`MinecraftDashboard` and `fivem` → `FivemSetup`/`FivemDashboard`; everything else inherits the generic fallback. Routes (`/create`, `/server/[id]`) read from this registry — do not hardcode `recipe_id` checks elsewhere.
 - **Backend** (`containers.rs`): FiveM requires a MariaDB sidecar, Docker network, and filtered env vars (`FRAMEWORK`, `LICENSE_KEY` removed). Standard games use none of this.
 
+**How to add a new game (step-by-step)**:
+1. Create `src-tauri/recipes/<id>.json` with `"available": false` initially.
+2. Add an icon entry in the frontend (if needed) and a registry entry in `lib/games/registry.ts` — omit if `GenericDashboard` is sufficient.
+3. Flip `"available": true` once ready.
+4. For custom setup/dashboard: create `lib/components/games/<id>/GameSetup.svelte` + `GameDashboard.svelte`, then point the registry at them.
+5. For custom backend logic (sidecars, env filtering): extend `crates/core/src/docker/containers.rs`, keeping game-specific branches clearly gated on `recipe_id`.
+6. Audit Docker Hub and pin a specific tag in `default_tag` — never use `"latest"` in a recipe marked `available: true`.
+
 Bundled via `tauri.conf.json` → `bundle.resources: ["recipes/*"]`. The `recipes/*` glob **requires at least one file to exist** or the build fails.
 
 **Docker tag pinning**: Always use a specific tag in `default_tag`, never `"latest"`. For `itzg/minecraft-server` use Java-version tags (`java25` as of 0.1.8 — bump as Mojang's bundler advances; current Minecraft releases ship a Java 25 bundler with class file version 69.0). For other images, check Docker Hub for the latest stable tag before enabling a recipe. FiveM (`spritsail/fivem`) uses date-based tags — check Docker Hub for the current stable tag before enabling.
@@ -161,13 +170,14 @@ Defined in `src/app.css` via `@theme`. Use `cubelit-*` classes:
 
 ## Versioning
 
-Version must be bumped in **four files simultaneously** before tagging a release, or installer filenames won't match the tag:
+Version must be bumped in **five files simultaneously** before tagging a release, or installer filenames won't match the tag:
 - `src-tauri/Cargo.toml` — `version = "x.y.z"`
-- `crates/core/Cargo.toml` — `version = "x.y.z"` (kept in lockstep with the desktop crate; no workspace inheritance for now)
+- `crates/core/Cargo.toml` — `version = "x.y.z"` (kept in lockstep; no workspace inheritance for now)
+- `crates/cli/Cargo.toml` — `version = "x.y.z"` (kept in lockstep)
 - `package.json` — `"version": "x.y.z"`
 - `src-tauri/tauri.conf.json` — `"version": "x.y.z"`
 
-The `check-version` job in `release.yml` strips the `v` prefix from the pushed tag and compares it against all four files. If any disagree, the release workflow fails fast before the Windows/Linux/macOS build matrix kicks off — saving ~30 minutes of wasted CI time.
+The `check-version` job in `release.yml` strips the `v` prefix from the pushed tag and compares it against all five files. If any disagree, the release workflow fails fast before the Windows/Linux/macOS build matrix kicks off — saving ~30 minutes of wasted CI time.
 
 ## Logging
 
@@ -189,7 +199,7 @@ Four workflows in `.github/workflows/`:
 
 ### Version check
 
-`release.yml` has a `check-version` job that runs before the build matrix. It strips the `v` prefix from the tag and compares it against `src-tauri/Cargo.toml`, `package.json`, and `src-tauri/tauri.conf.json`. If any file doesn't match, the entire workflow fails immediately.
+`release.yml` has a `check-version` job that runs before the build matrix. It strips the `v` prefix from the tag and compares it against all five version files (`src-tauri/Cargo.toml`, `crates/core/Cargo.toml`, `crates/cli/Cargo.toml`, `package.json`, `src-tauri/tauri.conf.json`). If any file doesn't match, the entire workflow fails immediately.
 
 ### Required GitHub Secrets
 

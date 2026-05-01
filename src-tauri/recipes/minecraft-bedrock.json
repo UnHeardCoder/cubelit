@@ -3,7 +3,7 @@
   "name": "Minecraft Bedrock",
   "description": "Cross-platform Minecraft for consoles, mobile, and Windows 10/11.",
   "icon": "minecraft-bedrock",
-  "available": false,
+  "available": true,
   "docker_image": "itzg/minecraft-bedrock-server",
   "default_tag": "latest",
   "ports": [

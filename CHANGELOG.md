@@ -7,6 +7,36 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.2.0] — 2026-05-01
+
+### Added
+- Full UI overhaul: Console design direction (Pterodactyl-meets-Linear aesthetic)
+- Dark ↔ light theme toggle, persisted to localStorage
+- Collapsible sidebar (240px expanded / 64px icon-only) with server list and status dots
+- SteamGridDB hero art integration for Minecraft Java and FiveM
+- oklch gradient fallbacks for all other games
+- Dashboard stat strip (servers, running, stopped, unique games)
+- Server card redesign with hero art banner, GameIcon, StatusPill
+- Server detail hero banner for games with art; new Overview/Console/Files/Settings tabs
+- Sparkline CPU/memory charts on server overview
+- Connection address rows with copy-to-clipboard
+- Terminal-style server creation progress display
+- Docker onboarding redesign: numbered step indicators, progress strip, WSL2→Docker flow
+- New shared components: Cube, StatusPill, GaugeCard, Sparkline, ConnRow, GameArt, GameIcon
+- Inter + JetBrains Mono typography via @fontsource
+
+### Changed
+- Design tokens shifted to deeper, more refined Console palette
+- Sidebar upgraded from fixed 64px icon rail to collapsible with server list
+- All 8 coming-soon recipes enabled for testing (Bedrock, ARK, CS2, Palworld, Project Zomboid, Rust, Terraria, Valheim)
+- StatusRibbon replaced by StatusPill across all card components
+- GenericDashboard rebuilt with Console-direction layout
+
+### Notes
+- Recipes enabled with `latest` tags for testing — audit and pin before v0.2.0 release tag
+
+---
+
 ## [Unreleased]
 
 ---
