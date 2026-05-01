@@ -41,7 +41,8 @@ export const GAME_ART: Record<string, { hero?: string; logo?: string; icon?: str
     icon: 'https://cdn2.steamgriddb.com/icon_thumb/c291b01517f3e6797c774c306591cc32.png',
   },
   terraria: {
-    // Terraria hero/logo are .webm video — use icon only, gradient fallback for hero
+    // SteamGridDB hero/logo are .webm — using Steam CDN static images instead
+    hero: 'https://cdn.akamai.steamstatic.com/steam/apps/105600/library_hero.jpg',
     icon: 'https://cdn2.steamgriddb.com/icon/c8157144d45faf12c01a459170b2333a/32/512x512.png',
   },
   valheim: {

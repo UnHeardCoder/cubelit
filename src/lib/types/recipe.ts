@@ -22,6 +22,8 @@ export interface Recipe {
   mods: RecipeMods | null;
   estimated_disk_mb: number;
   tags: string[];
+  /** Optional Docker CMD override passed verbatim to the container entrypoint. */
+  server_cmd?: string[];
 }
 
 export interface RecipePort {

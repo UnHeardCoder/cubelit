@@ -1,11 +1,12 @@
 {
   "id": "terraria",
   "name": "Terraria",
-  "description": "2D sandbox adventure game with exploration, building, and combat.",
+  "description": "2D sandbox adventure game. Uses TShock server. On first launch, a new world is auto-created.",
   "icon": "terraria",
   "available": true,
   "docker_image": "ryshe/terraria",
   "default_tag": "latest",
+  "server_cmd": ["-autocreate", "2", "-worldname", "CubelitWorld"],
   "ports": [
     {
       "container_port": 7777,
@@ -17,17 +18,10 @@
   "environment": [
     {
       "key": "WORLD_FILENAME",
-      "default_value": "cubelit_world.wld",
+      "default_value": "CubelitWorld.wld",
       "label": "World Filename",
       "type": "string",
       "options": []
-    },
-    {
-      "key": "WORLD_SIZE",
-      "default_value": "2",
-      "label": "World Size",
-      "type": "select",
-      "options": ["1", "2", "3"]
     },
     {
       "key": "MAX_PLAYERS",
@@ -39,7 +33,7 @@
     {
       "key": "DIFFICULTY",
       "default_value": "1",
-      "label": "Difficulty",
+      "label": "Difficulty (0=classic 1=expert 2=master 3=journey)",
       "type": "select",
       "options": ["0", "1", "2", "3"]
     }

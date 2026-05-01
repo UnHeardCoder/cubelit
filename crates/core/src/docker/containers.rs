@@ -9,7 +9,7 @@ use bollard::Docker;
 use crate::db::models::Cubelit;
 use crate::error::CoreError;
 
-pub async fn create_container(docker: &Docker, cubelit: &Cubelit, extra_binds: &[String]) -> Result<String, CoreError> {
+pub async fn create_container(docker: &Docker, cubelit: &Cubelit, extra_binds: &[String], server_cmd: Option<Vec<String>>) -> Result<String, CoreError> {
     let port_mappings: HashMap<String, u16> =
         serde_json::from_str(&cubelit.port_mappings).unwrap_or_default();
 
@@ -73,6 +73,7 @@ pub async fn create_container(docker: &Docker, cubelit: &Cubelit, extra_binds: &
         exposed_ports: Some(exposed_ports),
         host_config: Some(host_config),
         labels: Some(labels),
+        cmd: server_cmd,
         ..Default::default()
     };
 

@@ -24,6 +24,11 @@ pub struct Recipe {
     pub estimated_disk_mb: u32,
     #[serde(default)]
     pub tags: Vec<String>,
+    /// Optional Docker CMD override, passed verbatim to the container entrypoint.
+    /// Use when the image requires runtime flags that cannot be expressed as env vars
+    /// (e.g. Terraria's `-autocreate 2 -worldname MyWorld`).
+    #[serde(default)]
+    pub server_cmd: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

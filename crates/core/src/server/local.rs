@@ -258,8 +258,9 @@ impl ServerRunner for LocalServerHost {
         &self,
         cubelit: &Cubelit,
         extra_binds: &[String],
+        server_cmd: Option<Vec<String>>,
     ) -> CoreResult<String> {
-        containers::create_container(&self.docker, cubelit, extra_binds).await
+        containers::create_container(&self.docker, cubelit, extra_binds, server_cmd).await
     }
 
     async fn start_container(&self, container_id: &str) -> CoreResult<()> {
@@ -441,7 +442,7 @@ impl ServerLifecycle for LocalServerHost {
         let cubelit = queries::get_cubelit(&self.db, &id).await?;
         let extra_binds: Vec<String> = self.extra_binds_for(&cubelit);
         let container_id =
-            containers::create_container(&self.docker, &cubelit, &extra_binds).await?;
+            containers::create_container(&self.docker, &cubelit, &extra_binds, recipe.server_cmd.clone()).await?;
 
         // If FiveM, connect the main container to the network too
         if cubelit.recipe_id == "fivem" {
@@ -701,8 +702,11 @@ impl ServerLifecycle for LocalServerHost {
         let cubelit = queries::get_cubelit(&self.db, id).await?;
 
         let extra_binds: Vec<String> = self.extra_binds_for(&cubelit);
+        // For update_server_settings we don't have the recipe easily; pass None for server_cmd
+        // (the original creation would have used server_cmd; recreation skips it as settings
+        // changes don't affect the startup command).
         let new_container_id =
-            containers::create_container(&self.docker, &cubelit, &extra_binds).await?;
+            containers::create_container(&self.docker, &cubelit, &extra_binds, None).await?;
 
         // Re-connect FiveM containers to their network
         if cubelit.recipe_id == "fivem" {
