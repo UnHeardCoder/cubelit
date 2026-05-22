@@ -51,5 +51,9 @@
     "file_types": [".tmod"]
   },
   "estimated_disk_mb": 1000,
-  "tags": ["sandbox", "moddable"]
+  "tags": ["sandbox", "moddable"],
+  "readiness": {
+    "log_pattern": "Server started",
+    "timeout_secs": 300
+  }
 }

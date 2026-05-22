@@ -18,6 +18,5 @@ pub use local::{sync_all_servers, sync_single_server, LocalServerHost};
 pub use runner::ServerRunner;
 pub use types::CreateServerConfig;
 pub use watchers::{
-    readiness_pattern, spawn_crash_watcher, spawn_readiness_watcher, validate_env_vars,
-    verify_container_status,
+    spawn_crash_watcher, spawn_readiness_watcher, validate_env_vars, verify_container_status,
 };

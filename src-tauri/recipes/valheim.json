@@ -67,5 +67,9 @@
     "file_types": [".dll"]
   },
   "estimated_disk_mb": 3000,
-  "tags": ["survival", "coop", "moddable"]
+  "tags": ["survival", "coop", "moddable"],
+  "readiness": {
+    "log_pattern": "Game server connected",
+    "timeout_secs": 600
+  }
 }

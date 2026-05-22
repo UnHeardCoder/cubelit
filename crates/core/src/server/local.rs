@@ -41,7 +41,7 @@ use super::minecraft;
 use super::runner::ServerRunner;
 use super::types::CreateServerConfig;
 use super::watchers::{
-    readiness_pattern, spawn_readiness_watcher, validate_env_vars, verify_container_status,
+    spawn_readiness_watcher, validate_env_vars, verify_container_status,
 };
 
 pub struct LocalServerHost {
@@ -471,26 +471,37 @@ impl ServerLifecycle for LocalServerHost {
         tokio::time::sleep(std::time::Duration::from_secs(2)).await;
         let running = verify_container_status(&self.docker, &container_id).await == "running";
 
-        if let Some(pattern) = readiness_pattern(&cubelit.recipe_id).filter(|_| running) {
-            // Game needs log-based readiness detection — keep "starting" until Done
-            queries::update_cubelit_status(
-                &self.db,
-                &id,
-                "starting",
-                Some(Some(&container_id)),
-            )
-            .await?;
-            spawn_readiness_watcher(
-                self.docker.clone(),
-                self.db.clone(),
-                events.clone(),
-                id.clone(),
-                container_id.clone(),
-                pattern,
-            );
+        if running {
+            if let Some(ref r) = recipe.readiness {
+                let pattern = r.log_pattern.clone();
+                let timeout = std::time::Duration::from_secs(r.timeout_secs);
+                queries::update_cubelit_status(
+                    &self.db,
+                    &id,
+                    "starting",
+                    Some(Some(&container_id)),
+                )
+                .await?;
+                spawn_readiness_watcher(
+                    self.docker.clone(),
+                    self.db.clone(),
+                    events.clone(),
+                    id.clone(),
+                    container_id.clone(),
+                    pattern,
+                    timeout,
+                );
+            } else {
+                queries::update_cubelit_status(
+                    &self.db,
+                    &id,
+                    "running",
+                    Some(Some(&container_id)),
+                )
+                .await?;
+            }
         } else {
-            let status = if running { "running" } else { "error" };
-            queries::update_cubelit_status(&self.db, &id, status, Some(Some(&container_id)))
+            queries::update_cubelit_status(&self.db, &id, "error", Some(Some(&container_id)))
                 .await?;
         }
 
@@ -528,6 +539,8 @@ impl ServerLifecycle for LocalServerHost {
                 CoreError::NotFound("No container associated with this server".into())
             })?;
 
+        let recipe = recipes::get_recipe(&self.recipes_dir, &cubelit.recipe_id).ok();
+
         // Also start sidecar if present
         if let Some(ref sidecar_id) = cubelit.sidecar_container_id {
             let _ = containers::start_container(&self.docker, sidecar_id).await;
@@ -538,19 +551,25 @@ impl ServerLifecycle for LocalServerHost {
         tokio::time::sleep(std::time::Duration::from_secs(2)).await;
         let running = verify_container_status(&self.docker, &container_id).await == "running";
 
-        if let Some(pattern) = readiness_pattern(&cubelit.recipe_id).filter(|_| running) {
-            queries::update_cubelit_status(&self.db, id, "starting", None).await?;
-            spawn_readiness_watcher(
-                self.docker.clone(),
-                self.db.clone(),
-                events,
-                id.to_string(),
-                container_id.clone(),
-                pattern,
-            );
+        if running {
+            if let Some(ref r) = recipe.as_ref().and_then(|r| r.readiness.as_ref()).cloned() {
+                let pattern = r.log_pattern.clone();
+                let timeout = std::time::Duration::from_secs(r.timeout_secs);
+                queries::update_cubelit_status(&self.db, id, "starting", None).await?;
+                spawn_readiness_watcher(
+                    self.docker.clone(),
+                    self.db.clone(),
+                    events,
+                    id.to_string(),
+                    container_id.clone(),
+                    pattern,
+                    timeout,
+                );
+            } else {
+                queries::update_cubelit_status(&self.db, id, "running", None).await?;
+            }
         } else {
-            let status = if running { "running" } else { "error" };
-            queries::update_cubelit_status(&self.db, id, status, None).await?;
+            queries::update_cubelit_status(&self.db, id, "error", None).await?;
         }
 
         if running {
@@ -597,6 +616,8 @@ impl ServerLifecycle for LocalServerHost {
                 CoreError::NotFound("No container associated with this server".into())
             })?;
 
+        let recipe = recipes::get_recipe(&self.recipes_dir, &cubelit.recipe_id).ok();
+
         // Also restart sidecar if present
         if let Some(ref sidecar_id) = cubelit.sidecar_container_id {
             let _ = containers::restart_container(&self.docker, sidecar_id).await;
@@ -607,19 +628,25 @@ impl ServerLifecycle for LocalServerHost {
         tokio::time::sleep(std::time::Duration::from_secs(2)).await;
         let running = verify_container_status(&self.docker, &container_id).await == "running";
 
-        if let Some(pattern) = readiness_pattern(&cubelit.recipe_id).filter(|_| running) {
-            queries::update_cubelit_status(&self.db, id, "starting", None).await?;
-            spawn_readiness_watcher(
-                self.docker.clone(),
-                self.db.clone(),
-                events,
-                id.to_string(),
-                container_id.clone(),
-                pattern,
-            );
+        if running {
+            if let Some(ref r) = recipe.as_ref().and_then(|r| r.readiness.as_ref()).cloned() {
+                let pattern = r.log_pattern.clone();
+                let timeout = std::time::Duration::from_secs(r.timeout_secs);
+                queries::update_cubelit_status(&self.db, id, "starting", None).await?;
+                spawn_readiness_watcher(
+                    self.docker.clone(),
+                    self.db.clone(),
+                    events,
+                    id.to_string(),
+                    container_id.clone(),
+                    pattern,
+                    timeout,
+                );
+            } else {
+                queries::update_cubelit_status(&self.db, id, "running", None).await?;
+            }
         } else {
-            let status = if running { "running" } else { "error" };
-            queries::update_cubelit_status(&self.db, id, status, None).await?;
+            queries::update_cubelit_status(&self.db, id, "error", None).await?;
         }
 
         if running {
@@ -702,9 +729,9 @@ impl ServerLifecycle for LocalServerHost {
         let cubelit = queries::get_cubelit(&self.db, id).await?;
 
         let extra_binds: Vec<String> = self.extra_binds_for(&cubelit);
-        // For update_server_settings we don't have the recipe easily; pass None for server_cmd
-        // (the original creation would have used server_cmd; recreation skips it as settings
-        // changes don't affect the startup command).
+        // Load recipe for server_cmd and readiness config. settings changes don't
+        // alter server_cmd, so pass None if the recipe can't be found.
+        let recipe = recipes::get_recipe(&self.recipes_dir, &cubelit.recipe_id).ok();
         let new_container_id =
             containers::create_container(&self.docker, &cubelit, &extra_binds, None).await?;
 
@@ -735,28 +762,40 @@ impl ServerLifecycle for LocalServerHost {
             let running =
                 verify_container_status(&self.docker, &new_container_id).await == "running";
 
-            if let Some(pattern) = readiness_pattern(&cubelit.recipe_id).filter(|_| running) {
-                queries::update_cubelit_status(
-                    &self.db,
-                    id,
-                    "starting",
-                    Some(Some(&new_container_id)),
-                )
-                .await?;
-                spawn_readiness_watcher(
-                    self.docker.clone(),
-                    self.db.clone(),
-                    events.clone(),
-                    id.to_string(),
-                    new_container_id.clone(),
-                    pattern,
-                );
+            if running {
+                if let Some(ref r) = recipe.as_ref().and_then(|r| r.readiness.as_ref()).cloned() {
+                    let pattern = r.log_pattern.clone();
+                    let timeout = std::time::Duration::from_secs(r.timeout_secs);
+                    queries::update_cubelit_status(
+                        &self.db,
+                        id,
+                        "starting",
+                        Some(Some(&new_container_id)),
+                    )
+                    .await?;
+                    spawn_readiness_watcher(
+                        self.docker.clone(),
+                        self.db.clone(),
+                        events.clone(),
+                        id.to_string(),
+                        new_container_id.clone(),
+                        pattern,
+                        timeout,
+                    );
+                } else {
+                    queries::update_cubelit_status(
+                        &self.db,
+                        id,
+                        "running",
+                        Some(Some(&new_container_id)),
+                    )
+                    .await?;
+                }
             } else {
-                let status = if running { "running" } else { "error" };
                 queries::update_cubelit_status(
                     &self.db,
                     id,
-                    status,
+                    "error",
                     Some(Some(&new_container_id)),
                 )
                 .await?;

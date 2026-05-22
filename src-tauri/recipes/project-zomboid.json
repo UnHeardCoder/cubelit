@@ -4,7 +4,7 @@
   "description": "Open-world zombie survival with deep crafting and building mechanics.",
   "icon": "project-zomboid",
   "available": true,
-  "docker_image": "dandoby/project-zomboid",
+  "docker_image": "indifferentbroccoli/projectzomboid-server-docker",
   "default_tag": "latest",
   "ports": [
     {
@@ -22,6 +22,20 @@
   ],
   "environment": [
     {
+      "key": "PUID",
+      "default_value": "1000",
+      "label": "PUID (user ID for file permissions)",
+      "type": "string",
+      "options": []
+    },
+    {
+      "key": "PGID",
+      "default_value": "1000",
+      "label": "PGID (group ID for file permissions)",
+      "type": "string",
+      "options": []
+    },
+    {
       "key": "SERVER_NAME",
       "default_value": "CubelitPZ",
       "label": "Server Name",
@@ -36,6 +50,13 @@
       "options": []
     },
     {
+      "key": "ADMIN_USERNAME",
+      "default_value": "admin",
+      "label": "Admin Username",
+      "type": "string",
+      "options": []
+    },
+    {
       "key": "ADMIN_PASSWORD",
       "default_value": "changeme",
       "label": "Admin Password",
@@ -43,38 +64,33 @@
       "options": []
     },
     {
-      "key": "SERVER_PASSWORD",
+      "key": "PASSWORD",
       "default_value": "",
       "label": "Server Password",
       "type": "string",
       "options": []
-    },
-    {
-      "key": "MEMORY",
-      "default_value": "4G",
-      "label": "Server RAM",
-      "type": "ram",
-      "options": ["2G", "4G", "6G", "8G"]
     }
   ],
   "volumes": [
     {
-      "container_path": "/data",
-      "label": "Server Data"
-    }
-  ],
-  "config_files": [
+      "container_path": "/project-zomboid",
+      "label": "Server Files"
+    },
     {
-      "path": "Server/servertest.ini",
-      "format": "properties",
+      "container_path": "/project-zomboid-config",
       "label": "Server Config"
     }
   ],
+  "config_files": [],
   "mods": {
     "supported": true,
     "path": "Workshop",
     "file_types": []
   },
   "estimated_disk_mb": 5000,
-  "tags": ["survival", "zombie", "moddable"]
+  "tags": ["survival", "zombie", "moddable"],
+  "readiness": {
+    "log_pattern": "*** SERVER STARTED ****",
+    "timeout_secs": 600
+  }
 }

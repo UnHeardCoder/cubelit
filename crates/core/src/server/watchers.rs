@@ -70,43 +70,31 @@ pub async fn verify_container_status(
     }
 }
 
-/// Returns the log pattern that signals a game server is fully ready, if any.
-/// `None` means the container being "running" is sufficient — no log watching needed.
-///
-/// The pattern MUST be unique to the actual game-server "ready" signal, not to
-/// intermediate setup steps. For Minecraft, the itzg entrypoint scripts also
-/// print lines containing "Done" (e.g. "Done downloading pack"), so we use the
-/// full suffix that only the Minecraft server itself emits:
-///   `Done (11.117s)! For help, type "help"`
-pub fn readiness_pattern(recipe_id: &str) -> Option<&'static str> {
-    match recipe_id {
-        // This exact phrase appears on the SAME line as "Done (X.Xs)!" and is
-        // emitted by net.minecraft.server.dedicated.DedicatedServer across all
-        // versions and mod loaders (Vanilla, Forge, NeoForge, Fabric, FTB…).
-        // It is never printed by the itzg setup scripts or by mod init code.
-        "minecraft-java" => Some(r#"! For help, type "help""#),
-        _ => None,
-    }
-}
-
 /// Spawns a background task that tails container logs and promotes the server
-/// status from "starting" → "running" once the readiness `pattern` is found.
-/// Times out after 10 minutes (promotes anyway) to avoid hanging forever.
+/// status from `"starting"` → `"running"` once `pattern` appears in the output.
+///
+/// The pattern and timeout come from `Recipe::readiness` so each game can
+/// declare its own "I am joinable" signal in recipe JSON rather than having
+/// game-specific logic hardcoded here.
+///
+/// On timeout the watcher re-inspects the container state before writing DB —
+/// a server that crashed mid-startup is reported as `"error"`, not `"running"`.
 pub fn spawn_readiness_watcher(
     docker: bollard::Docker,
     pool: sqlx::SqlitePool,
     events: Arc<dyn EventSink>,
     server_id: String,
     container_id: String,
-    pattern: &'static str,
+    pattern: String,
+    timeout: std::time::Duration,
 ) {
     tokio::spawn(async move {
         use futures_util::StreamExt;
         use std::time::SystemTime;
 
         // Only fetch logs produced from ~10 seconds before we start watching
-        // (catches any fast startup lines) while avoiding old "Done" lines from
-        // a previous run.
+        // (catches any fast startup lines) while avoiding stale lines from a
+        // previous run of the same container.
         let since = (SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
             .unwrap_or_default()
@@ -123,16 +111,13 @@ pub fn spawn_readiness_watcher(
         };
 
         let mut stream = docker.logs(&container_id, Some(opts));
-        let timeout = tokio::time::sleep(std::time::Duration::from_secs(600));
-        tokio::pin!(timeout);
+        let deadline = tokio::time::sleep(timeout);
+        tokio::pin!(deadline);
 
         loop {
             tokio::select! {
                 biased;
-                _ = &mut timeout => {
-                    // 10-minute limit reached. Don't blindly promote to "running"
-                    // — re-check the actual container state first, otherwise a
-                    // server that crashed mid-startup gets reported alive.
+                _ = &mut deadline => {
                     let actual = verify_container_status(&docker, &container_id).await;
                     let _ = queries::update_cubelit_status(
                         &pool, &server_id, actual, None,
@@ -143,7 +128,8 @@ pub fn spawn_readiness_watcher(
                     if actual != "running" {
                         tracing::warn!(
                             server_id = %server_id,
-                            "Readiness watcher timed out after 10 min and container is not running"
+                            timeout_secs = %timeout.as_secs(),
+                            "Readiness watcher timed out and container is not running"
                         );
                     }
                     break;
@@ -151,7 +137,7 @@ pub fn spawn_readiness_watcher(
                 item = stream.next() => {
                     match item {
                         Some(Ok(log)) => {
-                            if log.to_string().contains(pattern) {
+                            if log.to_string().contains(pattern.as_str()) {
                                 let _ = queries::update_cubelit_status(
                                     &pool, &server_id, "running", None,
                                 ).await;
@@ -169,8 +155,6 @@ pub fn spawn_readiness_watcher(
                             );
                             break;
                         }
-                        // Stream ended (container stopped) — exit silently;
-                        // sync_single_server will correct the status on the next poll.
                         None => break,
                     }
                 }
@@ -300,17 +284,31 @@ mod tests {
     }
 
     #[test]
-    fn readiness_pattern_minecraft_java() {
-        assert_eq!(
-            readiness_pattern("minecraft-java"),
-            Some(r#"! For help, type "help""#)
-        );
+    fn recipe_readiness_default_timeout() {
+        use crate::recipes::RecipeReadiness;
+        let r: RecipeReadiness =
+            serde_json::from_str(r#"{"log_pattern":"Server started"}"#).unwrap();
+        assert_eq!(r.log_pattern, "Server started");
+        assert_eq!(r.timeout_secs, 600);
     }
 
     #[test]
-    fn readiness_pattern_unknown_returns_none() {
-        assert_eq!(readiness_pattern("valheim"), None);
-        assert_eq!(readiness_pattern("fivem"), None);
-        assert_eq!(readiness_pattern(""), None);
+    fn recipe_readiness_custom_timeout() {
+        use crate::recipes::RecipeReadiness;
+        let r: RecipeReadiness =
+            serde_json::from_str(r#"{"log_pattern":"VAC secure","timeout_secs":900}"#).unwrap();
+        assert_eq!(r.timeout_secs, 900);
+    }
+
+    #[test]
+    fn recipe_without_readiness_parses() {
+        use crate::recipes::Recipe;
+        let json = r#"{
+            "id":"test","name":"Test","description":"","icon":"test",
+            "docker_image":"example/test","default_tag":"1.0",
+            "ports":[],"environment":[],"volumes":[]
+        }"#;
+        let r: Recipe = serde_json::from_str(json).unwrap();
+        assert!(r.readiness.is_none());
     }
 }

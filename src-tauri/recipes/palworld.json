@@ -73,5 +73,9 @@
   "config_files": [],
   "mods": null,
   "estimated_disk_mb": 8000,
-  "tags": ["popular", "survival", "coop"]
+  "tags": ["popular", "survival", "coop"],
+  "readiness": {
+    "log_pattern": "Running Palworld dedicated server",
+    "timeout_secs": 600
+  }
 }

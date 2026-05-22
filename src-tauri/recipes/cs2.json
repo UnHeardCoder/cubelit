@@ -80,5 +80,9 @@
   "config_files": [],
   "mods": null,
   "estimated_disk_mb": 35000,
-  "tags": ["popular", "competitive", "fps"]
+  "tags": ["popular", "competitive", "fps"],
+  "readiness": {
+    "log_pattern": "VAC secure mode is activated",
+    "timeout_secs": 1800
+  }
 }

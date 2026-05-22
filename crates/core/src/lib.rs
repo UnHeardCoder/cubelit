@@ -9,6 +9,7 @@ pub mod events;
 pub mod ports;
 pub mod recipes;
 pub mod server;
+pub mod smoke;
 
 pub use error::{CoreError, CoreResult};
 pub use events::{CoreEvent, EventSink, ImagePullProgress, NoopSink, ServerCreateProgress};

@@ -67,5 +67,9 @@
   "config_files": [],
   "mods": null,
   "estimated_disk_mb": 500,
-  "tags": ["popular", "crossplay"]
+  "tags": ["popular", "crossplay"],
+  "readiness": {
+    "log_pattern": "Server started.",
+    "timeout_secs": 300
+  }
 }

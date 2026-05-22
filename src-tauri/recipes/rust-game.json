@@ -70,5 +70,9 @@
     "file_types": [".cs"]
   },
   "estimated_disk_mb": 8000,
-  "tags": ["popular", "survival", "moddable"]
+  "tags": ["popular", "survival", "moddable"],
+  "readiness": {
+    "log_pattern": "SteamServer.OnSteamServersConnected",
+    "timeout_secs": 1800
+  }
 }

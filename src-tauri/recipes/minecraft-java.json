@@ -104,5 +104,9 @@
     "file_types": [".jar"]
   },
   "estimated_disk_mb": 1000,
-  "tags": ["popular", "moddable", "java"]
+  "tags": ["popular", "moddable", "java"],
+  "readiness": {
+    "log_pattern": "! For help, type \"help\"",
+    "timeout_secs": 600
+  }
 }

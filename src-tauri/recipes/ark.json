@@ -70,5 +70,9 @@
     "file_types": [".mod"]
   },
   "estimated_disk_mb": 15000,
-  "tags": ["survival", "dinosaurs"]
+  "tags": ["survival", "dinosaurs"],
+  "readiness": {
+    "log_pattern": "Server has completed startup",
+    "timeout_secs": 1800
+  }
 }

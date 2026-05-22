@@ -75,5 +75,9 @@
     "file_types": [".lua", ".js"]
   },
   "estimated_disk_mb": 5000,
-  "tags": ["popular", "moddable", "roleplay"]
+  "tags": ["popular", "moddable", "roleplay"],
+  "readiness": {
+    "log_pattern": "All ready! Please access:",
+    "timeout_secs": 300
+  }
 }

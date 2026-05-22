@@ -29,6 +29,29 @@ pub struct Recipe {
     /// (e.g. Terraria's `-autocreate 2 -worldname MyWorld`).
     #[serde(default)]
     pub server_cmd: Option<Vec<String>>,
+    /// Log-based readiness detection. When present, the server status stays
+    /// `"starting"` until `log_pattern` appears in the container logs, at
+    /// which point it is promoted to `"running"`. When absent, the container
+    /// being alive 2 s after start is sufficient.
+    #[serde(default)]
+    pub readiness: Option<RecipeReadiness>,
+}
+
+/// Controls log-pattern-based readiness detection for a recipe.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RecipeReadiness {
+    /// Substring to search for in container log output. The first line
+    /// containing this string promotes the server from `starting` → `running`.
+    pub log_pattern: String,
+    /// Maximum seconds to wait for the pattern before timing out.
+    /// Defaults to 600 (10 minutes). Heavy SteamCMD games (ARK, CS2) may
+    /// need 900+.
+    #[serde(default = "default_readiness_timeout_secs")]
+    pub timeout_secs: u64,
+}
+
+fn default_readiness_timeout_secs() -> u64 {
+    600
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
