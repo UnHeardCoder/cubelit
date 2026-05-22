@@ -736,8 +736,9 @@ impl ServerLifecycle for LocalServerHost {
         // Load recipe for server_cmd and readiness config. settings changes don't
         // alter server_cmd, so pass None if the recipe can't be found.
         let recipe = recipes::get_recipe(&self.recipes_dir, &cubelit.recipe_id).ok();
+        let server_cmd = recipe.as_ref().and_then(|r| r.server_cmd.clone());
         let new_container_id =
-            containers::create_container(&self.docker, &cubelit, &extra_binds, None).await?;
+            containers::create_container(&self.docker, &cubelit, &extra_binds, server_cmd).await?;
 
         // Re-connect FiveM containers to their network
         if cubelit.recipe_id == "fivem" {
