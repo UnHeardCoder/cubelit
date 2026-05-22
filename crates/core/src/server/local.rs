@@ -112,10 +112,7 @@ impl LocalServerHost {
         recipe: &recipes::Recipe,
     ) -> CoreResult<()> {
         for v in recipe.volumes.iter().skip(1) {
-            let segment = std::path::Path::new(&v.container_path)
-                .file_name()
-                .and_then(|s| s.to_str())
-                .unwrap_or("data");
+            let segment = additional_volume_subdir(&v.container_path);
             std::fs::create_dir_all(format!("{}/{}", volume_path, segment))?;
         }
         Ok(())
@@ -924,13 +921,33 @@ pub fn additional_volume_binds(volume_path: &str, recipe: &recipes::Recipe) -> V
         .iter()
         .skip(1)
         .map(|v| {
-            let segment = std::path::Path::new(&v.container_path)
-                .file_name()
-                .and_then(|s| s.to_str())
-                .unwrap_or("data");
+            let segment = additional_volume_subdir(&v.container_path);
             format!("{}/{}:{}", volume_path, segment, v.container_path)
         })
         .collect()
+}
+
+fn additional_volume_subdir(container_path: &str) -> String {
+    let segment = std::path::Path::new(container_path)
+        .file_name()
+        .and_then(|s| s.to_str())
+        .unwrap_or("data");
+    let sanitized: String = segment
+        .chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.') {
+                c
+            } else {
+                '_'
+            }
+        })
+        .collect();
+
+    if sanitized.is_empty() {
+        "data".to_string()
+    } else {
+        sanitized
+    }
 }
 
 // ─── Free helpers (used by lifecycle methods + the desktop crash watcher) ───
@@ -1270,5 +1287,15 @@ mod tests {
         assert_eq!(binds.len(), 2);
         assert_eq!(binds[0], "/srv/servers/test/config:/config");
         assert_eq!(binds[1], "/srv/servers/test/logs:/logs");
+    }
+
+    #[test]
+    fn additional_volume_binds_sanitizes_host_subdir_name() {
+        let recipe = make_recipe(&["/data", "/path/with spaces"]);
+        let binds = additional_volume_binds("/srv/servers/test", &recipe);
+        assert_eq!(
+            binds,
+            vec!["/srv/servers/test/with_spaces:/path/with spaces"]
+        );
     }
 }
