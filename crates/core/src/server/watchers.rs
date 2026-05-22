@@ -125,13 +125,18 @@ pub fn spawn_readiness_watcher(
                     events.emit(CoreEvent::ServerStatusChanged {
                         server_id: server_id.clone(),
                     });
-                    if actual != "running" {
-                        tracing::warn!(
-                            server_id = %server_id,
-                            timeout_secs = %timeout.as_secs(),
-                            "Readiness watcher timed out and container is not running"
-                        );
-                    }
+                    // Always warn on timeout. If actual=="running" the container
+                    // is up but the readiness pattern never matched — the server
+                    // may not yet be accepting connections. If actual!="running"
+                    // the container also crashed or stopped during startup.
+                    tracing::warn!(
+                        server_id = %server_id,
+                        timeout_secs = %timeout.as_secs(),
+                        resolved_status = %actual,
+                        "Readiness watcher timed out without seeing the log pattern; \
+                        status set to '{}' — server may not yet be accepting connections",
+                        actual,
+                    );
                     break;
                 }
                 item = stream.next() => {

@@ -475,7 +475,9 @@ impl ServerLifecycle for LocalServerHost {
         tokio::time::sleep(std::time::Duration::from_secs(2)).await;
         let running = verify_container_status(&self.docker, &container_id).await == "running";
 
-        if running {
+        // Track whether a readiness watcher was spawned so the completion
+        // event carries an accurate message (watcher ≠ ready).
+        let watcher_spawned = if running {
             if let Some(ref r) = recipe.readiness {
                 let pattern = r.log_pattern.clone();
                 let timeout = std::time::Duration::from_secs(r.timeout_secs);
@@ -495,6 +497,7 @@ impl ServerLifecycle for LocalServerHost {
                     pattern,
                     timeout,
                 );
+                true
             } else {
                 queries::update_cubelit_status(
                     &self.db,
@@ -503,21 +506,27 @@ impl ServerLifecycle for LocalServerHost {
                     Some(Some(&container_id)),
                 )
                 .await?;
+                false
             }
         } else {
             queries::update_cubelit_status(&self.db, &id, "error", Some(Some(&container_id)))
                 .await?;
-        }
+            false
+        };
 
         let updated = queries::get_cubelit(&self.db, &id).await?;
 
         events.emit(CoreEvent::ServerCreateProgress(ServerCreateProgress {
             step: "ready".into(),
             progress: Some(1.0),
-            message: if running {
-                "Server is ready!".into()
-            } else {
+            message: if !running {
                 "Server started but may have encountered an error.".into()
+            } else if watcher_spawned {
+                // Container is up but the readiness pattern hasn't matched yet.
+                // The watcher will emit ServerStatusChanged when it does.
+                "Server is starting up — monitoring logs for readiness...".into()
+            } else {
+                "Server is ready!".into()
             },
         }));
 
@@ -942,6 +951,46 @@ pub async fn sync_all_servers(
     queries::list_cubelits(db).await
 }
 
+/// At startup, promote any server stuck in `"starting"` to `"running"` when
+/// Docker confirms its container is actually up.
+///
+/// Readiness watchers are in-process tokio tasks — they die with the process.
+/// If CubeLit restarts while a server is still in `"starting"` state, no
+/// watcher is re-attached, so the status would be stuck forever. Call this
+/// once at startup, **after** `sync_all_servers` and **before** spawning any
+/// new readiness watchers, to clean up orphaned starting states.
+///
+/// Servers whose container is not running (or has no container) are left
+/// unchanged; `sync_all_servers` already reconciled them to `"stopped"`.
+pub async fn reconcile_orphaned_starting_servers(
+    docker: &bollard::Docker,
+    db: &SqlitePool,
+) -> CoreResult<()> {
+    let cubelits = queries::list_cubelits(db).await?;
+    for cubelit in &cubelits {
+        if cubelit.status != "starting" {
+            continue;
+        }
+        let is_running = match &cubelit.container_id {
+            Some(cid) => match docker.inspect_container(cid, None).await {
+                Ok(info) => info.state.and_then(|s| s.running).unwrap_or(false),
+                Err(_) => false,
+            },
+            None => false,
+        };
+        if is_running {
+            queries::update_cubelit_status(db, &cubelit.id, "running", None).await?;
+            tracing::warn!(
+                server_id = %cubelit.id,
+                name = %cubelit.name,
+                "Server was in 'starting' with no active readiness watcher (process restart?); \
+                promoted to 'running' — it may not yet be accepting connections",
+            );
+        }
+    }
+    Ok(())
+}
+
 // ─── Unit tests (no Docker required) ─────────────────────────────────────────
 
 #[cfg(test)]
@@ -999,6 +1048,102 @@ mod tests {
             "expected NotFound, got: {:?}",
             err
         );
+    }
+
+    fn starting_cubelit(id: &str) -> Cubelit {
+        Cubelit {
+            id: id.to_string(),
+            name: "Test Server".to_string(),
+            game: "Test Game".to_string(),
+            recipe_id: "test".to_string(),
+            docker_image: "test:1.0".to_string(),
+            container_id: None,
+            status: "starting".to_string(),
+            port_mappings: "{}".to_string(),
+            environment: "{}".to_string(),
+            volume_path: "/tmp".to_string(),
+            container_mount_path: "/data".to_string(),
+            sidecar_container_id: None,
+            sidecar_image: None,
+            created_at: "2024-01-01T00:00:00Z".to_string(),
+            updated_at: "2024-01-01T00:00:00Z".to_string(),
+        }
+    }
+
+    #[tokio::test]
+    async fn sync_single_preserves_starting_when_no_container() {
+        // A server in "starting" with no container_id (e.g. created but container
+        // not yet assigned) must not be demoted — no Docker call is made.
+        let host = test_host().await;
+        let cubelit = starting_cubelit("sync-nocontainer");
+        queries::insert_cubelit(&host.db, &cubelit).await.unwrap();
+
+        let status = sync_single_server(&host.docker, &host.db, &cubelit)
+            .await
+            .unwrap();
+
+        assert_eq!(
+            status, "starting",
+            "no-container starting server must stay starting"
+        );
+        // DB row also unchanged
+        let row = queries::get_cubelit(&host.db, "sync-nocontainer")
+            .await
+            .unwrap();
+        assert_eq!(row.status, "starting");
+    }
+
+    #[tokio::test]
+    async fn reconcile_orphaned_noop_when_no_container() {
+        // With no container_id, Docker inspect is never attempted, so the
+        // server stays in "starting" (no promotion).
+        let host = test_host().await;
+        let cubelit = starting_cubelit("orphan-nocontainer");
+        queries::insert_cubelit(&host.db, &cubelit).await.unwrap();
+
+        reconcile_orphaned_starting_servers(&host.docker, &host.db)
+            .await
+            .unwrap();
+
+        let row = queries::get_cubelit(&host.db, "orphan-nocontainer")
+            .await
+            .unwrap();
+        assert_eq!(
+            row.status, "starting",
+            "no-container server must not be promoted"
+        );
+    }
+
+    #[tokio::test]
+    async fn reconcile_orphaned_noop_for_non_starting_statuses() {
+        // Only "starting" servers are candidates for promotion.
+        let host = test_host().await;
+        for (id, status) in [
+            ("orphan-running", "running"),
+            ("orphan-stopped", "stopped"),
+            ("orphan-error", "error"),
+        ] {
+            let mut c = starting_cubelit(id);
+            c.status = status.to_string();
+            queries::insert_cubelit(&host.db, &c).await.unwrap();
+        }
+
+        reconcile_orphaned_starting_servers(&host.docker, &host.db)
+            .await
+            .unwrap();
+
+        for (id, expected_status) in [
+            ("orphan-running", "running"),
+            ("orphan-stopped", "stopped"),
+            ("orphan-error", "error"),
+        ] {
+            let row = queries::get_cubelit(&host.db, id).await.unwrap();
+            assert_eq!(
+                row.status, expected_status,
+                "non-starting server '{}' must not be touched",
+                id
+            );
+        }
     }
 
     #[test]

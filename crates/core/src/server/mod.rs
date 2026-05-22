@@ -14,7 +14,9 @@ pub mod types;
 pub mod watchers;
 
 pub use lifecycle::ServerLifecycle;
-pub use local::{sync_all_servers, sync_single_server, LocalServerHost};
+pub use local::{
+    reconcile_orphaned_starting_servers, sync_all_servers, sync_single_server, LocalServerHost,
+};
 pub use runner::ServerRunner;
 pub use types::CreateServerConfig;
 pub use watchers::{

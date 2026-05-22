@@ -68,6 +68,15 @@ pub fn run() {
                 )
                 .await;
 
+                // Promote any server stuck in "starting" to "running" — the
+                // readiness watcher task dies with the process, so after a
+                // restart there is no watcher to advance the status.
+                let _ = cubelit_core::server::reconcile_orphaned_starting_servers(
+                    &state.host.docker,
+                    &state.host.db,
+                )
+                .await;
+
                 // Clone handles before moving state into manage()
                 let watcher_docker = state.host.docker.clone();
                 let watcher_db = state.host.db.clone();
