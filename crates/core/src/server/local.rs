@@ -104,6 +104,23 @@ impl LocalServerHost {
         }
     }
 
+    /// Create host-side directories for recipe volumes beyond the primary (index 0).
+    /// Each additional volume gets a subdirectory under `volume_path` named after
+    /// the last segment of its container path (e.g. `/opt/valheim` → `{volume_path}/valheim`).
+    fn create_additional_volume_dirs(
+        volume_path: &str,
+        recipe: &recipes::Recipe,
+    ) -> CoreResult<()> {
+        for v in recipe.volumes.iter().skip(1) {
+            let segment = std::path::Path::new(&v.container_path)
+                .file_name()
+                .and_then(|s| s.to_str())
+                .unwrap_or("data");
+            std::fs::create_dir_all(format!("{}/{}", volume_path, segment))?;
+        }
+        Ok(())
+    }
+
     fn fivem_mysql_connection_string(db_container_name: &str, db_password: &str) -> String {
         if db_password.is_empty() {
             format!("mysql://root@{}:3306/fivem", db_container_name)
@@ -366,6 +383,7 @@ impl ServerLifecycle for LocalServerHost {
             }
         };
         std::fs::create_dir_all(&volume_path)?;
+        Self::create_additional_volume_dirs(&volume_path, &recipe)?;
 
         // Get container mount path from recipe (e.g. "/data" for Minecraft, "/config" for FiveM)
         let container_mount_path = recipe
@@ -444,7 +462,8 @@ impl ServerLifecycle for LocalServerHost {
 
         // Re-read cubelit from DB to get updated env (with sidecar connection string)
         let cubelit = queries::get_cubelit(&self.db, &id).await?;
-        let extra_binds: Vec<String> = self.extra_binds_for(&cubelit);
+        let mut extra_binds = self.extra_binds_for(&cubelit);
+        extra_binds.extend(additional_volume_binds(&cubelit.volume_path, &recipe));
         let container_id =
             containers::create_container(&self.docker, &cubelit, &extra_binds, recipe.server_cmd.clone()).await?;
 
@@ -741,11 +760,13 @@ impl ServerLifecycle for LocalServerHost {
         // Re-read to get updated env
         let cubelit = queries::get_cubelit(&self.db, id).await?;
 
-        let extra_binds: Vec<String> = self.extra_binds_for(&cubelit);
-        // Load recipe for server_cmd and readiness config. settings changes don't
-        // alter server_cmd, so pass None if the recipe can't be found.
+        // Load recipe for server_cmd, readiness config, and additional volume binds.
         let recipe = recipes::get_recipe(&self.recipes_dir, &cubelit.recipe_id).ok();
         let server_cmd = recipe.as_ref().and_then(|r| r.server_cmd.clone());
+        let mut extra_binds = self.extra_binds_for(&cubelit);
+        if let Some(ref r) = recipe {
+            extra_binds.extend(additional_volume_binds(&cubelit.volume_path, r));
+        }
         let new_container_id =
             containers::create_container(&self.docker, &cubelit, &extra_binds, server_cmd).await?;
 
@@ -886,6 +907,30 @@ impl ServerLifecycle for LocalServerHost {
     async fn backup_server(&self, id: &str) -> CoreResult<String> {
         minecraft::backup_server(&self.db, id).await
     }
+}
+
+// ─── Volume helpers ───────────────────────────────────────────────────────────
+
+/// Build bind strings for recipe volumes at index 1+ (the primary volume at
+/// index 0 is already represented by `cubelit.volume_path`/`container_mount_path`).
+///
+/// Each additional volume is mapped to a subdirectory under `volume_path`
+/// whose name is the last path segment of the container path:
+///   `/opt/valheim`          → `{volume_path}/valheim:/opt/valheim`
+///   `/project-zomboid-config` → `{volume_path}/project-zomboid-config:/project-zomboid-config`
+pub fn additional_volume_binds(volume_path: &str, recipe: &recipes::Recipe) -> Vec<String> {
+    recipe
+        .volumes
+        .iter()
+        .skip(1)
+        .map(|v| {
+            let segment = std::path::Path::new(&v.container_path)
+                .file_name()
+                .and_then(|s| s.to_str())
+                .unwrap_or("data");
+            format!("{}/{}:{}", volume_path, segment, v.container_path)
+        })
+        .collect()
 }
 
 // ─── Free helpers (used by lifecycle methods + the desktop crash watcher) ───
@@ -1158,5 +1203,72 @@ mod tests {
             LocalServerHost::fivem_mysql_connection_string(container_name, "test-secret"),
             "mysql://root:test-secret@cubelit-test-db:3306/fivem"
         );
+    }
+
+    fn make_recipe(container_paths: &[&str]) -> crate::recipes::Recipe {
+        crate::recipes::Recipe {
+            id: "test".into(),
+            name: "Test".into(),
+            description: "".into(),
+            icon: "test".into(),
+            docker_image: "test/image".into(),
+            default_tag: "latest".into(),
+            ports: vec![],
+            environment: vec![],
+            volumes: container_paths
+                .iter()
+                .map(|p| crate::recipes::RecipeVolume {
+                    container_path: p.to_string(),
+                    label: p.to_string(),
+                })
+                .collect(),
+            config_files: vec![],
+            mods: None,
+            available: true,
+            estimated_disk_mb: 0,
+            tags: vec![],
+            server_cmd: None,
+            readiness: None,
+        }
+    }
+
+    #[test]
+    fn additional_volume_binds_single_volume_returns_empty() {
+        let recipe = make_recipe(&["/data"]);
+        let binds = additional_volume_binds("/home/user/Cubelit/MyServer", &recipe);
+        assert!(binds.is_empty());
+    }
+
+    #[test]
+    fn additional_volume_binds_valheim_layout() {
+        // Valheim: volumes[0]=/config (primary), volumes[1]=/opt/valheim (secondary)
+        let recipe = make_recipe(&["/config", "/opt/valheim"]);
+        let binds = additional_volume_binds("/home/user/Cubelit/MyServer", &recipe);
+        assert_eq!(binds.len(), 1);
+        assert_eq!(
+            binds[0],
+            "/home/user/Cubelit/MyServer/valheim:/opt/valheim"
+        );
+    }
+
+    #[test]
+    fn additional_volume_binds_project_zomboid_layout() {
+        // Project Zomboid: volumes[0]=/project-zomboid, volumes[1]=/project-zomboid-config
+        let recipe = make_recipe(&["/project-zomboid", "/project-zomboid-config"]);
+        let binds = additional_volume_binds("/home/user/Cubelit/MyServer", &recipe);
+        assert_eq!(binds.len(), 1);
+        assert_eq!(
+            binds[0],
+            "/home/user/Cubelit/MyServer/project-zomboid-config:/project-zomboid-config"
+        );
+    }
+
+    #[test]
+    fn additional_volume_binds_three_volumes() {
+        let recipe = make_recipe(&["/data", "/config", "/logs"]);
+        let binds = additional_volume_binds("/srv/servers/test", &recipe);
+        assert_eq!(binds.len(), 2);
+        assert_eq!(binds[0], "/srv/servers/test/config:/config");
+        assert_eq!(binds[1], "/srv/servers/test/logs:/logs");
     }
 }
