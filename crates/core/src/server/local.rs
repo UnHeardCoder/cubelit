@@ -104,6 +104,17 @@ impl LocalServerHost {
         }
     }
 
+    fn fivem_mysql_connection_string(db_container_name: &str, db_password: &str) -> String {
+        if db_password.is_empty() {
+            format!("mysql://root@{}:3306/fivem", db_container_name)
+        } else {
+            format!(
+                "mysql://root:{}@{}:3306/fivem",
+                db_password, db_container_name
+            )
+        }
+    }
+
     /// Provision the FiveM MariaDB sidecar: pulls MariaDB image, creates
     /// the cubelit-{id}-net network, creates and starts the MariaDB
     /// container, persists the sidecar info on the server row, and
@@ -219,14 +230,7 @@ impl LocalServerHost {
         queries::update_cubelit_sidecar(&self.db, id, &sidecar_id, mariadb_image).await?;
 
         // Add MySQL connection string to FiveM env (root user, password may be empty)
-        let conn_str = if db_password.is_empty() {
-            format!("mysql://root@{}:3306/fivem", db_container_name)
-        } else {
-            format!(
-                "mysql://root:{}@{}:3306/fivem",
-                db_password, db_container_name
-            )
-        };
+        let conn_str = Self::fivem_mysql_connection_string(&db_container_name, &db_password);
         env.insert("MYSQL_CONNECTION_STRING".to_string(), conn_str);
 
         // txAdmin mode: skip server.cfg and let txAdmin manage the server via its web UI.
@@ -993,6 +997,20 @@ mod tests {
             matches!(err, crate::error::CoreError::NotFound(_)),
             "expected NotFound, got: {:?}",
             err
+        );
+    }
+
+    #[test]
+    fn fivem_mysql_connection_string_handles_empty_and_non_empty_passwords() {
+        let container_name = "cubelit-test-db";
+
+        assert_eq!(
+            LocalServerHost::fivem_mysql_connection_string(container_name, ""),
+            "mysql://root@cubelit-test-db:3306/fivem"
+        );
+        assert_eq!(
+            LocalServerHost::fivem_mysql_connection_string(container_name, "test-secret"),
+            "mysql://root:test-secret@cubelit-test-db:3306/fivem"
         );
     }
 }
