@@ -7,7 +7,11 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [0.2.0] — 2026-05-01
+## [Unreleased]
+
+---
+
+## [0.2.0] — 2026-05-24
 
 ### Added
 - Full UI overhaul: Console design direction (Pterodactyl-meets-Linear aesthetic)
@@ -28,16 +32,18 @@ Versions follow [Semantic Versioning](https://semver.org/).
 ### Changed
 - Design tokens shifted to deeper, more refined Console palette
 - Sidebar upgraded from fixed 64px icon rail to collapsible with server list
-- All 8 coming-soon recipes enabled for testing (Bedrock, ARK, CS2, Palworld, Project Zomboid, Rust, Terraria, Valheim)
+- All 8 previously coming-soon games are now fully available (Bedrock, ARK, CS2, Palworld, Project Zomboid, Rust, Terraria, Valheim)
+- All bundled recipe `default_tag` values pinned to specific image versions (no `latest`)
 - StatusRibbon replaced by StatusPill across all card components
 - GenericDashboard rebuilt with Console-direction layout
 
-### Notes
-- Recipes enabled with `latest` tags for testing — audit and pin before v0.2.0 release tag
-
----
-
-## [Unreleased]
+### Fixed
+- FiveM sidecar MariaDB connection string now uses the correct `mariadb://` DSN format; sidecar container naming and network join corrected
+- Terraria recipe `server_cmd` field is now preserved when applying settings changes (was silently dropped on container recreate)
+- Readiness watcher lifecycle corrected: server status transitions to `Running` only after the "Done" log line; startup sync no longer clobbers a server still in the readiness window
+- All volumes declared in a recipe are now mounted (previously only the first volume entry was applied)
+- Partial resources (container, DB row, volumes) are cleaned up when `create_server` fails mid-way, leaving no orphaned state
+- Loading states, action buttons, and modals polished across the dashboard and create flow
 
 ---
 

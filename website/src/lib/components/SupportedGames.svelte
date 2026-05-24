@@ -8,14 +8,14 @@
   const games: Game[] = [
     { name: 'Minecraft Java', description: 'Java Edition', available: true },
     { name: 'FiveM', description: 'GTA V Multiplayer', available: true },
-    { name: 'Minecraft Bedrock', description: 'Bedrock Edition', available: false },
-    { name: 'ARK', description: 'Survival Evolved', available: false },
-    { name: 'CS2', description: 'Counter-Strike 2', available: false },
-    { name: 'Palworld', description: 'Survival Crafting', available: false },
-    { name: 'Project Zomboid', description: 'Survival Horror', available: false },
-    { name: 'Rust', description: 'Open World Survival', available: false },
-    { name: 'Terraria', description: '2D Adventure', available: false },
-    { name: 'Valheim', description: 'Viking Survival', available: false },
+    { name: 'Minecraft Bedrock', description: 'Bedrock Edition', available: true },
+    { name: 'ARK', description: 'Survival Evolved', available: true },
+    { name: 'CS2', description: 'Counter-Strike 2', available: true },
+    { name: 'Palworld', description: 'Survival Crafting', available: true },
+    { name: 'Project Zomboid', description: 'Survival Horror', available: true },
+    { name: 'Rust', description: 'Open World Survival', available: true },
+    { name: 'Terraria', description: '2D Adventure', available: true },
+    { name: 'Valheim', description: 'Viking Survival', available: true },
   ]
 </script>
 

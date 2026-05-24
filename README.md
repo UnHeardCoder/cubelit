@@ -37,24 +37,24 @@ Built with a Rust backend for performance and reliability, and a Svelte 5 fronte
 - **Automatic state sync** — On startup, Cubelit inspects Docker to sync server statuses with reality
 - **Port management** — Built-in port availability checking with auto-suggestions
 - **Persistent data** — Each server gets its own volume directory that survives restarts and upgrades
-- **Dark theme** — Clean, purpose-built dark UI
+- **Dark/light theme** — Theme toggle persisted to localStorage; clean purpose-built Console design
 
 ## Supported Games
 
-> **Note:** Only Minecraft Java and FiveM are fully supported in v0.1. The remaining games are listed as roadmap targets. Coming Soon entries appear in the UI but cannot be configured yet.
+All 10 games ship as ready-to-use recipes in v0.2.0.
 
 | Game | Docker Image | Mods | Status |
 |:-----|:-------------|:----:|:------:|
 | Minecraft Java | `itzg/minecraft-server` | Yes | Available |
 | FiveM | `spritsail/fivem` | Yes | Available |
-| Minecraft Bedrock | `itzg/minecraft-bedrock-server` | -- | Coming Soon |
-| ARK: Survival Evolved | `hermsi/ark-server` | Yes | Coming Soon |
-| Counter-Strike 2 | `joedwards32/cs2` | -- | Coming Soon |
-| Palworld | `thijsvanloef/palworld-server-docker` | -- | Coming Soon |
-| Project Zomboid | `dandoby/project-zomboid` | Yes | Coming Soon |
-| Rust | `didstopia/rust-server` | Yes | Coming Soon |
-| Terraria | `ryshe/terraria` | Yes | Coming Soon |
-| Valheim | `lloesche/valheim-server` | Yes | Coming Soon |
+| Minecraft Bedrock | `itzg/minecraft-bedrock-server` | -- | Available |
+| ARK: Survival Evolved | `hermsi/ark-server` | Yes | Available |
+| Counter-Strike 2 | `joedwards32/cs2` | -- | Available |
+| Palworld | `thijsvanloef/palworld-server-docker` | -- | Available |
+| Project Zomboid | `indifferentbroccoli/projectzomboid-server-docker` | Yes | Available |
+| Rust | `didstopia/rust-server` | Yes | Available |
+| Terraria | `ryshe/terraria` | Yes | Available |
+| Valheim | `lloesche/valheim-server` | Yes | Available |
 
 Each game is defined as a JSON recipe in `src-tauri/recipes/`. Adding a new game is as simple as creating a new recipe file — no code changes required.
 
@@ -120,10 +120,10 @@ Produces platform-specific installers in `src-tauri/target/release/bundle/`.
 bun run check
 
 # Type-check the Rust backend (fast, no full build)
-cd src-tauri && cargo check
+SQLX_OFFLINE=true cargo check --workspace --all-targets
 
 # Lint Rust code
-cd src-tauri && cargo clippy
+SQLX_OFFLINE=true cargo clippy --workspace --all-targets
 
 # Run the frontend Vite server standalone (without Tauri)
 bun run dev
@@ -142,18 +142,19 @@ src/                          # Frontend (SvelteKit)
     api/                      # Tauri IPC wrappers
     stores/                   # Svelte 5 rune-based state
     components/               # Reusable UI components
+    games/                    # Game registry + per-game Setup/Dashboard components
     types/                    # TypeScript interfaces
 
-src-tauri/                    # Backend (Rust)
+crates/
+  core/                       # cubelit-core — all business logic (Docker, DB, recipes, lifecycle)
+  cli/                        # cubelit-cli — standalone CLI sharing cubelit-core
+
+src-tauri/                    # Tauri desktop crate — thin IPC transport layer
   src/
     lib.rs                    # App entry — setup, command registration
-    state.rs                  # AppState (Docker + SQLite)
-    error.rs                  # Error types
-    recipes.rs                # Recipe JSON loader
-    ports.rs                  # Port availability utils
-    db/                       # SQLite schema, models, queries
-    docker/                   # Docker operations (health, containers, images, logs, stats)
-    commands/                 # Tauri IPC command handlers
+    state.rs                  # AppState wrapping LocalServerHost
+    event_sink.rs             # TauriEventSink (maps CoreEvents → Tauri emit)
+    commands/                 # Tauri IPC command shims (3–7 lines each)
   recipes/                    # Game server JSON templates
   tauri.conf.json             # Tauri configuration
 ```
@@ -240,7 +241,7 @@ All Docker operations, database access, recipe parsing, and port management happ
 - [x] **Open folder** — Jump to server files, mods, or plugins in the OS file manager
 - [ ] **Server updates** — One-click Docker image pull + container recreate
 - [ ] **System tray** — Background operation with tray icon
-- [ ] **More games** — 8 recipes are stubbed (ARK, CS2, Minecraft Bedrock, Palworld, Project Zomboid, Rust, Terraria, Valheim)
+- [x] **More games** — all 10 recipes available (ARK, CS2, Minecraft Bedrock, Palworld, Project Zomboid, Rust, Terraria, Valheim added in v0.2.0)
 
 ## License
 

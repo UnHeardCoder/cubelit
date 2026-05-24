@@ -30,8 +30,8 @@ See the Git Workflow section in [CLAUDE.md](./CLAUDE.md). Never commit directly 
 ## Running Tests
 
 ```bash
-# Rust (from src-tauri/)
-SQLX_OFFLINE=true cargo test
+# Rust (from repo root)
+SQLX_OFFLINE=true cargo test --workspace
 
 # TypeScript / Svelte
 bun run test
@@ -61,15 +61,14 @@ The fastest way to add a game is a JSON-only recipe in `src-tauri/recipes/`. No 
 
 ## Updating sqlx Queries
 
-After adding or changing a query in `src-tauri/src/db/queries.rs`:
+After adding or changing a query in `crates/core/src/db/queries.rs`:
 
 ```bash
-cd src-tauri
-DATABASE_URL=sqlite:///tmp/cubelit-dev.db sqlx migrate run
-DATABASE_URL=sqlite:///tmp/cubelit-dev.db cargo sqlx prepare
+DATABASE_URL=sqlite:///tmp/cubelit-dev.db sqlx migrate run --source crates/core/migrations
+DATABASE_URL=sqlite:///tmp/cubelit-dev.db cargo sqlx prepare --workspace
 ```
 
-Commit the updated `.sqlx/` directory alongside your query changes.
+Commit the updated `crates/core/.sqlx/` directory alongside your query changes.
 
 ## Architecture Overview
 
