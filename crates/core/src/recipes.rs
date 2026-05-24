@@ -220,4 +220,126 @@ mod tests {
         let err = get_recipe(dir.path(), "does-not-exist").unwrap_err();
         assert!(matches!(err, CoreError::NotFound(_)));
     }
+
+    /// Validates all bundled recipes in src-tauri/recipes/ at compile time.
+    ///
+    /// Images listed here genuinely publish no stable version tags — only SHA
+    /// commits, rolling timestamp aliases, or a single "latest" blob. They are
+    /// documented exceptions to the pinned-tag policy.
+    #[test]
+    fn bundled_recipes_pass_validation() {
+        let recipes_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../src-tauri/recipes");
+
+        if !recipes_dir.exists() {
+            return; // not running from a full monorepo checkout
+        }
+
+        let recipes = load_recipes(&recipes_dir).expect("failed to load bundled recipes");
+        assert!(
+            !recipes.is_empty(),
+            "no recipes found in {}",
+            recipes_dir.display()
+        );
+
+        // Images that publish no stable version tags — keep in sync with the
+        // reasoning in crates/core/src/recipes.rs when updating.
+        let no_semver_images: std::collections::HashSet<&str> = [
+            "lloesche/valheim-server", // only SHA-based commit tags, no semver
+            "didstopia/rust-server",   // only latest/full/development, no version tags
+            "hermsi/ark-server",       // only timestamp-based latest-{unix} aliases, no semver
+        ]
+        .into_iter()
+        .collect();
+
+        const VALID_FIELD_TYPES: &[&str] = &["string", "number", "boolean", "select", "ram"];
+        const VALID_PROTOCOLS: &[&str] = &["tcp", "udp"];
+
+        let mut seen_ids = std::collections::HashSet::new();
+        for r in &recipes {
+            let ctx = format!("recipe '{}'", r.id);
+
+            // IDs must be unique
+            assert!(
+                seen_ids.insert(r.id.clone()),
+                "{ctx}: duplicate recipe id"
+            );
+
+            // Required string fields must not be empty
+            assert!(!r.id.is_empty(), "{ctx}: id is empty");
+            assert!(!r.name.is_empty(), "{ctx}: name is empty");
+            assert!(!r.docker_image.is_empty(), "{ctx}: docker_image is empty");
+            assert!(!r.default_tag.is_empty(), "{ctx}: default_tag is empty");
+
+            // Available recipes must pin a specific tag (not the rolling "latest")
+            if r.available && !no_semver_images.contains(r.docker_image.as_str()) {
+                assert_ne!(
+                    r.default_tag, "latest",
+                    "{ctx}: available recipe uses unpinned 'latest' tag \
+                     (image: {}). Pin to a specific version tag or add the \
+                     image to the no_semver_images list with a reason.",
+                    r.docker_image
+                );
+            }
+
+            // Port validation
+            let mut port_keys: std::collections::HashSet<(u16, &str)> =
+                std::collections::HashSet::new();
+            for p in &r.ports {
+                assert!(
+                    p.container_port > 0,
+                    "{ctx}: port '{}' has zero container_port",
+                    p.label
+                );
+                assert!(
+                    p.default_host_port > 0,
+                    "{ctx}: port '{}' has zero default_host_port",
+                    p.label
+                );
+                assert!(
+                    VALID_PROTOCOLS.contains(&p.protocol.as_str()),
+                    "{ctx}: port '{}' has invalid protocol '{}' (must be tcp or udp)",
+                    p.label,
+                    p.protocol
+                );
+                // Duplicate (container_port, protocol) within one recipe → Docker binding conflict
+                assert!(
+                    port_keys.insert((p.container_port, p.protocol.as_str())),
+                    "{ctx}: duplicate (container_port={}, protocol={}) — \
+                     Docker cannot bind the same port/protocol twice",
+                    p.container_port,
+                    p.protocol
+                );
+            }
+
+            // Environment variable validation
+            for env in &r.environment {
+                assert!(!env.key.is_empty(), "{ctx}: env var with empty key");
+                assert!(
+                    VALID_FIELD_TYPES.contains(&env.field_type.as_str()),
+                    "{ctx}: env '{}' has invalid type '{}' (valid: {})",
+                    env.key,
+                    env.field_type,
+                    VALID_FIELD_TYPES.join(", ")
+                );
+                if env.field_type == "select" {
+                    assert!(
+                        !env.options.is_empty(),
+                        "{ctx}: env '{}' is type 'select' but has no options",
+                        env.key
+                    );
+                }
+            }
+
+            // Volume container paths must be absolute
+            for v in &r.volumes {
+                assert!(
+                    v.container_path.starts_with('/'),
+                    "{ctx}: volume '{}' has non-absolute container_path '{}'",
+                    v.label,
+                    v.container_path
+                );
+            }
+        }
+    }
 }

@@ -5,7 +5,7 @@
   "icon": "cs2",
   "available": true,
   "docker_image": "joedwards32/cs2",
-  "default_tag": "latest",
+  "default_tag": "3.0.6",
   "ports": [
     {
       "container_port": 27015,

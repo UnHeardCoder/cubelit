@@ -5,7 +5,7 @@
   "icon": "palworld",
   "available": true,
   "docker_image": "thijsvanloef/palworld-server-docker",
-  "default_tag": "latest",
+  "default_tag": "v2.3.2",
   "ports": [
     {
       "container_port": 8211,

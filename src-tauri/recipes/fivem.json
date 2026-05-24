@@ -5,7 +5,7 @@
   "icon": "fivem",
   "available": true,
   "docker_image": "spritsail/fivem",
-  "default_tag": "latest",
+  "default_tag": "29753",
   "ports": [
     {
       "container_port": 30120,

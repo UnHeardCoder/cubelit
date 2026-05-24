@@ -5,7 +5,7 @@
   "icon": "terraria",
   "available": true,
   "docker_image": "ryshe/terraria",
-  "default_tag": "latest",
+  "default_tag": "tshock-1.4.4.9-5.2.4",
   "server_cmd": ["-autocreate", "2", "-worldname", "CubelitWorld"],
   "ports": [
     {
@@ -47,8 +47,8 @@
   "config_files": [],
   "mods": {
     "supported": true,
-    "path": "tModLoader/Mods",
-    "file_types": [".tmod"]
+    "path": "ServerPlugins",
+    "file_types": [".dll"]
   },
   "estimated_disk_mb": 1000,
   "tags": ["sandbox", "moddable"],

@@ -5,7 +5,7 @@
   "icon": "project-zomboid",
   "available": true,
   "docker_image": "indifferentbroccoli/projectzomboid-server-docker",
-  "default_tag": "latest",
+  "default_tag": "v1.1.6",
   "ports": [
     {
       "container_port": 16261,

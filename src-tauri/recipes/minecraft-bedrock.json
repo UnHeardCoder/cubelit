@@ -5,7 +5,7 @@
   "icon": "minecraft-bedrock",
   "available": true,
   "docker_image": "itzg/minecraft-bedrock-server",
-  "default_tag": "latest",
+  "default_tag": "2026.5.3",
   "ports": [
     {
       "container_port": 19132,
