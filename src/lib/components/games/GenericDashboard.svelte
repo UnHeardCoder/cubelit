@@ -87,9 +87,13 @@
   let envEdited = $state<Record<string, string>>({});
   let showApplyModal = $state(false);
   let applyLoading = $state(false);
+  let applyError = $state<string | null>(null);
   let showDeleteModal = $state(false);
   let deleteWithData = $state(false);
   let deleteLoading = $state(false);
+  let deleteError = $state<string | null>(null);
+  let deleteFileName = $state<string | null>(null);
+  let showDeleteFileModal = $state(false);
 
   const serversStore = getServersStore();
 
@@ -106,11 +110,12 @@
 
   async function applySettings() {
     applyLoading = true;
+    applyError = null;
     try {
       await updateServerSettings(server.id, envEdited);
       showApplyModal = false;
     } catch (e) {
-      console.error(e);
+      applyError = String(e);
     } finally {
       applyLoading = false;
     }
@@ -118,11 +123,12 @@
 
   async function handleDelete() {
     deleteLoading = true;
-    showDeleteModal = false;
+    deleteError = null;
     try {
       await serversStore.remove(server.id, deleteWithData);
       await goto('/');
-    } finally {
+    } catch (e) {
+      deleteError = String(e);
       deleteLoading = false;
     }
   }
@@ -148,8 +154,11 @@
     await loadFiles();
   }
 
-  async function handleDeleteFile(name: string) {
-    await deleteServerFile(server.id, name);
+  async function confirmDeleteFile() {
+    if (!deleteFileName) return;
+    await deleteServerFile(server.id, deleteFileName);
+    deleteFileName = null;
+    showDeleteFileModal = false;
     await loadFiles();
   }
 
@@ -176,16 +185,19 @@
 </script>
 
 <!-- Apply settings modal -->
-<Modal bind:open={showApplyModal} onclose={() => { showApplyModal = false; }} title="Apply & Restart">
+<Modal bind:open={showApplyModal} onclose={() => { if (!applyLoading) { showApplyModal = false; applyError = null; } }} title="Apply & Restart">
   <p class="text-sm text-cubelit-text-dim mb-4">Applying environment changes will recreate the container and restart the server. Continue?</p>
+  {#if applyError}
+    <p class="text-xs text-cubelit-error px-3 py-2 bg-cubelit-error/5 border border-cubelit-error/30 rounded-lg mb-3">{applyError}</p>
+  {/if}
   <div class="flex gap-2 justify-end">
-    <Button variant="ghost" onclick={() => { showApplyModal = false; }}>Cancel</Button>
+    <Button variant="ghost" onclick={() => { showApplyModal = false; applyError = null; }}>Cancel</Button>
     <Button onclick={applySettings} loading={applyLoading}>Apply & Restart</Button>
   </div>
 </Modal>
 
-<!-- Delete modal -->
-<Modal bind:open={showDeleteModal} onclose={() => { showDeleteModal = false; deleteWithData = false; }} title="Delete Server">
+<!-- Delete server modal -->
+<Modal bind:open={showDeleteModal} onclose={() => { if (!deleteLoading) { showDeleteModal = false; deleteWithData = false; deleteError = null; } }} title="Delete Server">
   <p class="text-sm text-cubelit-text-dim mb-4">
     Delete <span class="text-cubelit-text font-medium">{server.name}</span>? This will stop and remove the container.
   </p>
@@ -200,9 +212,21 @@
       {/if}
     </div>
   </label>
+  {#if deleteError}
+    <p class="text-xs text-cubelit-error px-3 py-2 bg-cubelit-error/5 border border-cubelit-error/30 rounded-lg mb-3">{deleteError}</p>
+  {/if}
   <div class="flex gap-2 justify-end">
-    <Button variant="ghost" onclick={() => { showDeleteModal = false; deleteWithData = false; }}>Cancel</Button>
+    <Button variant="ghost" onclick={() => { showDeleteModal = false; deleteWithData = false; deleteError = null; }} disabled={deleteLoading}>Cancel</Button>
     <Button variant="danger" onclick={handleDelete} loading={deleteLoading}>Delete Server</Button>
+  </div>
+</Modal>
+
+<!-- Delete file modal -->
+<Modal bind:open={showDeleteFileModal} onclose={() => { deleteFileName = null; showDeleteFileModal = false; }} title="Delete File">
+  <p class="text-sm text-cubelit-text-dim mb-4">Delete <span class="text-cubelit-text font-medium">{deleteFileName}</span>? This cannot be undone.</p>
+  <div class="flex gap-2 justify-end">
+    <Button variant="ghost" onclick={() => { deleteFileName = null; showDeleteFileModal = false; }}>Cancel</Button>
+    <Button variant="danger" onclick={confirmDeleteFile}>Delete</Button>
   </div>
 </Modal>
 
@@ -398,7 +422,7 @@
           <button
             type="button"
             aria-label="Delete {file.name}"
-            onclick={() => handleDeleteFile(file.name)}
+            onclick={() => { deleteFileName = file.name; showDeleteFileModal = true; }}
             class="text-cubelit-muted hover:text-cubelit-error transition-colors p-1"
           >
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">

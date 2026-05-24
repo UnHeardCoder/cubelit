@@ -180,24 +180,39 @@
           <div class="flex gap-2">
             {#if server.status === 'running'}
               <button type="button" onclick={() => { showRestartModal = true; }} disabled={actionLoading}
-                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white/10 text-white border border-white/20 hover:bg-white/20 backdrop-blur-sm transition-colors">
-                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12a9 9 0 1 0 3-6.7M3 3v6h6"/></svg>
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white/10 text-white border border-white/20 hover:bg-white/20 backdrop-blur-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                {#if actionLoading}
+                  <div class="spin-voxel-stack shrink-0" style="width: 10px; height: 10px; gap: 1px;">{#each Array(9) as _}<i style="border-radius: 1px;"></i>{/each}</div>
+                {:else}
+                  <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12a9 9 0 1 0 3-6.7M3 3v6h6"/></svg>
+                {/if}
                 Restart
               </button>
               <button type="button" onclick={handleStop} disabled={actionLoading}
-                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-cubelit-error border border-cubelit-error/40 bg-cubelit-error/10 hover:bg-cubelit-error/20 backdrop-blur-sm transition-colors">
-                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-cubelit-error border border-cubelit-error/40 bg-cubelit-error/10 hover:bg-cubelit-error/20 backdrop-blur-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                {#if actionLoading}
+                  <div class="spin-voxel-stack shrink-0" style="width: 10px; height: 10px; gap: 1px;">{#each Array(9) as _}<i style="border-radius: 1px;"></i>{/each}</div>
+                {:else}
+                  <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>
+                {/if}
                 Stop
               </button>
             {:else if server.status === 'starting'}
               <button type="button" onclick={handleStop} disabled={actionLoading}
-                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-cubelit-error border border-cubelit-error/40 bg-cubelit-error/10 hover:bg-cubelit-error/20 backdrop-blur-sm transition-colors">
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-cubelit-error border border-cubelit-error/40 bg-cubelit-error/10 hover:bg-cubelit-error/20 backdrop-blur-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                {#if actionLoading}
+                  <div class="spin-voxel-stack shrink-0" style="width: 10px; height: 10px; gap: 1px;">{#each Array(9) as _}<i style="border-radius: 1px;"></i>{/each}</div>
+                {/if}
                 Stop
               </button>
             {:else}
               <button type="button" onclick={handleStart} disabled={actionLoading}
-                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-cubelit-accent text-white hover:brightness-110 transition-colors">
-                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M6 4l14 8-14 8V4z"/></svg>
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-cubelit-accent text-white hover:brightness-110 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                {#if actionLoading}
+                  <div class="spin-voxel-stack shrink-0" style="width: 10px; height: 10px; gap: 1px;">{#each Array(9) as _}<i style="border-radius: 1px;"></i>{/each}</div>
+                {:else}
+                  <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M6 4l14 8-14 8V4z"/></svg>
+                {/if}
                 Start
               </button>
             {/if}

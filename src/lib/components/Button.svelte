@@ -43,7 +43,7 @@
 <button
   {type}
   class="{base} {variants[variant]} {sizes[size]} {className}"
-  {disabled}
+  disabled={disabled || loading}
   {onclick}
 >
   {#if loading}

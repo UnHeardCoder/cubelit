@@ -282,6 +282,7 @@
     try {
       const path = await backupServer(server.id);
       backupMessage = `Backup saved to: ${path}`;
+      setTimeout(() => { backupMessage = null; }, 5000);
     } catch (e) {
       backupMessage = `Backup failed: ${e}`;
     } finally {

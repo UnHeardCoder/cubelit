@@ -103,7 +103,8 @@
     <button
       type="button"
       onclick={() => { if (step === 1) goto('/'); else if (step === 2) { imageTagOverride = null; step = 1; } else step = 2; }}
-      class="inline-flex items-center gap-1.5 text-cubelit-text-dim hover:text-cubelit-text transition-colors text-sm mb-4"
+      disabled={creating}
+      class="inline-flex items-center gap-1.5 text-cubelit-text-dim hover:text-cubelit-text transition-colors text-sm mb-4 disabled:opacity-40 disabled:cursor-not-allowed"
     >
       <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
         <path stroke-linecap="round" stroke-linejoin="round" d="M15 6l-9 6 9 6"/>
@@ -256,7 +257,7 @@
 
       <div class="flex gap-2 mt-4">
         <Button variant="ghost" onclick={() => { step = 2; }}>Back</Button>
-        <Button onclick={handleCreate}>Create server</Button>
+        <Button onclick={handleCreate} loading={creating} disabled={creating}>Create server</Button>
       </div>
     </div>
   {/if}
