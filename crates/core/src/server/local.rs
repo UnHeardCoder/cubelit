@@ -51,6 +51,84 @@ pub struct LocalServerHost {
     pub recipes_dir: PathBuf,
 }
 
+/// Tracks partial resources created during [`LocalServerHost::create_server`] so
+/// they can be rolled back if provisioning fails at any later step.
+///
+/// Cleanup order: main container → sidecar container → Docker network →
+/// DB row → auto-generated volume directory.  Errors during cleanup are
+/// logged but never propagated — the caller always receives the original
+/// create error.
+struct CreateGuard {
+    id: String,
+    /// `Some(path)` only when CubeLit auto-generated the volume path AND the
+    /// directory did not exist before this create attempt.  `None` means either
+    /// the user supplied the path (never remove) or the directory already existed
+    /// (don't wipe pre-existing data).
+    auto_volume_path: Option<String>,
+    db_row_inserted: bool,
+    main_container_id: Option<String>,
+    sidecar_container_id: Option<String>,
+    network_name: Option<String>,
+}
+
+impl CreateGuard {
+    fn new(id: String, auto_volume_path: Option<String>) -> Self {
+        Self {
+            id,
+            auto_volume_path,
+            db_row_inserted: false,
+            main_container_id: None,
+            sidecar_container_id: None,
+            network_name: None,
+        }
+    }
+
+    async fn cleanup(self, docker: &bollard::Docker, db: &SqlitePool) {
+        // Remove main container (force=true handles containers that are still running)
+        if let Some(ref cid) = self.main_container_id {
+            if let Err(e) = containers::remove_container(docker, cid).await {
+                error!(server_id = %self.id, container_id = %cid, error = %e,
+                    "Cleanup: failed to remove main container");
+            }
+        }
+
+        // Stop and remove sidecar container
+        if let Some(ref sidecar_id) = self.sidecar_container_id {
+            let _ = containers::stop_container(docker, sidecar_id).await;
+            if let Err(e) = containers::remove_container(docker, sidecar_id).await {
+                error!(server_id = %self.id, container_id = %sidecar_id, error = %e,
+                    "Cleanup: failed to remove sidecar container");
+            }
+        }
+
+        // Remove Docker network (after containers are detached/removed so no active endpoints)
+        if let Some(ref net) = self.network_name {
+            if let Err(e) = docker.remove_network(net).await {
+                error!(server_id = %self.id, network = %net, error = %e,
+                    "Cleanup: failed to remove Docker network");
+            }
+        }
+
+        // Delete DB row
+        if self.db_row_inserted {
+            if let Err(e) = queries::delete_cubelit(db, &self.id).await {
+                error!(server_id = %self.id, error = %e,
+                    "Cleanup: failed to delete DB row");
+            }
+        }
+
+        // Remove auto-generated volume dir only when CubeLit created it fresh this attempt
+        if let Some(ref path) = self.auto_volume_path {
+            if let Err(e) = std::fs::remove_dir_all(path) {
+                if e.kind() != std::io::ErrorKind::NotFound {
+                    error!(server_id = %self.id, path = %path, error = %e,
+                        "Cleanup: failed to remove auto volume dir");
+                }
+            }
+        }
+    }
+}
+
 impl LocalServerHost {
     /// Connect to the local Docker socket, open the SQLite pool, and run
     /// migrations. Returns ready-to-use `LocalServerHost`.
@@ -140,6 +218,7 @@ impl LocalServerHost {
         id: &str,
         env: &mut HashMap<String, String>,
         events: &dyn EventSink,
+        guard: &mut CreateGuard,
     ) -> CoreResult<()> {
         events.emit(CoreEvent::ServerCreateProgress(ServerCreateProgress {
             step: "creating".into(),
@@ -166,6 +245,7 @@ impl LocalServerHost {
             ..Default::default()
         };
         self.docker.create_network(network_config).await?;
+        guard.network_name = Some(network_name.clone());
 
         // Create MariaDB data directory
         let db_data_dir = self.data_dir.join("servers").join(id).join("db");
@@ -225,6 +305,7 @@ impl LocalServerHost {
             .create_container(Some(db_create_opts), db_config)
             .await?;
         let sidecar_id = db_response.id;
+        guard.sidecar_container_id = Some(sidecar_id.clone());
 
         // Connect MariaDB container to the network
         self.docker
@@ -361,6 +442,7 @@ impl ServerLifecycle for LocalServerHost {
         // empty on first boot. If the default path already has content (e.g. from a previously
         // deleted server with the same name whose files were kept), fall back to a unique path
         // using the server ID so the image always starts with an empty volume.
+        let volume_path_is_auto = config.volume_path.is_none();
         let volume_path = if let Some(ref vp) = config.volume_path {
             vp.clone()
         } else {
@@ -379,6 +461,9 @@ impl ServerLifecycle for LocalServerHost {
                 base_path.to_string_lossy().to_string()
             }
         };
+        // Decide cleanup path BEFORE creating the directory: only remove if CubeLit
+        // auto-generated it AND it didn't exist yet (don't wipe pre-existing data).
+        let cleanup_vol = cleanup_volume_path(&volume_path, !volume_path_is_auto);
         std::fs::create_dir_all(&volume_path)?;
         Self::create_additional_volume_dirs(&volume_path, &recipe)?;
 
@@ -436,6 +521,8 @@ impl ServerLifecycle for LocalServerHost {
         };
 
         queries::insert_cubelit(&self.db, &cubelit).await?;
+        let mut guard = CreateGuard::new(id.clone(), cleanup_vol);
+        guard.db_row_inserted = true;
 
         events.emit(CoreEvent::ServerCreateProgress(ServerCreateProgress {
             step: "pulling".into(),
@@ -443,12 +530,22 @@ impl ServerLifecycle for LocalServerHost {
             message: format!("Pulling image {}...", image),
         }));
 
-        images::pull_image(&self.docker, &image, events.as_ref()).await?;
+        if let Err(e) = images::pull_image(&self.docker, &image, events.as_ref()).await {
+            error!(server_id = %id, error = %e, "create_server: image pull failed; cleaning up");
+            guard.cleanup(&self.docker, &self.db).await;
+            return Err(e);
+        }
 
         // FiveM sidecar: MariaDB + Docker network
         if cubelit.recipe_id == "fivem" {
-            self.provision_fivem_sidecar(&id, &mut env, events.as_ref())
-                .await?;
+            if let Err(e) = self
+                .provision_fivem_sidecar(&id, &mut env, events.as_ref(), &mut guard)
+                .await
+            {
+                error!(server_id = %id, error = %e, "create_server: FiveM sidecar failed; cleaning up");
+                guard.cleanup(&self.docker, &self.db).await;
+                return Err(e);
+            }
         }
 
         events.emit(CoreEvent::ServerCreateProgress(ServerCreateProgress {
@@ -458,17 +555,40 @@ impl ServerLifecycle for LocalServerHost {
         }));
 
         // Re-read cubelit from DB to get updated env (with sidecar connection string)
-        let cubelit = queries::get_cubelit(&self.db, &id).await?;
+        let cubelit = match queries::get_cubelit(&self.db, &id).await {
+            Ok(c) => c,
+            Err(e) => {
+                error!(server_id = %id, error = %e, "create_server: DB refresh failed; cleaning up");
+                guard.cleanup(&self.docker, &self.db).await;
+                return Err(e);
+            }
+        };
         let mut extra_binds = self.extra_binds_for(&cubelit);
         extra_binds.extend(additional_volume_binds(&cubelit.volume_path, &recipe));
-        let container_id =
-            containers::create_container(&self.docker, &cubelit, &extra_binds, recipe.server_cmd.clone()).await?;
+
+        let container_id = match containers::create_container(
+            &self.docker,
+            &cubelit,
+            &extra_binds,
+            recipe.server_cmd.clone(),
+        )
+        .await
+        {
+            Ok(cid) => cid,
+            Err(e) => {
+                error!(server_id = %id, error = %e, "create_server: container creation failed; cleaning up");
+                guard.cleanup(&self.docker, &self.db).await;
+                return Err(e);
+            }
+        };
+        guard.main_container_id = Some(container_id.clone());
 
         // If FiveM, connect the main container to the network too
         if cubelit.recipe_id == "fivem" {
             let network_name = format!("cubelit-{}-net", id);
             let container_name = format!("cubelit-{}", id);
-            self.docker
+            if let Err(e) = self
+                .docker
                 .connect_network(
                     &network_name,
                     bollard::models::NetworkConnectRequest {
@@ -476,7 +596,12 @@ impl ServerLifecycle for LocalServerHost {
                         endpoint_config: None,
                     },
                 )
-                .await?;
+                .await
+            {
+                error!(server_id = %id, error = %e, "create_server: network connect failed; cleaning up");
+                guard.cleanup(&self.docker, &self.db).await;
+                return Err(e.into());
+            }
         }
 
         events.emit(CoreEvent::ServerCreateProgress(ServerCreateProgress {
@@ -485,9 +610,14 @@ impl ServerLifecycle for LocalServerHost {
             message: "Starting server...".into(),
         }));
 
-        containers::start_container(&self.docker, &container_id).await?;
+        if let Err(e) = containers::start_container(&self.docker, &container_id).await {
+            error!(server_id = %id, error = %e, "create_server: container start failed; cleaning up");
+            guard.cleanup(&self.docker, &self.db).await;
+            return Err(e);
+        }
 
-        // Post-start verification: wait 2s then check if container is actually running
+        // Post-start: the container is now started. No cleanup on later failures —
+        // the server may be running even if status-update DB writes fail.
         tokio::time::sleep(std::time::Duration::from_secs(2)).await;
         let running = verify_container_status(&self.docker, &container_id).await == "running";
 
@@ -927,6 +1057,20 @@ pub fn additional_volume_binds(volume_path: &str, recipe: &recipes::Recipe) -> V
         .collect()
 }
 
+/// Returns `Some(path)` when CubeLit should remove `path` on create-server
+/// failure, or `None` when the path must be left alone.
+///
+/// We only auto-remove when:
+/// - the path was auto-generated by CubeLit (not supplied by the user), AND
+/// - the directory did not exist before this create attempt (no pre-existing data).
+fn cleanup_volume_path(volume_path: &str, user_provided: bool) -> Option<String> {
+    if user_provided || std::path::Path::new(volume_path).exists() {
+        None
+    } else {
+        Some(volume_path.to_string())
+    }
+}
+
 fn additional_volume_subdir(container_path: &str) -> String {
     let segment = std::path::Path::new(container_path)
         .file_name()
@@ -1297,5 +1441,69 @@ mod tests {
             binds,
             vec!["/srv/servers/test/with_spaces:/path/with spaces"]
         );
+    }
+
+    // ─── CreateGuard / cleanup_volume_path tests ──────────────────────────────
+
+    #[test]
+    fn cleanup_volume_path_user_provided_is_never_removed() {
+        assert_eq!(cleanup_volume_path("/user/provided/path", true), None);
+    }
+
+    #[test]
+    fn cleanup_volume_path_auto_existing_dir_is_preserved() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().to_str().unwrap();
+        assert_eq!(
+            cleanup_volume_path(path, false),
+            None,
+            "pre-existing directory must not be scheduled for removal"
+        );
+    }
+
+    #[test]
+    fn cleanup_volume_path_auto_new_dir_is_removed() {
+        // Use a path that reliably doesn't exist; the function is pure so no fs side-effects.
+        let path = "/tmp/__cubelit_test_nonexistent_volume_dir__";
+        let _ = std::fs::remove_dir_all(path); // ensure clean state
+        assert_eq!(
+            cleanup_volume_path(path, false),
+            Some(path.to_string()),
+            "auto-generated, not-yet-existing path must be scheduled for removal"
+        );
+    }
+
+    #[tokio::test]
+    async fn create_guard_cleanup_deletes_db_row() {
+        let host = test_host().await;
+        let cubelit = starting_cubelit("guard-cleanup-db-test");
+        queries::insert_cubelit(&host.db, &cubelit).await.unwrap();
+
+        // Verify row exists before cleanup
+        queries::get_cubelit(&host.db, "guard-cleanup-db-test")
+            .await
+            .unwrap();
+
+        // Guard with only the DB row flagged — no Docker resource IDs, so no
+        // Docker API calls are made during cleanup.
+        let mut guard = CreateGuard::new("guard-cleanup-db-test".to_string(), None);
+        guard.db_row_inserted = true;
+        guard.cleanup(&host.docker, &host.db).await;
+
+        let result = queries::get_cubelit(&host.db, "guard-cleanup-db-test").await;
+        assert!(
+            matches!(result, Err(crate::error::CoreError::NotFound(_))),
+            "cleanup must delete the DB row"
+        );
+    }
+
+    #[tokio::test]
+    async fn create_guard_cleanup_skips_db_when_not_inserted() {
+        let host = test_host().await;
+        // db_row_inserted defaults to false — guard must not attempt a DELETE
+        // for a row that was never inserted (which would silently succeed but
+        // is wasteful and masks bugs).
+        let guard = CreateGuard::new("nonexistent-guard-id".to_string(), None);
+        guard.cleanup(&host.docker, &host.db).await; // must not panic
     }
 }
