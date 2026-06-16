@@ -24,7 +24,7 @@ Built with a Rust backend for performance and reliability, and a Svelte 5 fronte
 ### Key Features
 
 - **One-click server creation** — Choose a game, configure settings through a visual wizard, and your server is live
-- **10 supported games** out of the box, with a recipe system designed for easy expansion
+- **11 supported games** out of the box, with a recipe system designed for easy expansion
 - **Full lifecycle management** — Start, stop, restart, and delete servers from the dashboard
 - **Real-time progress** — Watch image pulls and server creation in real time via streamed events
 - **Live resource stats** — CPU and memory usage cards on every server dashboard, auto-polled while the server is running
@@ -41,7 +41,7 @@ Built with a Rust backend for performance and reliability, and a Svelte 5 fronte
 
 ## Supported Games
 
-All 10 games ship as ready-to-use recipes in v0.2.0.
+All 11 games ship as ready-to-use recipes in v0.2.0.
 
 | Game | Docker Image | Mods | Status |
 |:-----|:-------------|:----:|:------:|
@@ -49,6 +49,7 @@ All 10 games ship as ready-to-use recipes in v0.2.0.
 | FiveM | `spritsail/fivem` | Yes | Available |
 | Minecraft Bedrock | `itzg/minecraft-bedrock-server` | -- | Available |
 | ARK: Survival Evolved | `hermsi/ark-server` | Yes | Available |
+| ARK: Survival Ascended | `johnnyknighten/ark-sa-server` | Yes | Available |
 | Counter-Strike 2 | `joedwards32/cs2` | -- | Available |
 | Palworld | `thijsvanloef/palworld-server-docker` | -- | Available |
 | Project Zomboid | `indifferentbroccoli/projectzomboid-server-docker` | Yes | Available |
@@ -241,7 +242,7 @@ All Docker operations, database access, recipe parsing, and port management happ
 - [x] **Open folder** — Jump to server files, mods, or plugins in the OS file manager
 - [ ] **Server updates** — One-click Docker image pull + container recreate
 - [ ] **System tray** — Background operation with tray icon
-- [x] **More games** — all 10 recipes available (ARK, CS2, Minecraft Bedrock, Palworld, Project Zomboid, Rust, Terraria, Valheim added in v0.2.0)
+- [x] **More games** — all 11 recipes available (ARK: Survival Evolved, ARK: Survival Ascended, CS2, Minecraft Bedrock, Palworld, Project Zomboid, Rust, Terraria, Valheim added in v0.2.0)
 
 ## License
 

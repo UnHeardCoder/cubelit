@@ -23,6 +23,18 @@ export async function deleteServerFile(
   return invoke("delete_server_file", { id, filepath });
 }
 
+export async function readServerFile(id: string, filepath: string): Promise<string> {
+  return invoke<string>("read_server_file", { id, filepath });
+}
+
+export async function writeServerFile(
+  id: string,
+  filepath: string,
+  content: string
+): Promise<void> {
+  return invoke("write_server_file", { id, filepath, content });
+}
+
 export async function getServerLogs(id: string, lines?: number): Promise<string[]> {
   return invoke<string[]>("get_server_logs", { id, lines: lines ?? 100 });
 }

@@ -113,6 +113,15 @@ const gameDefinitions: Record<string, GameDefinition> = {
       gradient: "from-purple-900/40 to-cubelit-surface",
     },
   },
+  "ark-survival-ascended": {
+    ...defaultGameDefinition,
+    tileMonogram: "ASA",
+    cardStyle: {
+      titleClass: "font-bold tracking-wider uppercase",
+      subtitle: "Survival Ascended",
+      gradient: "from-violet-900/40 to-cubelit-surface",
+    },
+  },
   cs2: {
     ...defaultGameDefinition,
     tileMonogram: "CS",

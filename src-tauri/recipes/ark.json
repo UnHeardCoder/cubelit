@@ -55,18 +55,25 @@
       "label": "Admin Password",
       "type": "string",
       "options": []
+    },
+    {
+      "key": "GAME_MOD_IDS",
+      "default_value": "",
+      "label": "Workshop Mod IDs (comma-separated)",
+      "type": "string",
+      "options": []
     }
   ],
   "volumes": [
     {
-      "container_path": "/ark",
+      "container_path": "/app",
       "label": "Server Data"
     }
   ],
   "config_files": [],
   "mods": {
     "supported": true,
-    "path": "ShooterGame/Content/Mods",
+    "path": "server/ShooterGame/Content/Mods",
     "file_types": [".mod"]
   },
   "estimated_disk_mb": 15000,

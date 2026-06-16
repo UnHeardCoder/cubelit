@@ -59,10 +59,7 @@ fn validate_relative_subpath(subpath: &str) -> Result<(), CoreError> {
 
 /// Canonicalize `path` and verify it starts with `canonical_base`. Used
 /// after a target file/dir is known to exist on disk (delete + read paths).
-fn ensure_canonical_within(
-    canonical_base: &Path,
-    path: &Path,
-) -> Result<PathBuf, CoreError> {
+fn ensure_canonical_within(canonical_base: &Path, path: &Path) -> Result<PathBuf, CoreError> {
     let canonical = path
         .canonicalize()
         .map_err(|_| CoreError::Validation("Path traversal not allowed".into()))?;
@@ -182,6 +179,53 @@ pub async fn delete_server_file(
     } else {
         std::fs::remove_file(&canonical_target)?;
     }
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn read_server_file(
+    state: State<'_, AppState>,
+    id: String,
+    filepath: String,
+) -> Result<String, CoreError> {
+    let cubelit = state.host.get_server(&id).await?;
+    let base = PathBuf::from(&cubelit.volume_path);
+
+    validate_relative_subpath(&filepath)?;
+
+    let full_path = base.join(&filepath);
+    let canonical_base = base
+        .canonicalize()
+        .map_err(|_| CoreError::Validation("Server data directory not accessible".into()))?;
+    let canonical_target = ensure_canonical_within(&canonical_base, &full_path)?;
+
+    Ok(std::fs::read_to_string(canonical_target)?)
+}
+
+#[tauri::command]
+pub async fn write_server_file(
+    state: State<'_, AppState>,
+    id: String,
+    filepath: String,
+    content: String,
+) -> Result<(), CoreError> {
+    let cubelit = state.host.get_server(&id).await?;
+    let base = PathBuf::from(&cubelit.volume_path);
+
+    validate_relative_subpath(&filepath)?;
+
+    let full_path = base.join(&filepath);
+    let parent = full_path
+        .parent()
+        .ok_or_else(|| CoreError::Validation("Invalid destination path".into()))?;
+    std::fs::create_dir_all(parent)?;
+
+    let canonical_base = base
+        .canonicalize()
+        .map_err(|_| CoreError::Validation("Server data directory not accessible".into()))?;
+    let _ = ensure_canonical_within(&canonical_base, parent)?;
+
+    std::fs::write(full_path, content)?;
     Ok(())
 }
 

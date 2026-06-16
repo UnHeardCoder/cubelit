@@ -20,6 +20,10 @@
   let loading = $state(true);
   let actionLoading = $state(false);
   let showRestartModal = $state(false);
+  let showDeleteModal = $state(false);
+  let deleteWithData = $state(false);
+  let deleteLoading = $state(false);
+  let deleteError = $state<string | null>(null);
   let editing = $state(false);
   let isSavingName = $state(false);
   let editName = $state('');
@@ -108,6 +112,19 @@
     try { await servers.restart(server.id); server = await syncServerStatus(server.id); }
     finally { actionLoading = false; }
   }
+
+  async function handleDelete() {
+    if (!server) return;
+    deleteLoading = true;
+    deleteError = null;
+    try {
+      await servers.remove(server.id, deleteWithData);
+      await goto('/');
+    } catch (e) {
+      deleteError = String(e);
+      deleteLoading = false;
+    }
+  }
 </script>
 
 <!-- Restart Modal -->
@@ -118,6 +135,30 @@
   <div class="flex gap-2 justify-end">
     <Button variant="ghost" onclick={() => { showRestartModal = false; }}>Cancel</Button>
     <Button variant="secondary" onclick={handleRestart} loading={actionLoading}>Restart</Button>
+  </div>
+</Modal>
+<!-- Delete Modal -->
+<Modal bind:open={showDeleteModal} onclose={() => { if (!deleteLoading) { showDeleteModal = false; deleteWithData = false; deleteError = null; } }} title="Delete Server">
+  <p class="text-sm text-cubelit-text-dim mb-4">
+    Delete <span class="text-cubelit-text font-medium">{server?.name}</span>? This will stop and remove the container.
+  </p>
+  <label class="flex items-start gap-3 cursor-pointer mb-4">
+    <input type="checkbox" class="mt-0.5 accent-cubelit-error" bind:checked={deleteWithData} />
+    <div>
+      <p class="text-sm text-cubelit-text">Also delete server files from disk</p>
+      {#if deleteWithData}
+        <p class="text-xs text-cubelit-error mt-0.5">Permanently deletes world/server data. Cannot be undone.</p>
+      {:else if server}
+        <p class="text-xs text-cubelit-muted mt-0.5">Files remain at <span class="font-mono">{server.volume_path}</span></p>
+      {/if}
+    </div>
+  </label>
+  {#if deleteError}
+    <p class="text-xs text-cubelit-error px-3 py-2 bg-cubelit-error/5 border border-cubelit-error/30 rounded-lg mb-3">{deleteError}</p>
+  {/if}
+  <div class="flex gap-2 justify-end">
+    <Button variant="ghost" onclick={() => { showDeleteModal = false; deleteWithData = false; deleteError = null; }} disabled={deleteLoading}>Cancel</Button>
+    <Button variant="danger" onclick={handleDelete} loading={deleteLoading}>Delete Server</Button>
   </div>
 </Modal>
 
@@ -216,6 +257,11 @@
                 Start
               </button>
             {/if}
+              <button type="button" onclick={() => { showDeleteModal = true; }} disabled={actionLoading || deleteLoading}
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-cubelit-error border border-cubelit-error/40 bg-black/20 hover:bg-cubelit-error/20 backdrop-blur-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>
+                Delete
+              </button>
           </div>
         </div>
       </div>
@@ -267,6 +313,10 @@
               Start
             </Button>
           {/if}
+            <Button variant="danger" onclick={() => { showDeleteModal = true; }} disabled={actionLoading || deleteLoading}>
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>
+              Delete
+            </Button>
         </div>
       </div>
     {/if}

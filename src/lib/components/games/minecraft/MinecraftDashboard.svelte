@@ -73,6 +73,7 @@
   });
 
   const isRunning = $derived(server.status === "running");
+  const canSendConsoleCommand = $derived(server.status === "running" || server.status === "starting");
 
   // ─── Public IP ────────────────────────────────────────────────────────────
   let publicIp = $state<string | null>(null);
@@ -781,37 +782,37 @@
       <div class="flex flex-wrap gap-2">
         <button
           class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-cubelit-surface border border-cubelit-border text-cubelit-text hover:border-cubelit-accent hover:text-cubelit-accent disabled:opacity-40 disabled:cursor-not-allowed"
-          disabled={!isRunning || !mcUsername.trim() || commandLoading}
+          disabled={!canSendConsoleCommand || !mcUsername.trim() || commandLoading}
           onclick={() => runCommand(`op ${mcUsername.trim()}`)}
         >OP Self</button>
 
         <button
           class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-cubelit-surface border border-cubelit-border text-cubelit-text hover:border-cubelit-accent hover:text-cubelit-accent disabled:opacity-40 disabled:cursor-not-allowed"
-          disabled={!isRunning || !mcUsername.trim() || commandLoading}
+          disabled={!canSendConsoleCommand || !mcUsername.trim() || commandLoading}
           onclick={() => runCommand(`deop ${mcUsername.trim()}`)}
         >Deop Self</button>
 
         <button
           class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-cubelit-surface border border-cubelit-border text-cubelit-text hover:border-cubelit-accent hover:text-cubelit-accent disabled:opacity-40 disabled:cursor-not-allowed"
-          disabled={!isRunning || !mcUsername.trim() || commandLoading}
+          disabled={!canSendConsoleCommand || !mcUsername.trim() || commandLoading}
           onclick={() => runCommand(`whitelist add ${mcUsername.trim()}`)}
         >Whitelist Self</button>
 
         <button
           class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-cubelit-surface border border-cubelit-border text-cubelit-text hover:border-cubelit-accent hover:text-cubelit-accent disabled:opacity-40 disabled:cursor-not-allowed"
-          disabled={!isRunning || commandLoading}
+          disabled={!canSendConsoleCommand || commandLoading}
           onclick={() => runCommand("list")}
         >List Players</button>
 
         <button
           class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-cubelit-surface border border-cubelit-border text-cubelit-text hover:border-cubelit-accent hover:text-cubelit-accent disabled:opacity-40 disabled:cursor-not-allowed"
-          disabled={!isRunning || commandLoading}
+          disabled={!canSendConsoleCommand || commandLoading}
           onclick={() => runCommand("save-all")}
         >Save World</button>
 
         <button
           class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-cubelit-surface border border-cubelit-border text-cubelit-text hover:border-cubelit-accent hover:text-cubelit-accent disabled:opacity-40 disabled:cursor-not-allowed"
-          disabled={!isRunning || commandLoading}
+          disabled={!canSendConsoleCommand || commandLoading}
           onclick={() => runCommand("weather clear")}
         >Clear Weather</button>
 
@@ -835,13 +836,13 @@
           type="text"
           bind:value={commandInput}
           onkeydown={handleCommandKeydown}
-          placeholder={isRunning ? "Enter command  (↑ ↓ for history)" : "Server must be running"}
-          disabled={!isRunning || commandLoading}
+          placeholder={canSendConsoleCommand ? "Enter command  (↑ ↓ for history)" : "Server must be running"}
+          disabled={!canSendConsoleCommand || commandLoading}
           class="flex-1 bg-[#0d1117] border border-cubelit-border rounded-lg px-3 py-2 text-sm font-mono text-cubelit-text placeholder-cubelit-muted/40 focus:outline-none focus:border-cubelit-accent disabled:opacity-50"
         />
         <Button
           size="sm"
-          disabled={!isRunning || !commandInput.trim() || commandLoading}
+          disabled={!canSendConsoleCommand || !commandInput.trim() || commandLoading}
           onclick={() => runCommand(commandInput)}
         >{commandLoading ? "…" : "Send"}</Button>
       </div>

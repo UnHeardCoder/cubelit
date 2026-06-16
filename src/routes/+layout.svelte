@@ -130,7 +130,7 @@
           {#if !iconMode}
             <div class="leading-tight min-w-0">
               <div class="text-[13px] font-semibold tracking-tight text-cubelit-text">cubelit</div>
-              <div class="text-[10px] text-cubelit-muted font-mono">v2.0.0</div>
+              <div class="text-[10px] text-cubelit-muted font-mono">v0.2.0</div>
             </div>
           {/if}
         </div>

@@ -11,39 +11,51 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [0.2.0] — 2026-05-24
+## [0.2.0] — 2026-06-16
 
 ### Added
-- Full UI overhaul: Console design direction (Pterodactyl-meets-Linear aesthetic)
+- Full desktop UI overhaul with a Console-inspired visual direction (Pterodactyl-meets-Linear aesthetic)
 - Dark ↔ light theme toggle, persisted to localStorage
-- Collapsible sidebar (240px expanded / 64px icon-only) with server list and status dots
-- SteamGridDB hero art integration for Minecraft Java and FiveM
-- oklch gradient fallbacks for all other games
-- Dashboard stat strip (servers, running, stopped, unique games)
-- Server card redesign with hero art banner, GameIcon, StatusPill
-- Server detail hero banner for games with art; new Overview/Console/Files/Settings tabs
-- Sparkline CPU/memory charts on server overview
-- Connection address rows with copy-to-clipboard
+- Collapsible sidebar (240px expanded / 64px icon-only) with inline server list and live status dots
+- SteamGridDB hero art integration for Minecraft Java and FiveM, plus per-game art/gradient treatments for the full bundled lineup
+- Dashboard stat strip for total servers, running, stopped, and unique games
+- Server card redesign with hero art banners, GameIcon, and StatusPill
+- Server detail redesign with hero banners plus Overview / Console / Files / Settings tabs
+- Sparkline CPU / memory charts on server overview panels
+- Connection address rows with copy-to-clipboard actions
 - Terminal-style server creation progress display
-- Docker onboarding redesign: numbered step indicators, progress strip, WSL2→Docker flow
-- New shared components: Cube, StatusPill, GaugeCard, Sparkline, ConnRow, GameArt, GameIcon
+- Docker onboarding redesign with numbered steps, progress strip, and WSL2 → Docker guidance
+- Dedicated settings page in the app shell
+- New shared UI components: Cube, StatusPill, GaugeCard, Sparkline, ConnRow, GameArt, GameIcon, and SkeletonCard
 - Inter + JetBrains Mono typography via @fontsource
+- Smoke-test harness in `cubelit-core` for recipe lifecycle validation (create → ready/start → cleanup)
+- `cubelit smoke-test` CLI subcommand with tabular output and optional JSON report export
+- Ignored Docker-backed CLI integration test scaffold for end-to-end smoke coverage
+- ARK: Survival Ascended recipe, game registry entry, UI art treatment, and dashboard support
+- Root MIT `LICENSE` file
 
 ### Changed
-- Design tokens shifted to deeper, more refined Console palette
-- Sidebar upgraded from fixed 64px icon rail to collapsible with server list
-- All 8 previously coming-soon games are now fully available (Bedrock, ARK, CS2, Palworld, Project Zomboid, Rust, Terraria, Valheim)
-- All bundled recipe `default_tag` values pinned to specific image versions (no `latest`)
-- StatusRibbon replaced by StatusPill across all card components
-- GenericDashboard rebuilt with Console-direction layout
+- Design tokens shifted to a deeper, more polished Console-style palette
+- Sidebar upgraded from a fixed 64px icon rail to a collapsible navigation + server list layout
+- GenericDashboard rebuilt around the new Console-direction layout system
+- StatusRibbon replaced by StatusPill across the UI
+- Create flow, server detail pages, and onboarding screens were restyled to match the new visual system
+- Game art, animated backgrounds, and theme handling were expanded across the dashboard experience
+- All 9 previously coming-soon bundled games are now surfaced as available (Bedrock, ARK: Survival Evolved, ARK: Survival Ascended, CS2, Palworld, Project Zomboid, Rust, Terraria, Valheim)
+- All bundled recipe `default_tag` values are now pinned to specific image versions instead of `latest`
+- Release metadata, docs, and website supported-game messaging were updated for the v0.2.0 release state
 
 ### Fixed
-- FiveM sidecar MariaDB connection string now uses the correct `mariadb://` DSN format; sidecar container naming and network join corrected
-- Terraria recipe `server_cmd` field is now preserved when applying settings changes (was silently dropped on container recreate)
-- Readiness watcher lifecycle corrected: server status transitions to `Running` only after the "Done" log line; startup sync no longer clobbers a server still in the readiness window
-- All volumes declared in a recipe are now mounted (previously only the first volume entry was applied)
-- Partial resources (container, DB row, volumes) are cleaned up when `create_server` fails mid-way, leaving no orphaned state
-- Loading states, action buttons, and modals polished across the dashboard and create flow
+- FiveM sidecar MariaDB connection strings now use the correct `mariadb://` DSN format; sidecar container naming and network joins were also corrected
+- Terraria now preserves the recipe `server_cmd` during settings updates / container recreation instead of silently dropping it
+- Terraria recipe handling was tightened around `server_cmd` metadata, autocreate behavior, and art mapping support
+- Readiness lifecycle semantics were corrected: a server moves to `Running` only after readiness actually succeeds, and startup sync no longer clobbers servers still inside the readiness window
+- All recipe-declared volumes are now mounted instead of only the first volume entry
+- Partial resources (containers, DB rows, and created volume state) are cleaned up when `create_server` fails mid-flight
+- Stale cache references and UI accessibility warnings were cleaned up during the overhaul pass
+- Loading states, action buttons, and modals were hardened across the dashboard and create flow to reduce duplicate or misleading actions
+- Server detail pages once again expose Delete Server actions for game-specific dashboards, including Minecraft Java and FiveM
+- Minecraft console actions now remain usable while the UI reports `starting`, avoiding a false-disabled console during early boot
 
 ---
 

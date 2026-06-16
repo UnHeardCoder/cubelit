@@ -228,8 +228,8 @@ mod tests {
     /// documented exceptions to the pinned-tag policy.
     #[test]
     fn bundled_recipes_pass_validation() {
-        let recipes_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../src-tauri/recipes");
+        let recipes_dir =
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../src-tauri/recipes");
 
         if !recipes_dir.exists() {
             return; // not running from a full monorepo checkout
@@ -260,10 +260,7 @@ mod tests {
             let ctx = format!("recipe '{}'", r.id);
 
             // IDs must be unique
-            assert!(
-                seen_ids.insert(r.id.clone()),
-                "{ctx}: duplicate recipe id"
-            );
+            assert!(seen_ids.insert(r.id.clone()), "{ctx}: duplicate recipe id");
 
             // Required string fields must not be empty
             assert!(!r.id.is_empty(), "{ctx}: id is empty");
@@ -341,5 +338,69 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn ark_recipe_exposes_workshop_mods_on_persistent_volume() {
+        let recipes_dir =
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../src-tauri/recipes");
+
+        if !recipes_dir.exists() {
+            return;
+        }
+
+        let ark = get_recipe(&recipes_dir, "ark").expect("failed to load ARK recipe");
+
+        assert_eq!(ark.volumes[0].container_path, "/app");
+        assert!(
+            ark.environment.iter().any(|env| env.key == "GAME_MOD_IDS"),
+            "ARK recipe must expose hermsi/ark-server GAME_MOD_IDS for Workshop mods"
+        );
+        assert_eq!(
+            ark.mods.and_then(|mods| mods.path),
+            Some("server/ShooterGame/Content/Mods".to_string())
+        );
+    }
+
+    #[test]
+    fn ark_survival_ascended_recipe_matches_container_contract() {
+        let recipes_dir =
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../src-tauri/recipes");
+
+        if !recipes_dir.exists() {
+            return;
+        }
+
+        let asa = get_recipe(&recipes_dir, "ark-survival-ascended")
+            .expect("failed to load ARK: Survival Ascended recipe");
+
+        assert_eq!(asa.docker_image, "johnnyknighten/ark-sa-server");
+        assert_eq!(asa.default_tag, "2.2.2");
+        assert!(asa.estimated_disk_mb >= 100_000);
+        assert!(asa.environment.iter().any(|env| env.key == "MOD_LIST"));
+        assert!(asa.environment.iter().any(|env| env.key == "MAP"));
+        assert!(asa.environment.iter().any(|env| env.key == "MANUAL_CONFIG"));
+        assert_eq!(
+            asa.volumes
+                .iter()
+                .map(|v| v.container_path.as_str())
+                .collect::<Vec<_>>(),
+            vec![
+                "/ark-server/server",
+                "/ark-server/logs",
+                "/ark-server/backups"
+            ]
+        );
+        assert_eq!(
+            asa.ports
+                .iter()
+                .map(|p| (p.container_port, p.protocol.as_str()))
+                .collect::<Vec<_>>(),
+            vec![(7777, "udp"), (7778, "udp"), (27015, "udp"), (27020, "tcp")]
+        );
+        assert_eq!(
+            asa.readiness.map(|r| r.log_pattern),
+            Some("Server has completed startup and is now advertising for join".to_string())
+        );
     }
 }

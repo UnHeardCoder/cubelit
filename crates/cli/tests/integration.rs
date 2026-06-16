@@ -45,10 +45,10 @@ async fn test_host() -> (LocalServerHost, tempfile::TempDir) {
     (host, tmp)
 }
 
-fn smoke_opts_for(recipe_id: &str) -> SmokeOptions {
+fn smoke_opts_for(recipe_id: &str, overall_timeout: Duration) -> SmokeOptions {
     SmokeOptions {
         recipe_ids: vec![recipe_id.to_string()],
-        overall_timeout: Duration::from_secs(600),
+        overall_timeout,
         keep_on_failure: keep_on_fail(),
         port_offset: 20_000,
         parallel: 1,
@@ -111,6 +111,9 @@ fn install_start_stop_remove_minecraft() {
 
 macro_rules! smoke_test {
     ($fn_name:ident, $recipe_id:literal) => {
+        smoke_test!($fn_name, $recipe_id, 600);
+    };
+    ($fn_name:ident, $recipe_id:literal, $timeout_secs:literal) => {
         #[tokio::test]
         #[ignore]
         async fn $fn_name() {
@@ -118,7 +121,7 @@ macro_rules! smoke_test {
                 return;
             }
             let (host, _tmp) = test_host().await;
-            let opts = smoke_opts_for($recipe_id);
+            let opts = smoke_opts_for($recipe_id, Duration::from_secs($timeout_secs));
             let events: Arc<dyn cubelit_core::events::EventSink> = Arc::new(NoopSink);
             let report = run_smoke(&host, opts, events)
                 .await
@@ -143,6 +146,7 @@ smoke_test!(smoke_palworld, "palworld");
 smoke_test!(smoke_project_zomboid, "project-zomboid");
 smoke_test!(smoke_rust_game, "rust-game");
 smoke_test!(smoke_ark, "ark");
+smoke_test!(smoke_ark_survival_ascended, "ark-survival-ascended", 3600);
 smoke_test!(smoke_cs2, "cs2");
 smoke_test!(smoke_fivem, "fivem");
 

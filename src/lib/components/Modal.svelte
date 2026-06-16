@@ -25,7 +25,7 @@
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+    class="cubelit-modal-root fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
     onclick={handleBackdrop}
   >
     <div class="bg-cubelit-surface border border-cubelit-border-2 rounded-2xl max-w-lg w-full mx-4 p-6 shadow-2xl">

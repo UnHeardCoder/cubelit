@@ -1,0 +1,165 @@
+{
+  "id": "ark-survival-ascended",
+  "name": "ARK: Survival Ascended",
+  "description": "Next-generation dinosaur survival game with Unreal Engine 5 worlds and CurseForge mods.",
+  "icon": "ark-survival-ascended",
+  "available": true,
+  "docker_image": "johnnyknighten/ark-sa-server",
+  "default_tag": "2.2.2",
+  "ports": [
+    {
+      "container_port": 7777,
+      "default_host_port": 7777,
+      "protocol": "udp",
+      "label": "Game Port"
+    },
+    {
+      "container_port": 7778,
+      "default_host_port": 7778,
+      "protocol": "udp",
+      "label": "Additional Game Port"
+    },
+    {
+      "container_port": 27015,
+      "default_host_port": 27015,
+      "protocol": "udp",
+      "label": "Query Port"
+    },
+    {
+      "container_port": 27020,
+      "default_host_port": 27020,
+      "protocol": "tcp",
+      "label": "RCON Port"
+    }
+  ],
+  "environment": [
+    {
+      "key": "SERVER_NAME",
+      "default_value": "Cubelit-ASA-Server",
+      "label": "Server Name",
+      "type": "string",
+      "options": []
+    },
+    {
+      "key": "MAP",
+      "default_value": "TheIsland_WP",
+      "label": "Map",
+      "type": "select",
+      "options": ["TheIsland_WP", "ScorchedEarth_WP", "TheCenter_WP", "Aberration_WP", "Extinction_WP", "Astraeos_WP", "Ragnarok_WP"]
+    },
+    {
+      "key": "MAX_PLAYERS",
+      "default_value": "20",
+      "label": "Max Players",
+      "type": "number",
+      "options": []
+    },
+    {
+      "key": "SERVER_PASSWORD",
+      "default_value": "",
+      "label": "Server Password",
+      "type": "string",
+      "options": []
+    },
+    {
+      "key": "ADMIN_PASSWORD",
+      "default_value": "changeme",
+      "label": "Admin Password / RCON Password",
+      "type": "string",
+      "options": []
+    },
+    {
+      "key": "MOD_LIST",
+      "default_value": "",
+      "label": "Mod IDs (comma-separated)",
+      "type": "string",
+      "options": []
+    },
+    {
+      "key": "ENABLE_PVE",
+      "default_value": "False",
+      "label": "PvE Mode",
+      "type": "boolean",
+      "options": []
+    },
+    {
+      "key": "NO_BATTLEYE",
+      "default_value": "True",
+      "label": "Disable BattlEye",
+      "type": "boolean",
+      "options": []
+    },
+    {
+      "key": "ENABLE_RCON",
+      "default_value": "True",
+      "label": "Enable RCON",
+      "type": "boolean",
+      "options": []
+    },
+    {
+      "key": "MANUAL_CONFIG",
+      "default_value": "False",
+      "label": "Manual Config Files",
+      "type": "boolean",
+      "options": []
+    },
+    {
+      "key": "GAME_PORT",
+      "default_value": "7777",
+      "label": "Game Port Inside Container",
+      "type": "number",
+      "options": []
+    },
+    {
+      "key": "QUERY_PORT",
+      "default_value": "27015",
+      "label": "Query Port Inside Container",
+      "type": "number",
+      "options": []
+    },
+    {
+      "key": "RCON_PORT",
+      "default_value": "27020",
+      "label": "RCON Port Inside Container",
+      "type": "number",
+      "options": []
+    }
+  ],
+  "volumes": [
+    {
+      "container_path": "/ark-server/server",
+      "label": "Server Data"
+    },
+    {
+      "container_path": "/ark-server/logs",
+      "label": "Logs"
+    },
+    {
+      "container_path": "/ark-server/backups",
+      "label": "Backups"
+    }
+  ],
+  "config_files": [
+    {
+      "path": "ShooterGame/Saved/Config/WindowsServer/GameUserSettings.ini",
+      "format": "ini",
+      "label": "Game User Settings"
+    },
+    {
+      "path": "ShooterGame/Saved/Config/WindowsServer/Game.ini",
+      "format": "ini",
+      "label": "Game Settings"
+    }
+  ],
+  "mods": {
+    "supported": true,
+    "path": "ShooterGame/Binaries/Win64/ShooterGame/Mods",
+    "file_types": []
+  },
+  "estimated_disk_mb": 100000,
+  "tags": ["survival", "dinosaurs", "moddable"],
+  "readiness": {
+    "log_pattern": "Server has completed startup and is now advertising for join",
+    "timeout_secs": 3600
+  }
+}

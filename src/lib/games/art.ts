@@ -20,6 +20,10 @@ export const GAME_ART: Record<string, { hero?: string; logo?: string; icon?: str
     logo: 'https://cdn2.steamgriddb.com/logo_thumb/68e3bf852693ad8a72f32fdfe50dc6d4.png',
     icon: 'https://cdn2.steamgriddb.com/icon/3ec0e2c7f4536e7ce9e9ce183b1de9e8/32/256x256.png',
   },
+  'ark-survival-ascended': {
+    hero: 'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2399830/library_hero.jpg',
+    icon: 'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2399830/capsule_231x87.jpg',
+  },
   cs2: {
     hero: 'https://cdn2.steamgriddb.com/hero_thumb/e20e7a93c5d1451db744969f59430981.jpg',
     logo: 'https://cdn2.steamgriddb.com/logo_thumb/3120e046c5cd9433ceb52aa1433810c8.png',
@@ -58,6 +62,7 @@ export const GAME_HUE: Record<string, number> = {
   'minecraft-bedrock': 165,
   fivem:                28,
   ark:                 275,
+  'ark-survival-ascended': 265,
   cs2:                  48,
   palworld:            210,
   'project-zomboid':    90,

@@ -249,7 +249,8 @@ input[type="number"] { appearance: textfield; }
   transition: opacity 0.3s ease;
 }
 /* Children of .app-main must sit above the pseudo-element */
-.app-main > * { position: relative; z-index: 1; }
+.app-main > :not(.cubelit-modal-root) { position: relative; z-index: 1; }
+.cubelit-modal-root { position: fixed; z-index: 100; }
 
 /* Grid pattern definitions */
 [data-grid="dots"] {

@@ -10,6 +10,7 @@
     { name: 'FiveM', description: 'GTA V Multiplayer', available: true },
     { name: 'Minecraft Bedrock', description: 'Bedrock Edition', available: true },
     { name: 'ARK', description: 'Survival Evolved', available: true },
+    { name: 'ARK: Ascended', description: 'Survival Ascended', available: true },
     { name: 'CS2', description: 'Counter-Strike 2', available: true },
     { name: 'Palworld', description: 'Survival Crafting', available: true },
     { name: 'Project Zomboid', description: 'Survival Horror', available: true },

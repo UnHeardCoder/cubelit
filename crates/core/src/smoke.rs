@@ -8,8 +8,8 @@
 //!   - `cubelit smoke-test` CLI subcommand (Phase 3)
 //!   - `#[ignore]` integration tests in `crates/cli/tests/integration.rs` (Phase 4)
 //!
-//! Running all 10 games sequentially is the safe default; some images (CS2,
-//! ARK) are 15–35 GB and pulling them in parallel would saturate the host.
+//! Running all 11 games sequentially is the safe default; some images (CS2,
+//! ARK, ASA) are 15–35 GB and pulling them in parallel would saturate the host.
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -390,4 +390,3 @@ fn build_report_json(
         "results": rows,
     }))
 }
-
