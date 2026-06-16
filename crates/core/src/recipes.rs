@@ -223,9 +223,9 @@ mod tests {
 
     /// Validates all bundled recipes in src-tauri/recipes/ at compile time.
     ///
-    /// Images listed here genuinely publish no stable version tags — only SHA
-    /// commits, rolling timestamp aliases, or a single "latest" blob. They are
-    /// documented exceptions to the pinned-tag policy.
+    /// Some images publish no semver tags, so pinned tags may be timestamp,
+    /// channel, or commit-style tags. The rolling "latest" tag is still not
+    /// allowed for any available bundled recipe.
     #[test]
     fn bundled_recipes_pass_validation() {
         let recipes_dir =
@@ -241,16 +241,6 @@ mod tests {
             "no recipes found in {}",
             recipes_dir.display()
         );
-
-        // Images that publish no stable version tags — keep in sync with the
-        // reasoning in crates/core/src/recipes.rs when updating.
-        let no_semver_images: std::collections::HashSet<&str> = [
-            "lloesche/valheim-server", // only SHA-based commit tags, no semver
-            "didstopia/rust-server",   // only latest/full/development, no version tags
-            "hermsi/ark-server",       // only timestamp-based latest-{unix} aliases, no semver
-        ]
-        .into_iter()
-        .collect();
 
         const VALID_FIELD_TYPES: &[&str] = &["string", "number", "boolean", "select", "ram"];
         const VALID_PROTOCOLS: &[&str] = &["tcp", "udp"];
@@ -268,13 +258,13 @@ mod tests {
             assert!(!r.docker_image.is_empty(), "{ctx}: docker_image is empty");
             assert!(!r.default_tag.is_empty(), "{ctx}: default_tag is empty");
 
-            // Available recipes must pin a specific tag (not the rolling "latest")
-            if r.available && !no_semver_images.contains(r.docker_image.as_str()) {
+            // Available recipes must pin a named tag (not the rolling "latest")
+            if r.available {
                 assert_ne!(
                     r.default_tag, "latest",
                     "{ctx}: available recipe uses unpinned 'latest' tag \
-                     (image: {}). Pin to a specific version tag or add the \
-                     image to the no_semver_images list with a reason.",
+                     (image: {}). Pin to a named version, channel, timestamp, \
+                     or commit tag.",
                     r.docker_image
                 );
             }

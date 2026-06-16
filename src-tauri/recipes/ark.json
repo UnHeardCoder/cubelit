@@ -5,7 +5,7 @@
   "icon": "ark",
   "available": true,
   "docker_image": "hermsi/ark-server",
-  "default_tag": "latest",
+  "default_tag": "latest-1780899889",
   "ports": [
     {
       "container_port": 7777,

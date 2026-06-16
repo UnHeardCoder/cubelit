@@ -5,7 +5,7 @@
   "icon": "valheim",
   "available": true,
   "docker_image": "lloesche/valheim-server",
-  "default_tag": "latest",
+  "default_tag": "sha-732221f4d5b5",
   "ports": [
     {
       "container_port": 2456,

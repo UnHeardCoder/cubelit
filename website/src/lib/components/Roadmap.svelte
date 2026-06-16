@@ -54,14 +54,14 @@
       num: 'PHASE 01',
       status: 'shipped',
       title: 'Where we are right now',
-      version: 'v0.1.7 — v0.1.8',
+      version: 'v0.2.0',
       progress: 100,
       showLiveBadge: true,
-      plainEnglish: `Cubelit is a <strong>working desktop app</strong> for Windows, Mac, and Linux. You download it, open it, click a button, and you have a Minecraft server running on your own computer — no technical knowledge needed. Under the hood, it uses Docker to run the server safely in an isolated container. We've also done something important in the latest update: we split the brains of the app into a separate "core" that can be used by other tools we build later (like a CLI or mobile app).`,
+      plainEnglish: `Cubelit is a <strong>working desktop app</strong> for Windows, Mac, and Linux. You download it, open it, click a button, and you have a game server running on your own computer — no technical knowledge needed. Under the hood, it uses Docker to run the server safely in an isolated container. The v0.2.0 release candidate adds the full visual redesign, 11 available recipes, corrected WSL2/Docker onboarding, and the public website/docs refresh.`,
       personas: {
         gamer: `Think of Cubelit like a control panel for your game server. Instead of typing confusing commands into a terminal, you get a clean app with buttons. Your server runs on <em>your</em> computer — you own it, you control it, there's no monthly fee.`,
         developer: `The v0.1.8 refactor extracted all business logic into <code>cubelit-core</code> (lib crate). Tauri commands are now 5–15 line shims. <code>ServerRunner</code> and <code>ServerLifecycle</code> traits are defined. <code>EventSink</code> abstraction ships with <code>TauriEventSink</code>. Cargo workspace is live. Stack: Rust + Bollard + sqlx WAL + Tokio + Svelte 5 runes + Tauri v2.`,
-        investor: `We have a working product with real users and clean architecture. The v0.1.8 refactor established the foundation for a multi-client platform. Production readiness score: 88/100. Open source on GitHub. This is the point where distribution begins in earnest.`,
+        investor: `We have a working product with real users and clean architecture. The v0.2.0 release candidate moves the desktop app from proof-of-concept UI to public-facing product, while preserving the multi-client foundation established by cubelit-core and the CLI. Open source on GitHub. This is the point where distribution begins in earnest.`,
       },
       archTitle: 'How it works today',
       arch: [
@@ -135,27 +135,28 @@
     {
       id: 'p3',
       num: 'PHASE 03',
-      status: 'next',
+      status: 'shipped',
       title: 'A much better looking app',
       version: 'v0.2.0',
-      progress: 5,
-      plainEnglish: `The current desktop app works great but was built to <strong>prove the concept</strong>, not win design awards. In v0.2 we're doing a full visual redesign — a clean, polished interface that feels as good as commercial apps. The workflow: design it in Claude's design tool, then use Claude Code to wire the new UI to the stable backend. Because we built the core properly, <strong>the backend doesn't change at all</strong> — we're just swapping the face of the app.`,
+      progress: 100,
+      plainEnglish: `v0.2.0 is the public-facing desktop release candidate: a full visual redesign, 11 available game recipes, corrected Windows WSL2/Docker onboarding, a smoke-test harness, and refreshed website/docs. The core architecture stays intact; the release turns the working product into something ready for broader Windows validation and launch.`,
       personas: {
-        gamer: `The app will go from "developer tool that works" to "app you'd actually show your friends." Better onboarding, clearer status displays, easier server config — everything just looks and feels more polished.`,
-        developer: `Workflow: Claude artifacts for UI mockup → Claude Code for wiring to Tauri IPC. The backend API contract (invoke commands, event names, payload shapes) is frozen from v0.1.8 so the AI wiring step is deterministic. Svelte 5 stays — no framework migration needed.`,
-        investor: `This is the first public-facing milestone — the version we post on r/selfhosted, write a DEV.to article about, and show in the GitHub README GIF. First impression matters for open source adoption. V0.2 is the product we want people to discover.`,
+        gamer: `The app now feels like something you'd actually show your friends: a cleaner dashboard, clearer server cards, better onboarding, and a much broader game list.`,
+        developer: `v0.2.0 keeps the Tauri IPC and cubelit-core contracts stable while replacing the desktop surface, expanding recipes, and adding smoke-test coverage through the core crate and CLI.`,
+        investor: `This is the first public-facing milestone: the app has a credible visual identity, broader content coverage, and release docs that match what ships.`,
       },
       features: [
-        { icon: '🎨', title: 'Full visual redesign', desc: 'Designed first, then wired to backend' },
-        { icon: '🎮', title: '3+ games in registry', desc: 'Minecraft, Valheim, Terraria minimum' },
-        { icon: '🎬', title: 'README demo GIF', desc: "Show don't tell for GitHub visitors" },
-        { icon: '📢', title: 'Community launch', desc: 'r/selfhosted post, DEV.to article' },
+        { icon: '🎨', title: 'Full visual redesign', desc: 'Console-inspired desktop app overhaul' },
+        { icon: '🎮', title: '11 available recipes', desc: 'All bundled recipes are selectable' },
+        { icon: '🪟', title: 'Improved onboarding', desc: 'Corrected Windows WSL2 and Docker Desktop readiness flow' },
+        { icon: '🧪', title: 'Smoke-test harness', desc: 'Core lifecycle harness and CLI smoke-test command' },
+        { icon: '🌐', title: 'Website/docs refresh', desc: 'Public site, README, changelog, and audit aligned for release' },
       ],
     },
     {
       id: 'p4',
       num: 'PHASE 04',
-      status: 'planned',
+      status: 'next',
       title: 'Control your server from anywhere',
       version: 'v0.3.0',
       progress: 2,
@@ -384,7 +385,7 @@
           <span class="phase-num">{phase.num}</span>
           <span class="status-chip status-{phase.status}">{statusLabel(phase.status)}</span>
           {#if phase.showLiveBadge}
-            <span class="live-badge"><span class="live-dot"></span>v0.1.9 live</span>
+            <span class="live-badge"><span class="live-dot"></span>v0.2.0 release candidate</span>
           {/if}
         </div>
 

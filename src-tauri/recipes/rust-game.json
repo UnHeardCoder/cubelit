@@ -5,7 +5,7 @@
   "icon": "rust-game",
   "available": true,
   "docker_image": "didstopia/rust-server",
-  "default_tag": "latest",
+  "default_tag": "full",
   "ports": [
     {
       "container_port": 28015,

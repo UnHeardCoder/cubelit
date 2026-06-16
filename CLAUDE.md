@@ -117,7 +117,7 @@ Schema:
   "icon": "my-game",
   "available": true,          // false = "Coming Soon" in UI
   "docker_image": "dockerhub/image",
-  "default_tag": "latest",
+  "default_tag": "1.2.3",
   "ports": [{ "container_port": 7777, "default_host_port": 7777, "protocol": "tcp", "label": "Game Port" }],
   "environment": [
     { "key": "KEY", "default_value": "val", "label": "Label", "type": "string", "options": [] }
@@ -192,7 +192,7 @@ Filter level is `warn,cubelit=info` by default. Tracing calls use `tracing::info
 
 Four workflows in `.github/workflows/`:
 
-- **`release.yml`** (on `v*` tag push) — runs a version check first, then builds the Tauri app for Windows, Linux, and macOS (ARM), and uploads a draft GitHub Release.
+- **`release.yml`** (on `v*` tag push) — runs a version check first, then builds desktop installers for Windows x64, Linux, macOS ARM, and macOS Intel. It also builds CLI artifacts for Linux, macOS ARM, macOS Intel, and Windows, then publishes a non-draft GitHub Release (`releaseDraft: false`).
 - **`deploy-website.yml`** (on `v*` tag push) — builds the website, pushes a Docker image to GHCR, and deploys to the VPS via SSH.
 - **`ci.yml`** (on PR / push to `master` touching app paths) — cargo check, clippy (-D warnings), cargo test, `bun run check`, `bun run test`. All Rust steps use `SQLX_OFFLINE=true`.
 - **`ci-website.yml`** (on PR / push to `master` touching `website/**`) — `bun install` + `bun run check` for the marketing site only. The website is a separate SvelteKit-less Vite + Svelte 5 SPA with its own `package.json` and its own `CLAUDE.md`.
@@ -200,6 +200,17 @@ Four workflows in `.github/workflows/`:
 ### Version check
 
 `release.yml` has a `check-version` job that runs before the build matrix. It strips the `v` prefix from the tag and compares it against all five version files (`src-tauri/Cargo.toml`, `crates/core/Cargo.toml`, `crates/cli/Cargo.toml`, `package.json`, `src-tauri/tauri.conf.json`). If any file doesn't match, the entire workflow fails immediately.
+
+### v0.2.0 pre-release checklist
+
+- Update `CHANGELOG.md`.
+- Update `website/package.json`.
+- Add the website audit manifest entry and HTML report.
+- Run app checks: `SQLX_OFFLINE=true cargo test --workspace`, `SQLX_OFFLINE=true cargo clippy --workspace --all-targets -- -D warnings`, `bun run check`, `bun run test`, and `bun run build`.
+- Run website checks: `cd website && bun run check && bun run build`.
+- Push the feature branch and open or update the PR.
+- Test Windows onboarding manually before merge.
+- Tag only after the release branch has merged to `master`.
 
 ### Required GitHub Secrets
 

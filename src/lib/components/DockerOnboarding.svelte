@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onDestroy } from 'svelte';
-  import { getOnboardingStatus, enableWsl2, setWslDefaultVersion } from '$lib/api/system';
+  import { getOnboardingStatus, enableWsl2, openDockerDesktop, setWslDefaultVersion } from '$lib/api/system';
   import Cube from '$lib/components/Cube.svelte';
   import type { OnboardingStatus } from '$lib/types/docker';
 
@@ -19,6 +19,8 @@
   let actionError = $state<string | null>(null);
   let actionLoading = $state(false);
   let actionStep = $state<'enabling_wsl2' | 'setting_default_wsl2' | null>(null);
+  let dockerLaunchError = $state<string | null>(null);
+  let dockerLaunchLoading = $state(false);
   let pollTimer: ReturnType<typeof setTimeout> | null = null;
   let pollGeneration = 0;
   let mounted = true;
@@ -126,7 +128,19 @@
     finally { if (mounted) actionLoading = false; }
   }
 
-  function handleCheckAgain() { stopPolling(); actionStep = null; actionError = null; oncheck(); }
+  async function handleOpenDockerDesktop() {
+    dockerLaunchLoading = true;
+    dockerLaunchError = null;
+    try {
+      await openDockerDesktop();
+    } catch (e) {
+      dockerLaunchError = String(e);
+    } finally {
+      dockerLaunchLoading = false;
+    }
+  }
+
+  function handleCheckAgain() { stopPolling(); actionStep = null; actionError = null; dockerLaunchError = null; oncheck(); }
 
   // Step status for progress indicator
   const wslDone = $derived(['set_default_wsl2', 'install_docker', 'start_docker', 'diagnostic_error'].includes(currentStep()) && !isWindows() ? true :
@@ -174,8 +188,8 @@
           <div class="flex gap-3.5 items-start">
             <div class="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold text-white shrink-0" style="background: var(--c-accent);">1</div>
             <div class="flex-1">
-              <div class="text-sm font-medium text-cubelit-text mb-0.5">Check WSL2</div>
-              <div class="text-xs text-cubelit-text-dim">Docker Desktop on Windows uses WSL2 as its backend. Required.</div>
+              <div class="text-sm font-medium text-cubelit-text mb-0.5">Enable WSL2 features</div>
+              <div class="text-xs text-cubelit-text-dim">Cubelit enables Windows' WSL and Virtual Machine Platform features so Docker Desktop can use its WSL2 backend.</div>
               <div class="mt-3 px-3 py-2.5 bg-cubelit-bg-2 border border-cubelit-border rounded-lg font-mono text-xs text-cubelit-text-dim mb-3">
                 $ wsl --status<span class="cursor-blink">_</span>
               </div>
@@ -185,7 +199,7 @@
               <div class="flex gap-2 flex-wrap">
                 <button type="button" onclick={handleEnableWsl2} disabled={actionLoading}
                   class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-cubelit-accent text-white hover:brightness-110 transition-colors disabled:opacity-50">
-                  {actionLoading ? 'Checking…' : 'Check WSL2'}
+                  {actionLoading ? 'Enabling…' : 'Enable WSL2'}
                 </button>
                 <a href="https://learn.microsoft.com/windows/wsl/install" target="_blank" rel="noreferrer"
                   class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-cubelit-border bg-cubelit-bg-2 text-cubelit-text-dim hover:text-cubelit-text transition-colors">
@@ -252,7 +266,7 @@
             <div class="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold text-white shrink-0" style="background: var(--c-accent);">{showWslStep ? '2' : '1'}</div>
             <div class="flex-1">
               <div class="text-sm font-medium text-cubelit-text mb-0.5">Check Docker Desktop</div>
-              <div class="text-xs text-cubelit-text-dim mb-3">{isWindows() ? 'WSL2 is ready. Install Docker Desktop to continue.' : 'Cubelit needs Docker to create and manage game servers.'}</div>
+              <div class="text-xs text-cubelit-text-dim mb-3">{isWindows() ? 'WSL2 is ready. Install Docker Desktop next; Docker will create its own WSL backend. You do not need to install Ubuntu separately.' : 'Cubelit needs Docker to create and manage game servers.'}</div>
               <div class="mt-2 px-3 py-2.5 bg-cubelit-bg-2 border border-cubelit-border rounded-lg font-mono text-xs text-cubelit-text-dim mb-3">
                 $ docker version<span class="cursor-blink">_</span>
               </div>
@@ -276,14 +290,25 @@
             <div class="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold text-white shrink-0" style="background: var(--c-accent);">{showWslStep ? '2' : '1'}</div>
             <div class="flex-1">
               <div class="text-sm font-medium text-cubelit-text mb-0.5">Start Docker Desktop</div>
-              <div class="text-xs text-cubelit-text-dim mb-3">Docker is installed but not running. Open Docker Desktop, wait for it to finish starting, then check again.</div>
+              <div class="text-xs text-cubelit-text-dim mb-3">Docker Desktop is installed but the engine is not running. Open Docker Desktop, wait for it to finish starting, then check again.</div>
               {#if currentStatus?.docker.error}
                 <p class="text-xs text-cubelit-error bg-cubelit-error/10 rounded-lg px-3 py-2 mb-3">{currentStatus.docker.error}</p>
               {/if}
-              <button type="button" onclick={oncheck} disabled={checking}
-                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-cubelit-accent text-white hover:brightness-110 transition-colors disabled:opacity-50">
-                {checking ? 'Checking…' : 'Check Again'}
-              </button>
+              {#if dockerLaunchError}
+                <p class="text-xs text-cubelit-error bg-cubelit-error/10 rounded-lg px-3 py-2 mb-3">{dockerLaunchError}</p>
+              {/if}
+              <div class="flex gap-2 flex-wrap">
+                {#if isWindows()}
+                  <button type="button" onclick={handleOpenDockerDesktop} disabled={dockerLaunchLoading}
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-cubelit-accent text-white hover:brightness-110 transition-colors disabled:opacity-50">
+                    {dockerLaunchLoading ? 'Opening…' : 'Open Docker Desktop'}
+                  </button>
+                {/if}
+                <button type="button" onclick={handleCheckAgain} disabled={checking}
+                  class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-cubelit-border bg-cubelit-bg-2 text-cubelit-text-dim hover:text-cubelit-text transition-colors disabled:opacity-50">
+                  {checking ? 'Checking…' : 'Check Again'}
+                </button>
+              </div>
             </div>
           </div>
         </div>

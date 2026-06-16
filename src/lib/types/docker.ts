@@ -44,6 +44,9 @@ export interface OnboardingStatus {
     wsl2_enabled: boolean | null;
     reboot_required: boolean;
     error: string | null;
+    features_enabled: boolean | null;
+    default_version_2: boolean | null;
+    distro_version_2_present: boolean | null;
   };
 }
 

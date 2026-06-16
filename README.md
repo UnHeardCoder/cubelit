@@ -184,7 +184,7 @@ All Docker operations, database access, recipe parsing, and port management happ
   "icon": "my-game",
   "available": true,
   "docker_image": "dockerhub/image-name",
-  "default_tag": "latest",
+  "default_tag": "1.2.3",
   "ports": [
     { "container_port": 7777, "default_host_port": 7777, "protocol": "tcp", "label": "Game Port" }
   ],
@@ -212,7 +212,9 @@ All Docker operations, database access, recipe parsing, and port management happ
 ### Docker not detected
 - Ensure Docker Desktop is running before launching Cubelit
 - On Linux: verify the `docker` daemon is running (`systemctl status docker`)
-- On Windows: Docker Desktop requires WSL2 — Cubelit will guide you through setup
+- On Windows: Docker Desktop requires WSL2. Cubelit can enable the WSL and Virtual Machine Platform optional features for you.
+- You do not need to install Ubuntu or another standalone WSL distro just for Cubelit. Docker Desktop creates and manages its own WSL backend.
+- After enabling WSL features, reboot Windows, then install and start Docker Desktop.
 
 ### Server stuck in "Starting" state
 - Check the server logs tab for startup errors

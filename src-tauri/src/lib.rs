@@ -111,6 +111,8 @@ pub fn run() {
             enable_wsl2,
             #[cfg(target_os = "windows")]
             set_wsl_default_version,
+            #[cfg(target_os = "windows")]
+            open_docker_desktop,
             list_server_files,
             read_server_file,
             copy_file_to_server,

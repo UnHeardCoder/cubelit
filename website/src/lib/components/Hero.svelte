@@ -3,6 +3,7 @@
   import { WINDOWS_URL, LINUX_URL, getOS } from '../downloads'
 
   const os = getOS()
+  const RELEASES_URL = 'https://github.com/UnHeardCoder/cubelit/releases'
 </script>
 
 <section class="hero" id="hero">
@@ -49,13 +50,14 @@
           Download for Linux
         </a>
       {:else if os === 'mac'}
-        <span class="btn-unavailable">
+        <a href={RELEASES_URL} target="_blank" rel="noopener" class="btn-unavailable">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"/>
-            <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
           </svg>
-          Not available for macOS this release
-        </span>
+          macOS builds are available on GitHub Releases, but are experimental until tested.
+        </a>
       {:else}
         <a href={WINDOWS_URL} target="_blank" rel="noopener" class="btn-primary">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -311,12 +313,16 @@
     gap: 8px;
     background: rgba(255,255,255,0.05);
     color: rgba(255,255,255,0.35);
+    text-decoration: none;
+    max-width: min(100%, 560px);
     font-size: 15px;
     font-weight: 600;
+    line-height: 1.35;
     padding: 12px 24px;
     border-radius: 10px;
     border: 1px solid rgba(255,255,255,0.1);
-    cursor: default;
+    cursor: pointer;
+    text-align: left;
   }
 
   /* App Window */

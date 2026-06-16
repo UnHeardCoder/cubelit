@@ -46,6 +46,7 @@ Versions follow [Semantic Versioning](https://semver.org/).
 - Release metadata, docs, and website supported-game messaging were updated for the v0.2.0 release state
 
 ### Fixed
+- Windows onboarding no longer treats "WSL optional features enabled, default WSL version set to 2, but no standalone distro installed" as a blocker for Docker Desktop. Docker Desktop is expected to create and manage its own WSL backend, and Cubelit now offers an "Open Docker Desktop" action when Docker Desktop is installed but the engine is not running.
 - FiveM sidecar MariaDB connection strings now use the correct `mariadb://` DSN format; sidecar container naming and network joins were also corrected
 - Terraria now preserves the recipe `server_cmd` during settings updates / container recreation instead of silently dropping it
 - Terraria recipe handling was tightened around `server_cmd` metadata, autocreate behavior, and art mapping support

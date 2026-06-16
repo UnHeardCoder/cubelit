@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cubelit v0.2.0 Release Readiness Audit</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #101014;
+      --panel: #18181f;
+      --panel-2: #20202a;
+      --text: #f5f5f7;
+      --muted: #a5a5b3;
+      --line: rgba(255,255,255,0.1);
+      --accent: #f97316;
+      --good: #22c55e;
+      --warn: #f59e0b;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.6;
+    }
+
+    main {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 56px 22px 72px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--accent);
+      background: rgba(249,115,22,0.12);
+      border: 1px solid rgba(249,115,22,0.28);
+      border-radius: 999px;
+      padding: 5px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    h1 {
+      margin: 18px 0 10px;
+      font-size: clamp(2rem, 6vw, 4.2rem);
+      line-height: 1;
+    }
+
+    .summary {
+      color: var(--muted);
+      max-width: 780px;
+      font-size: 18px;
+      margin: 0 0 28px;
+    }
+
+    .score-row {
+      display: grid;
+      grid-template-columns: 180px 1fr;
+      gap: 18px;
+      margin: 34px 0;
+    }
+
+    .score-card, .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 22px;
+    }
+
+    .score {
+      color: var(--good);
+      font-size: 56px;
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    .score-label {
+      color: var(--muted);
+      margin-top: 8px;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .verdict {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .muted { color: var(--muted); }
+
+    h2 {
+      margin: 42px 0 14px;
+      font-size: 24px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .item {
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .item strong {
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .good strong { color: var(--good); }
+    .gap strong { color: var(--warn); }
+
+    ul {
+      margin: 0;
+      padding-left: 20px;
+      color: var(--muted);
+    }
+
+    li { margin: 8px 0; }
+
+    code {
+      color: #ffd0ad;
+      background: rgba(249,115,22,0.11);
+      border: 1px solid rgba(249,115,22,0.18);
+      border-radius: 5px;
+      padding: 1px 5px;
+      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
+      font-size: 0.92em;
+    }
+
+    @media (max-width: 720px) {
+      main { padding-top: 36px; }
+      .score-row, .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <span class="eyebrow">v0.2.0 audit - June 16, 2026</span>
+    <h1>Release Readiness Audit</h1>
+    <p class="summary">
+      v0.2.0 is a broad public-facing release candidate: the desktop interface has been overhauled,
+      all bundled recipes are available, Windows WSL2/Docker onboarding has been corrected, and the
+      website/docs now match the release claim. The release is close, with Windows acceptance testing
+      still pending before the final live score.
+    </p>
+
+    <section class="score-row">
+      <div class="score-card">
+        <div class="score">90</div>
+        <div class="score-label">Readiness score</div>
+      </div>
+      <div class="panel">
+        <div class="verdict">Release candidate, not final live release yet.</div>
+        <div class="muted">
+          Automated checks have passed locally, version metadata is aligned, and the remaining blockers
+          are validation and disclosure work rather than known app-code failures.
+        </div>
+      </div>
+    </section>
+
+    <h2>What Improved</h2>
+    <div class="grid">
+      <div class="item good">
+        <strong>Major UI overhaul</strong>
+        The desktop app moved to the Console-inspired redesign with updated dashboard, cards, detail
+        views, onboarding, and shared UI components.
+      </div>
+      <div class="item good">
+        <strong>11 games enabled</strong>
+        The bundled recipe catalog now exposes Minecraft Java, FiveM, Bedrock, both ARK variants,
+        CS2, Palworld, Project Zomboid, Rust, Terraria, and Valheim.
+      </div>
+      <div class="item good">
+        <strong>WSL2/Docker onboarding corrected</strong>
+        Windows readiness now accepts the Docker Desktop path where WSL features and default WSL2 are
+        configured but no standalone distro exists.
+      </div>
+      <div class="item good">
+        <strong>Smoke-test harness added</strong>
+        The core crate now has recipe lifecycle smoke-test support, and the CLI exposes a
+        <code>smoke-test</code> command for Docker-backed validation.
+      </div>
+      <div class="item good">
+        <strong>Automated checks passing</strong>
+        App checks and website checks have passed locally: Rust tests/clippy, frontend check/test/build,
+        plus website check/build.
+      </div>
+      <div class="item good">
+        <strong>Version metadata aligned</strong>
+        App package metadata, Tauri config, changelog, website package version, release docs, and audit
+        manifest now agree on v0.2.0.
+      </div>
+    </div>
+
+    <h2>Remaining Gaps</h2>
+    <div class="grid">
+      <div class="item gap">
+        <strong>Windows validation pending</strong>
+        The onboarding fix still needs real Windows acceptance testing across WSL disabled, reboot
+        required, Docker installed but stopped, and post-Docker server creation scenarios.
+      </div>
+      <div class="item gap">
+        <strong>macOS marked experimental</strong>
+        Release CI builds macOS ARM and Intel artifacts, but the website intentionally routes macOS
+        users to GitHub Releases until those builds are manually tested.
+      </div>
+      <div class="item gap">
+        <strong>Recipe coverage exceeds smoke coverage</strong>
+        The recipe list is much broader than the manual smoke-test coverage. ARK, Rust, and Valheim
+        should be prioritized because their image tags changed for this release.
+      </div>
+      <div class="item gap">
+        <strong>Changed-tag smoke follow-up</strong>
+        Local optional smoke testing on June 16, 2026 confirmed Valheim reaches ready on
+        <code>sha-732221f4d5b5</code>. ARK hit a SteamCMD app update failure, and Rust cycled through
+        SteamCMD update/startup without reaching readiness before the local run was stopped.
+      </div>
+      <div class="item gap">
+        <strong>Vite/Node warning remains</strong>
+        The website build passes but still emits a Node <code>module.register()</code> deprecation
+        warning from the toolchain.
+      </div>
+    </div>
+
+    <h2>Evidence</h2>
+    <div class="panel">
+      <ul>
+        <li>App versions are stamped as <code>0.2.0</code> across the five release-checked app files.</li>
+        <li><code>CHANGELOG.md</code> has a v0.2.0 section with the redesign, smoke-test, recipe, and onboarding notes.</li>
+        <li>Recipe <code>default_tag</code> values no longer use the moving <code>latest</code> tag.</li>
+        <li>Website download copy now acknowledges experimental macOS builds without promoting direct macOS asset URLs.</li>
+        <li>Roadmap now presents v0.2.0 as the current release candidate and v0.3.0 remote agent as the next focus.</li>
+      </ul>
+    </div>
+  </main>
+</body>
+</html>
