@@ -79,7 +79,7 @@
   "estimated_disk_mb": 15000,
   "tags": ["survival", "dinosaurs"],
   "readiness": {
-    "log_pattern": "Server has completed startup",
+    "log_pattern": "server is up",
     "timeout_secs": 1800
   }
 }

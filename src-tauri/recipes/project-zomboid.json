@@ -18,6 +18,13 @@
       "default_host_port": 16262,
       "protocol": "udp",
       "label": "Direct Connect Port"
+    },
+    {
+      "container_port": 27015,
+      "default_host_port": 27015,
+      "protocol": "tcp",
+      "label": "RCON Port",
+      "role": "rcon"
     }
   ],
   "environment": [
@@ -69,6 +76,20 @@
       "label": "Server Password",
       "type": "string",
       "options": []
+    },
+    {
+      "key": "RCON_PORT",
+      "default_value": "27015",
+      "label": "RCON Port Inside Container",
+      "type": "number",
+      "options": []
+    },
+    {
+      "key": "RCON_PASSWORD",
+      "default_value": "changeme",
+      "label": "RCON Password",
+      "type": "string",
+      "options": []
     }
   ],
   "volumes": [
@@ -82,15 +103,48 @@
     }
   ],
   "config_files": [],
+  "dashboard": {
+    "command": {
+      "mode": "source_rcon",
+      "port_role": "rcon",
+      "password_env": "RCON_PASSWORD",
+      "password_default": "changeme",
+      "probe": "players",
+      "quick_commands": [
+        {
+          "label": "List players",
+          "command": "players"
+        },
+        {
+          "label": "Save",
+          "command": "save"
+        },
+        {
+          "label": "Quit (save & stop)",
+          "command": "quit"
+        }
+      ]
+    }
+  },
   "mods": {
     "supported": true,
     "path": "Workshop",
     "file_types": []
   },
   "estimated_disk_mb": 5000,
-  "tags": ["survival", "zombie", "moddable"],
+  "tags": [
+    "survival",
+    "zombie",
+    "moddable"
+  ],
   "readiness": {
     "log_pattern": "*** SERVER STARTED ****",
     "timeout_secs": 600
-  }
+  },
+  "seed_files": [
+    {
+      "path": "project-zomboid-config/Server/{SERVER_NAME}.ini",
+      "content": "RCONPassword=\nRCONPort={RCON_PORT}\n"
+    }
+  ]
 }

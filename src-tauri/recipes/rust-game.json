@@ -5,7 +5,7 @@
   "icon": "rust-game",
   "available": true,
   "docker_image": "didstopia/rust-server",
-  "default_tag": "full",
+  "default_tag": "latest",
   "ports": [
     {
       "container_port": 28015,
@@ -64,15 +64,35 @@
     }
   ],
   "config_files": [],
+  "dashboard": {
+    "command": {
+      "mode": "external"
+    },
+    "file_tabs": [
+      {
+        "path": "oxide/plugins",
+        "label": "Oxide Plugins",
+        "file_types": [
+          ".cs"
+        ]
+      }
+    ]
+  },
   "mods": {
     "supported": true,
     "path": "oxide/plugins",
-    "file_types": [".cs"]
+    "file_types": [
+      ".cs"
+    ]
   },
   "estimated_disk_mb": 8000,
-  "tags": ["popular", "survival", "moddable"],
+  "tags": [
+    "popular",
+    "survival",
+    "moddable"
+  ],
   "readiness": {
-    "log_pattern": "SteamServer.OnSteamServersConnected",
+    "log_pattern": "Server startup complete",
     "timeout_secs": 1800
   }
 }

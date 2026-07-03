@@ -19,7 +19,7 @@
     {
       "key": "WORLD_FILENAME",
       "default_value": "CubelitWorld.wld",
-      "label": "World Filename",
+      "label": "World Filename (the in-game world name is always 'CubelitWorld')",
       "type": "string",
       "options": []
     },
