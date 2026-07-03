@@ -54,6 +54,11 @@ export const GAME_ART: Record<string, { hero?: string; logo?: string; icon?: str
     logo: 'https://cdn2.steamgriddb.com/logo_thumb/d00f448c26753a69f75336c46e974848.png',
     icon: 'https://cdn2.steamgriddb.com/icon/243a74b3fe170e054cacb7ca4a37981d/32/256x256.png',
   },
+  motortown: {
+    hero: 'https://cdn.akamai.steamstatic.com/steam/apps/1369670/library_hero.jpg',
+    logo: 'https://cdn.akamai.steamstatic.com/steam/apps/1369670/logo.png',
+    icon: 'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1369670/capsule_231x87.jpg',
+  },
 };
 
 /** oklch hue angles for gradient fallbacks when no hero art is available. */
@@ -69,4 +74,5 @@ export const GAME_HUE: Record<string, number> = {
   'rust-game':          10,
   terraria:            195,
   valheim:             220,
+  motortown:            55,
 };

@@ -1,0 +1,110 @@
+{
+  "id": "motortown",
+  "name": "Motor Town: Behind The Wheel",
+  "description": "Open-world driving sim",
+  "icon": "motortown",
+  "available": false,
+  "docker_image": "coderocket/motortown",
+  "default_tag": "latest",
+  "ports": [
+    {
+      "container_port": 7777,
+      "default_host_port": 7777,
+      "protocol": "udp",
+      "label": "Game Port",
+      "role": "game"
+    },
+    {
+      "container_port": 7777,
+      "default_host_port": 7777,
+      "protocol": "tcp",
+      "label": "Game Port (TCP)"
+    },
+    {
+      "container_port": 27015,
+      "default_host_port": 27015,
+      "protocol": "udp",
+      "label": "Steam Query Port",
+      "role": "query"
+    },
+    {
+      "container_port": 27015,
+      "default_host_port": 27015,
+      "protocol": "tcp",
+      "label": "Steam Query Port (TCP)"
+    }
+  ],
+  "environment": [
+    {
+      "key": "SERVER_HOSTNAME",
+      "default_value": "Cubelit Motor Town Server",
+      "label": "Server Name",
+      "type": "string",
+      "options": []
+    },
+    {
+      "key": "SERVER_MESSAGE",
+      "default_value": "Welcome!",
+      "label": "Welcome Message",
+      "type": "string",
+      "options": []
+    },
+    {
+      "key": "SERVER_PASSWORD",
+      "default_value": "",
+      "label": "Server Password (empty = public)",
+      "type": "string",
+      "options": []
+    },
+    {
+      "key": "MAX_PLAYERS",
+      "default_value": "10",
+      "label": "Max Players",
+      "type": "number",
+      "options": []
+    },
+    {
+      "key": "MAX_PLAYER_VEHICLES",
+      "default_value": "5",
+      "label": "Max Vehicles per Player",
+      "type": "number",
+      "options": []
+    },
+    {
+      "key": "NPC_VEHICLE_DENSITY",
+      "default_value": "1.0",
+      "label": "NPC Traffic Density",
+      "type": "number",
+      "options": []
+    },
+    {
+      "key": "NPC_POLICE_DENSITY",
+      "default_value": "1.0",
+      "label": "NPC Police Density",
+      "type": "number",
+      "options": []
+    },
+    {
+      "key": "ALLOW_MODDED_VEHICLES",
+      "default_value": "false",
+      "label": "Allow Modded Vehicles",
+      "type": "boolean",
+      "options": []
+    }
+  ],
+  "volumes": [
+    {
+      "container_path": "/home/steam/motortown-dedicated",
+      "label": "Server Data"
+    }
+  ],
+  "config_files": [],
+  "dashboard": {
+    "command": {
+      "mode": "none"
+    }
+  },
+  "mods": null,
+  "estimated_disk_mb": 6000,
+  "tags": ["driving", "simulation", "coop"]
+}
