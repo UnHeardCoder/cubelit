@@ -11,9 +11,17 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [0.2.0] — 2026-06-16
+## [0.2.0] — 2026-07-03
 
 ### Added
+- In-app server console for every game that supports one, driven by recipe metadata: Source RCON (Minecraft Java, CS2, ARK, ARK ASA, Project Zomboid) and container-exec (Bedrock, Rust, Palworld) transports, with per-game quick commands
+- Config Files tab on the generic dashboard: recipe-declared config files rendered as typed forms (properties/ini/json/text) with raw-edit fallback
+- Managed Files tabs (mods, saves, plugins) on the generic dashboard, driven by recipe `file_tabs` metadata, with drag-drop upload
+- "Default install location" app setting — the create wizard prefills `<location>/<server-name>` for new servers (existing servers are unaffected)
+- Recipe `seed_files`: files written into a fresh server volume before first boot with `{ENV}` substitution (fixes Project Zomboid RCON being dead until a manual restart)
+- Recipe `cap_add`: extra Linux capabilities for the game container (fixes Bedrock console — `send-command` needs `SYS_PTRACE`)
+- Motor Town: Behind The Wheel recipe as Coming Soon (its dedicated server currently requires an owning Steam account + interactive Steam Guard, which doesn't fit one-click hosting yet)
+- Smoke-test harness now verifies each game's console (sends the recipe's probe command) and expected config/file paths, plus a `--volume-root` flag to place test volumes on a chosen disk
 - Full desktop UI overhaul with a Console-inspired visual direction (Pterodactyl-meets-Linear aesthetic)
 - Dark ↔ light theme toggle, persisted to localStorage
 - Collapsible sidebar (240px expanded / 64px icon-only) with inline server list and live status dots
@@ -57,6 +65,14 @@ Versions follow [Semantic Versioning](https://semver.org/).
 - Loading states, action buttons, and modals were hardened across the dashboard and create flow to reduce duplicate or misleading actions
 - Server detail pages once again expose Delete Server actions for game-specific dashboards, including Minecraft Java and FiveM
 - Minecraft console actions now remain usable while the UI reports `starting`, avoiding a false-disabled console during early boot
+- Readiness watcher survives container restarts during bootstrap (Project Zomboid restarts itself on first boot; the log stream EOF no longer strands servers in `starting`)
+- Source RCON handling now follows the Valve spec: servers that send an empty response before the auth reply (CS2, Project Zomboid) authenticate correctly and command output is no longer swallowed
+- Deleting a server now removes volume files written as root by the game container (Valheim, Project Zomboid) via a one-shot cleanup container
+- Rust recipe tracks `didstopia/rust-server:latest` — the game force-updates monthly and moves its glibc floor, so every frozen tag eventually breaks (documented exception to the pinned-tag policy)
+- CS2 recipe bumped to `joedwards32/cs2:4.0.1` — the pinned 3.0.6 image predates CS2's libv8 dependency and segfaults on boot
+- Corrected readiness log patterns for Rust (`Server startup complete`) and ARK: Survival Evolved (`server is up`); both previously never matched, leaving healthy servers marked `starting`
+- ARK: Survival Ascended no longer advertises `Game.ini` editing — the server image consumes that file on every boot, so edits could not persist
+- Every bundled game was boot-verified end-to-end for this release (create → ready → console probe → config paths → delete), including the heavy steamcmd titles (Rust, ARK, CS2, ARK ASA)
 
 ---
 
