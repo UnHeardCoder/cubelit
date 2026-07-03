@@ -52,6 +52,7 @@ fn smoke_opts_for(recipe_id: &str, overall_timeout: Duration) -> SmokeOptions {
         keep_on_failure: keep_on_fail(),
         port_offset: 20_000,
         parallel: 1,
+        volume_root: None,
     }
 }
 
@@ -78,6 +79,7 @@ fn install_start_stop_remove_minecraft() {
             env_overrides: None,
             volume_path: None,
             tag_override: None,
+            readiness_timeout_override_secs: None,
         };
         let server = host
             .create_server(config, sink.clone())
@@ -170,6 +172,7 @@ async fn smoke_all_recipes() {
         keep_on_failure: keep_on_fail(),
         port_offset: 20_000,
         parallel: 1,
+        volume_root: None,
     };
     let events: Arc<dyn cubelit_core::events::EventSink> = Arc::new(NoopSink);
     let report = run_smoke(&host, opts, events)

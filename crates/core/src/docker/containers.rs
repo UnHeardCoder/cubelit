@@ -16,6 +16,7 @@ pub async fn create_container(
     cubelit: &Cubelit,
     extra_binds: &[String],
     server_cmd: Option<Vec<String>>,
+    cap_add: &[String],
 ) -> Result<String, CoreError> {
     let port_mappings: HashMap<String, u16> =
         serde_json::from_str(&cubelit.port_mappings).unwrap_or_default();
@@ -66,6 +67,7 @@ pub async fn create_container(
     let host_config = HostConfig {
         port_bindings: Some(port_bindings),
         binds: Some(binds),
+        cap_add: (!cap_add.is_empty()).then(|| cap_add.to_vec()),
         restart_policy: Some(RestartPolicy {
             name: Some(RestartPolicyNameEnum::UNLESS_STOPPED),
             maximum_retry_count: None,
@@ -166,6 +168,89 @@ pub async fn remove_container(docker: &Docker, container_id: &str) -> Result<(),
         )
         .await?;
     Ok(())
+}
+
+/// Delete a server's volume directory even when the game container wrote
+/// files as root (Valheim and Project Zomboid do). Plain removal is tried
+/// first; on failure the contents are cleared by a one-shot root container
+/// using the server's own image (already present locally), then the emptied
+/// directory is removed. Best-effort: failures are logged, never returned.
+pub async fn remove_host_dir_as_root(docker: &Docker, image: &str, host_path: &str) {
+    match std::fs::remove_dir_all(host_path) {
+        Ok(()) => return,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return,
+        Err(e) => {
+            tracing::warn!(path = %host_path, error = %e,
+                "Direct volume removal failed; retrying as root via one-shot container");
+        }
+    }
+
+    let config = ContainerCreateBody {
+        image: Some(image.to_string()),
+        entrypoint: Some(vec!["/bin/sh".to_string()]),
+        cmd: Some(vec![
+            "-c".to_string(),
+            // Clear visible + hidden entries; globs that match nothing are fine.
+            "rm -rf /cubelit-cleanup/* /cubelit-cleanup/.[!.]* /cubelit-cleanup/..?*; true"
+                .to_string(),
+        ]),
+        user: Some("0:0".to_string()),
+        host_config: Some(HostConfig {
+            binds: Some(vec![format!("{}:/cubelit-cleanup", host_path)]),
+            network_mode: Some("none".to_string()),
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+
+    let name = format!("cubelit-cleanup-{}", &uuid::Uuid::new_v4().to_string()[..8]);
+    let opts = CreateContainerOptions {
+        name: Some(name),
+        platform: String::from(""),
+    };
+
+    let created = match docker.create_container(Some(opts), config).await {
+        Ok(c) => c,
+        Err(e) => {
+            tracing::warn!(path = %host_path, image = %image, error = %e,
+                "Volume cleanup container could not be created; data left on disk");
+            return;
+        }
+    };
+
+    let run = async {
+        use futures_util::StreamExt;
+        docker
+            .start_container(&created.id, None::<StartContainerOptions>)
+            .await?;
+        // Default wait condition is "not-running" — resolves when rm finishes.
+        docker
+            .wait_container(
+                &created.id,
+                None::<bollard::query_parameters::WaitContainerOptions>,
+            )
+            .next()
+            .await;
+        Ok::<(), bollard::errors::Error>(())
+    };
+    // Even 100 GB installs rm in well under this; don't hang delete forever.
+    let result = tokio::time::timeout(std::time::Duration::from_secs(300), run).await;
+    let _ = remove_container(docker, &created.id).await;
+
+    match result {
+        Ok(Ok(())) => {}
+        Ok(Err(e)) => tracing::warn!(path = %host_path, error = %e,
+            "Volume cleanup container failed to run"),
+        Err(_) => tracing::warn!(path = %host_path,
+            "Volume cleanup container timed out after 300s"),
+    }
+
+    if let Err(e) = std::fs::remove_dir_all(host_path) {
+        if e.kind() != std::io::ErrorKind::NotFound {
+            tracing::warn!(path = %host_path, error = %e,
+                "Volume directory still could not be removed; data left on disk");
+        }
+    }
 }
 
 #[cfg(test)]

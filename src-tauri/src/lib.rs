@@ -123,6 +123,7 @@ pub fn run() {
             update_server_settings,
             rename_server,
             send_minecraft_command,
+            send_server_command,
             backup_server,
         ])
         .run(tauri::generate_context!())

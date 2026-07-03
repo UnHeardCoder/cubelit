@@ -78,6 +78,7 @@ pub async fn install(
         env_overrides: None,
         volume_path: None,
         tag_override: None,
+        readiness_timeout_override_secs: None,
     };
     let sink: Arc<dyn cubelit_core::events::EventSink> = Arc::new(CliEventSink::stdio());
     let cubelit = ctx.host.create_server(config, sink).await?;

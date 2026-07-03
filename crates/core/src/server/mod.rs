@@ -6,6 +6,7 @@
 //! the local Docker socket and the bundled SQLite DB. Future transports add
 //! their own impls without touching the trait surface.
 
+pub mod console;
 pub mod lifecycle;
 pub mod local;
 pub mod minecraft;

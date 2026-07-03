@@ -28,7 +28,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use sqlx::sqlite::SqlitePoolOptions;
 use sqlx::SqlitePool;
-use tracing::{error, info};
+use tracing::{error, info, warn};
 
 use crate::db::{models::Cubelit, queries, run_migrations};
 use crate::docker::{containers, images, stats::ContainerStats};
@@ -359,7 +359,7 @@ impl ServerRunner for LocalServerHost {
         extra_binds: &[String],
         server_cmd: Option<Vec<String>>,
     ) -> CoreResult<String> {
-        containers::create_container(&self.docker, cubelit, extra_binds, server_cmd).await
+        containers::create_container(&self.docker, cubelit, extra_binds, server_cmd, &[]).await
     }
 
     async fn start_container(&self, container_id: &str) -> CoreResult<()> {
@@ -436,6 +436,8 @@ impl ServerLifecycle for LocalServerHost {
 
         let id = uuid::Uuid::new_v4().to_string();
         let now = chrono::Utc::now().to_rfc3339();
+        // Captured up front — `config` is partially moved further down.
+        let readiness_timeout_override = config.readiness_timeout_override_secs;
 
         // Use user-provided volume path or default to ~/Cubelit/{sanitized-name}.
         // For FiveM: the spritsail/fivem image only copies its default resources when /config is
@@ -485,6 +487,10 @@ impl ServerLifecycle for LocalServerHost {
 
         // Validate env vars before touching Docker
         validate_env_vars(&env)?;
+
+        // Seed recipe-declared files into the fresh volume before first boot
+        // (some entrypoints only patch config files that already exist).
+        write_seed_files(&recipe, std::path::Path::new(&volume_path), &env);
 
         // Use protocol-aware port keys: "25565/tcp", "30120/udp"
         let mut ports: HashMap<String, u16> = recipe
@@ -571,6 +577,7 @@ impl ServerLifecycle for LocalServerHost {
             &cubelit,
             &extra_binds,
             recipe.server_cmd.clone(),
+            &recipe.cap_add,
         )
         .await
         {
@@ -626,7 +633,9 @@ impl ServerLifecycle for LocalServerHost {
         let watcher_spawned = if running {
             if let Some(ref r) = recipe.readiness {
                 let pattern = r.log_pattern.clone();
-                let timeout = std::time::Duration::from_secs(r.timeout_secs);
+                let timeout = std::time::Duration::from_secs(
+                    readiness_timeout_override.unwrap_or(r.timeout_secs),
+                );
                 queries::update_cubelit_status(
                     &self.db,
                     &id,
@@ -845,7 +854,15 @@ impl ServerLifecycle for LocalServerHost {
         queries::delete_cubelit(&self.db, id).await?;
 
         if delete_data {
-            let _ = std::fs::remove_dir_all(&cubelit.volume_path);
+            // Some game images (Valheim, Project Zomboid) write volume files as
+            // root, which a plain remove_dir_all can't delete — fall back to a
+            // one-shot root container using the server's own image.
+            containers::remove_host_dir_as_root(
+                &self.docker,
+                &cubelit.docker_image,
+                &cubelit.volume_path,
+            )
+            .await;
             // Also remove Cubelit-managed server data (MariaDB data, txAdmin data)
             let server_data_dir = self.data_dir.join("servers").join(&cubelit.id);
             let _ = std::fs::remove_dir_all(&server_data_dir);
@@ -890,12 +907,17 @@ impl ServerLifecycle for LocalServerHost {
         // Load recipe for server_cmd, readiness config, and additional volume binds.
         let recipe = recipes::get_recipe(&self.recipes_dir, &cubelit.recipe_id).ok();
         let server_cmd = recipe.as_ref().and_then(|r| r.server_cmd.clone());
+        let cap_add = recipe
+            .as_ref()
+            .map(|r| r.cap_add.clone())
+            .unwrap_or_default();
         let mut extra_binds = self.extra_binds_for(&cubelit);
         if let Some(ref r) = recipe {
             extra_binds.extend(additional_volume_binds(&cubelit.volume_path, r));
         }
         let new_container_id =
-            containers::create_container(&self.docker, &cubelit, &extra_binds, server_cmd).await?;
+            containers::create_container(&self.docker, &cubelit, &extra_binds, server_cmd, &cap_add)
+                .await?;
 
         // Re-connect FiveM containers to their network
         if cubelit.recipe_id == "fivem" {
@@ -1031,6 +1053,11 @@ impl ServerLifecycle for LocalServerHost {
         minecraft::send_minecraft_command(&self.db, id, command).await
     }
 
+    async fn send_server_command(&self, id: &str, command: &str) -> CoreResult<String> {
+        super::console::send_server_command(&self.docker, &self.db, &self.recipes_dir, id, command)
+            .await
+    }
+
     async fn backup_server(&self, id: &str) -> CoreResult<String> {
         minecraft::backup_server(&self.db, id).await
     }
@@ -1092,6 +1119,48 @@ fn additional_volume_subdir(container_path: &str) -> String {
     } else {
         sanitized
     }
+}
+
+/// Write the recipe's `seed_files` into a fresh volume, substituting
+/// `{ENV_KEY}` tokens in both path and content from the resolved env map.
+/// Best-effort: existing files are never overwritten, escaping paths are
+/// skipped, and IO failures are logged rather than failing the create — a
+/// missing seed degrades to the image's own first-boot behavior.
+fn write_seed_files(
+    recipe: &recipes::Recipe,
+    volume_path: &std::path::Path,
+    env: &HashMap<String, String>,
+) {
+    for seed in &recipe.seed_files {
+        let rel = substitute_env_tokens(&seed.path, env);
+        if rel.starts_with('/') || rel.split('/').any(|seg| seg == "..") {
+            warn!(path = %rel, "Seed file path escapes the volume; skipping");
+            continue;
+        }
+        let dest = volume_path.join(&rel);
+        if dest.exists() {
+            continue;
+        }
+        let write = || -> std::io::Result<()> {
+            if let Some(parent) = dest.parent() {
+                std::fs::create_dir_all(parent)?;
+            }
+            std::fs::write(&dest, substitute_env_tokens(&seed.content, env))
+        };
+        if let Err(e) = write() {
+            warn!(path = %dest.display(), error = %e, "Failed to write seed file");
+        }
+    }
+}
+
+/// Replace `{KEY}` tokens with values from the env map. Unknown tokens are
+/// left as-is.
+fn substitute_env_tokens(s: &str, env: &HashMap<String, String>) -> String {
+    let mut out = s.to_string();
+    for (k, v) in env {
+        out = out.replace(&format!("{{{k}}}"), v);
+    }
+    out
 }
 
 // ─── Free helpers (used by lifecycle methods + the desktop crash watcher) ───
@@ -1389,7 +1458,10 @@ mod tests {
             estimated_disk_mb: 0,
             tags: vec![],
             server_cmd: None,
+            cap_add: vec![],
             readiness: None,
+            dashboard: None,
+            seed_files: vec![],
         }
     }
 
@@ -1441,6 +1513,72 @@ mod tests {
             binds,
             vec!["/srv/servers/test/with_spaces:/path/with spaces"]
         );
+    }
+
+    // ─── Seed file tests ──────────────────────────────────────────────────────
+
+    #[test]
+    fn substitute_env_tokens_replaces_known_and_keeps_unknown() {
+        let env = HashMap::from([
+            ("SERVER_NAME".to_string(), "CubelitPZ".to_string()),
+            ("RCON_PORT".to_string(), "27015".to_string()),
+        ]);
+        assert_eq!(
+            substitute_env_tokens("Server/{SERVER_NAME}.ini", &env),
+            "Server/CubelitPZ.ini"
+        );
+        assert_eq!(
+            substitute_env_tokens("{UNKNOWN}/{RCON_PORT}", &env),
+            "{UNKNOWN}/27015"
+        );
+    }
+
+    #[test]
+    fn write_seed_files_writes_templated_file_and_never_overwrites() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut recipe = make_recipe(&[]);
+        recipe.seed_files = vec![crate::recipes::RecipeSeedFile {
+            path: "cfg/Server/{SERVER_NAME}.ini".into(),
+            content: "RCONPassword=\nRCONPort={RCON_PORT}\n".into(),
+        }];
+        let env = HashMap::from([
+            ("SERVER_NAME".to_string(), "MyPZ".to_string()),
+            ("RCON_PORT".to_string(), "27099".to_string()),
+        ]);
+
+        write_seed_files(&recipe, dir.path(), &env);
+        let dest = dir.path().join("cfg/Server/MyPZ.ini");
+        assert_eq!(
+            std::fs::read_to_string(&dest).unwrap(),
+            "RCONPassword=\nRCONPort=27099\n"
+        );
+
+        // Second write must not clobber existing (user-modified) content.
+        std::fs::write(&dest, "RCONPassword=usercustom\n").unwrap();
+        write_seed_files(&recipe, dir.path(), &env);
+        assert_eq!(
+            std::fs::read_to_string(&dest).unwrap(),
+            "RCONPassword=usercustom\n"
+        );
+    }
+
+    #[test]
+    fn write_seed_files_skips_escaping_paths() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut recipe = make_recipe(&[]);
+        recipe.seed_files = vec![
+            crate::recipes::RecipeSeedFile {
+                path: "../outside.ini".into(),
+                content: "x".into(),
+            },
+            crate::recipes::RecipeSeedFile {
+                path: "/absolute.ini".into(),
+                content: "x".into(),
+            },
+        ];
+        write_seed_files(&recipe, dir.path(), &HashMap::new());
+        assert!(!dir.path().parent().unwrap().join("outside.ini").exists());
+        assert!(!std::path::Path::new("/absolute.ini").exists());
     }
 
     // ─── CreateGuard / cleanup_volume_path tests ──────────────────────────────

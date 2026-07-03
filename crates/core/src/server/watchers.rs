@@ -102,70 +102,115 @@ pub fn spawn_readiness_watcher(
             - 10)
             .max(0);
 
-        let opts = bollard::query_parameters::LogsOptions {
-            stdout: true,
-            stderr: true,
-            follow: true,
-            since: since as i32,
-            ..Default::default()
-        };
-
-        let mut stream = docker.logs(&container_id, Some(opts));
         let deadline = tokio::time::sleep(timeout);
         tokio::pin!(deadline);
 
-        loop {
-            tokio::select! {
-                biased;
-                _ = &mut deadline => {
-                    let actual = verify_container_status(&docker, &container_id).await;
-                    let _ = queries::update_cubelit_status(
-                        &pool, &server_id, actual, None,
-                    ).await;
-                    events.emit(CoreEvent::ServerStatusChanged {
-                        server_id: server_id.clone(),
-                    });
-                    // Always warn on timeout. If actual=="running" the container
-                    // is up but the readiness pattern never matched — the server
-                    // may not yet be accepting connections. If actual!="running"
-                    // the container also crashed or stopped during startup.
-                    tracing::warn!(
-                        server_id = %server_id,
-                        timeout_secs = %timeout.as_secs(),
-                        resolved_status = %actual,
-                        "Readiness watcher timed out without seeing the log pattern; \
-                        status set to '{}' — server may not yet be accepting connections",
-                        actual,
-                    );
-                    break;
-                }
-                item = stream.next() => {
-                    match item {
-                        Some(Ok(log)) => {
-                            if log.to_string().contains(pattern.as_str()) {
+        // The `follow` log stream ends whenever the container exits — including
+        // a bootstrap exit followed by a restart-policy restart (Project Zomboid
+        // does exactly this on first boot). Losing the stream must not kill the
+        // watcher while the container is coming back, so on stream end we
+        // re-attach as long as the container is alive. `since` stays at the
+        // original value: `docker logs` replays pre-restart history, and
+        // re-checking already-seen lines is harmless for a `contains` match.
+        'watch: loop {
+            let opts = bollard::query_parameters::LogsOptions {
+                stdout: true,
+                stderr: true,
+                follow: true,
+                since: since as i32,
+                ..Default::default()
+            };
+            let mut stream = docker.logs(&container_id, Some(opts));
+
+            loop {
+                tokio::select! {
+                    biased;
+                    _ = &mut deadline => {
+                        let actual = verify_container_status(&docker, &container_id).await;
+                        let _ = queries::update_cubelit_status(
+                            &pool, &server_id, actual, None,
+                        ).await;
+                        events.emit(CoreEvent::ServerStatusChanged {
+                            server_id: server_id.clone(),
+                        });
+                        // Always warn on timeout. If actual=="running" the container
+                        // is up but the readiness pattern never matched — the server
+                        // may not yet be accepting connections. If actual!="running"
+                        // the container also crashed or stopped during startup.
+                        tracing::warn!(
+                            server_id = %server_id,
+                            timeout_secs = %timeout.as_secs(),
+                            resolved_status = %actual,
+                            "Readiness watcher timed out without seeing the log pattern; \
+                            status set to '{}' — server may not yet be accepting connections",
+                            actual,
+                        );
+                        break 'watch;
+                    }
+                    item = stream.next() => {
+                        match item {
+                            Some(Ok(log)) => {
+                                if log.to_string().contains(pattern.as_str()) {
+                                    let _ = queries::update_cubelit_status(
+                                        &pool, &server_id, "running", None,
+                                    ).await;
+                                    events.emit(CoreEvent::ServerStatusChanged {
+                                        server_id: server_id.clone(),
+                                    });
+                                    break 'watch;
+                                }
+                            }
+                            Some(Err(_)) | None => {
+                                // Give a restart policy time to bring the container
+                                // back (it cycles exited → restarting → running).
+                                for _ in 0..2 {
+                                    tokio::time::sleep(std::time::Duration::from_secs(4)).await;
+                                    if container_is_alive(&docker, &container_id).await {
+                                        tracing::info!(
+                                            server_id = %server_id,
+                                            "Readiness log stream ended but container is alive \
+                                            (restarted?); re-attaching"
+                                        );
+                                        continue 'watch;
+                                    }
+                                }
+                                // Container stayed down — record reality and stop.
+                                let actual = verify_container_status(&docker, &container_id).await;
                                 let _ = queries::update_cubelit_status(
-                                    &pool, &server_id, "running", None,
+                                    &pool, &server_id, actual, None,
                                 ).await;
                                 events.emit(CoreEvent::ServerStatusChanged {
                                     server_id: server_id.clone(),
                                 });
-                                break;
+                                tracing::warn!(
+                                    server_id = %server_id,
+                                    resolved_status = %actual,
+                                    "Readiness watcher log stream ended and container did not \
+                                    come back; status set to '{}'",
+                                    actual,
+                                );
+                                break 'watch;
                             }
                         }
-                        Some(Err(e)) => {
-                            tracing::warn!(
-                                server_id = %server_id,
-                                error = %e,
-                                "Readiness watcher log stream errored — exiting; sync_single_server will correct status on next poll"
-                            );
-                            break;
-                        }
-                        None => break,
                     }
                 }
             }
         }
     });
+}
+
+/// True while the container is running or mid-restart (a restart policy cycles
+/// `exited → restarting → running`). Used by the readiness watcher to decide
+/// whether a dead log stream is worth re-attaching.
+async fn container_is_alive(docker: &bollard::Docker, container_id: &str) -> bool {
+    use bollard::models::ContainerStateStatusEnum as S;
+    match docker.inspect_container(container_id, None).await {
+        Ok(info) => matches!(
+            info.state.and_then(|s| s.status),
+            Some(S::RUNNING | S::RESTARTING)
+        ),
+        Err(_) => false,
+    }
 }
 
 /// Spawns a background task that subscribes to Docker events and emits

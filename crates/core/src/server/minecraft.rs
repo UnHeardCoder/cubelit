@@ -1,10 +1,11 @@
 //! Game-specific helpers that didn't fit on `ServerLifecycle` either because
 //! they're pure (RCON wire format) or because they only apply to Minecraft.
 //!
-//! `send_minecraft_command` and `backup_server` are wired to the trait; the
-//! RCON helpers and `copy_dir_recursive` are private implementation details.
+//! `send_minecraft_command` and `backup_server` are wired to the trait. The
+//! Source-RCON wire helpers live here but are `pub(crate)` so the generic
+//! `console` module can reuse them for any RCON-speaking game (CS2, ARK, …);
+//! `copy_dir_recursive` stays a private implementation detail.
 
-use std::collections::HashMap;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 
@@ -13,7 +14,7 @@ use crate::error::CoreError;
 
 // ─── RCON helpers ────────────────────────────────────────────────────────────
 
-async fn send_rcon_packet(
+pub(crate) async fn send_rcon_packet(
     stream: &mut TcpStream,
     req_id: i32,
     pkt_type: i32,
@@ -42,7 +43,9 @@ async fn send_rcon_packet(
 const RCON_MIN_LEN: i32 = 10;
 const RCON_MAX_LEN: i32 = 4_110;
 
-async fn read_rcon_packet(stream: &mut TcpStream) -> Result<(i32, i32, String), CoreError> {
+pub(crate) async fn read_rcon_packet(
+    stream: &mut TcpStream,
+) -> Result<(i32, i32, String), CoreError> {
     let mut len_buf = [0u8; 4];
     stream.read_exact(&mut len_buf).await?;
     let length_i32 = i32::from_le_bytes(len_buf);
@@ -76,64 +79,18 @@ async fn read_rcon_packet(stream: &mut TcpStream) -> Result<(i32, i32, String), 
 
 /// Send a command to a running Minecraft server via RCON and return the response.
 ///
-/// Resolves the RCON host port from the server's persisted `port_mappings`
-/// (looking for `25575/tcp`) and the password from its `RCON_PASSWORD` env
-/// var (defaulting to `"minecraft"` — itzg's default). Returns
-/// `CoreError::Validation` for any user-correctable failure mode (server
-/// not running, RCON port not mapped, auth failed, network refused).
+/// Thin compatibility wrapper preserving the historical Minecraft defaults
+/// (RCON on `25575/tcp`, password from `RCON_PASSWORD` defaulting to
+/// `"minecraft"` — itzg's default). The actual transport lives in the generic
+/// [`super::console::send_rcon_command`] so every RCON-speaking game shares one
+/// code path.
 pub async fn send_minecraft_command(
     db: &sqlx::SqlitePool,
     id: &str,
     command: &str,
 ) -> Result<String, CoreError> {
-    let server = queries::get_cubelit(db, id).await?;
-
-    if server.status != "running" {
-        return Err(CoreError::Validation("Server is not running".into()));
-    }
-
-    // Resolve RCON host port from port_mappings {"25575/tcp": <host_port>}
-    let ports: HashMap<String, serde_json::Value> =
-        serde_json::from_str(&server.port_mappings).unwrap_or_default();
-    let rcon_port = ports
-        .get("25575/tcp")
-        .and_then(|v| v.as_u64())
-        .map(|p| p as u16)
-        .ok_or_else(|| {
-            CoreError::Validation("RCON port (25575) is not mapped on this server".into())
-        })?;
-
-    // RCON password — falls back to itzg default if not in environment
-    let env: HashMap<String, String> =
-        serde_json::from_str(&server.environment).unwrap_or_default();
-    let password = env
-        .get("RCON_PASSWORD")
-        .cloned()
-        .unwrap_or_else(|| "minecraft".to_string());
-
-    let addr = format!("127.0.0.1:{}", rcon_port);
-
-    let mut stream = TcpStream::connect(&addr).await.map_err(|e| {
-        CoreError::Validation(format!(
-            "Cannot connect to RCON at {} — is the server fully started? ({})",
-            addr, e
-        ))
-    })?;
-
-    // Authenticate (packet type 3)
-    send_rcon_packet(&mut stream, 1, 3, &password).await?;
-    let (auth_id, _, _) = read_rcon_packet(&mut stream).await?;
-    if auth_id == -1 {
-        return Err(CoreError::Validation(
-            "RCON authentication failed — wrong RCON_PASSWORD?".into(),
-        ));
-    }
-
-    // Send command (packet type 2)
-    send_rcon_packet(&mut stream, 2, 2, command).await?;
-    let (_, _, response) = read_rcon_packet(&mut stream).await?;
-
-    Ok(response)
+    super::console::send_rcon_command(db, id, "25575/tcp", "RCON_PASSWORD", "minecraft", command)
+        .await
 }
 
 /// Copy the server's data directory to a timestamped backup folder.

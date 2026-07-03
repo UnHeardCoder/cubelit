@@ -20,10 +20,16 @@ struct Row {
     outcome: String,
     #[tabled(rename = "DURATION")]
     duration: String,
+    #[tabled(rename = "CONSOLE")]
+    console: String,
+    #[tabled(rename = "PATHS")]
+    paths: String,
     #[tabled(rename = "LAST LOG")]
     last_log: String,
 }
 
+// Direct passthrough of the clap-parsed smoke-test flags.
+#[allow(clippy::too_many_arguments)]
 pub async fn run(
     ctx: &Context,
     games: Vec<String>,
@@ -32,6 +38,7 @@ pub async fn run(
     port_offset: u16,
     timeout_secs: u64,
     json_path: Option<PathBuf>,
+    volume_root: Option<PathBuf>,
 ) -> CoreResult<()> {
     if games.is_empty() && !all {
         return Err(CoreError::Validation(
@@ -47,6 +54,7 @@ pub async fn run(
         keep_on_failure: keep_on_fail,
         port_offset,
         parallel: 1,
+        volume_root,
     };
 
     // Use CliEventSink so image-pull progress is visible on stderr.
@@ -87,11 +95,27 @@ pub async fn run(
             ),
         };
 
+        let console = match &result.console {
+            None => "-".to_string(),
+            Some(c) if c.passed => format!("ok ✓ ({})", c.probe),
+            Some(c) => format!("FAILED: {}", truncate(&c.detail, 40)),
+        };
+        let paths = match &result.paths {
+            None => "-".to_string(),
+            Some(p) if p.passed() && p.missing_optional.is_empty() => "ok ✓".to_string(),
+            Some(p) if p.passed() => {
+                format!("ok (optional missing: {})", p.missing_optional.join(", "))
+            }
+            Some(p) => format!("MISSING: {}", p.missing_required.join(", ")),
+        };
+
         rows.push(Row {
             recipe_id: result.recipe_id.clone(),
             image: result.image.clone(),
             outcome: outcome_label,
             duration: duration_str,
+            console,
+            paths,
             last_log,
         });
     }
@@ -108,7 +132,7 @@ pub async fn run(
         let failing: Vec<&str> = report
             .results
             .iter()
-            .filter(|r| !r.outcome.is_passing())
+            .filter(|r| !r.is_passing())
             .map(|r| r.recipe_id.as_str())
             .collect();
         return Err(CoreError::Validation(format!(
@@ -139,7 +163,16 @@ fn write_json_report(report: &cubelit_core::smoke::SmokeReport, path: &PathBuf) 
                 "recipe_id": r.recipe_id,
                 "image": r.image,
                 "outcome": r.outcome.label(),
-                "passing": r.outcome.is_passing(),
+                "passing": r.is_passing(),
+                "console": r.console.as_ref().map(|c| serde_json::json!({
+                    "probe": c.probe, "passed": c.passed,
+                    "detail": c.detail, "attempts": c.attempts,
+                })),
+                "paths": r.paths.as_ref().map(|p| serde_json::json!({
+                    "passed": p.passed(),
+                    "missing_required": p.missing_required,
+                    "missing_optional": p.missing_optional,
+                })),
             })
         })
         .collect();

@@ -12,6 +12,7 @@
 //! ARK, ASA) are 15–35 GB and pulling them in parallel would saturate the host.
 
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -41,6 +42,10 @@ pub struct SmokeOptions {
     pub port_offset: u16,
     /// How many games to run concurrently. Default and recommended value is 1.
     pub parallel: usize,
+    /// When set, each test server's game files go to `<volume_root>/<server-name>`
+    /// instead of the default `~/Cubelit/<name>` — point this at a big disk so
+    /// heavy games (CS2 ~35 GB, ASA ~100 GB) don't fill the OS drive.
+    pub volume_root: Option<PathBuf>,
 }
 
 impl Default for SmokeOptions {
@@ -51,6 +56,7 @@ impl Default for SmokeOptions {
             keep_on_failure: false,
             port_offset: 10_000,
             parallel: 1,
+            volume_root: None,
         }
     }
 }
@@ -88,12 +94,55 @@ impl SmokeOutcome {
     }
 }
 
+/// Result of probing the server's console after it reached readiness.
+/// `None` on `SmokeResult` means the recipe has no interactive console (or no
+/// `probe` command declared) and the check was skipped.
+#[derive(Debug)]
+pub struct ConsoleCheckResult {
+    /// The probe command that was sent (from `dashboard.command.probe`).
+    pub probe: String,
+    pub passed: bool,
+    /// Response snippet on success, last error on failure.
+    pub detail: String,
+    pub attempts: u32,
+}
+
+/// Result of stat-ing the recipe's declared `config_files` / `file_tabs`
+/// paths inside the booted server's volume. Config files are required
+/// (`missing_required` non-empty ⇒ fail); file tabs are advisory — folders
+/// like `mods/` or `backups/` may legitimately not exist until first use.
+#[derive(Debug)]
+pub struct PathsCheckResult {
+    pub missing_required: Vec<String>,
+    pub missing_optional: Vec<String>,
+}
+
+impl PathsCheckResult {
+    pub fn passed(&self) -> bool {
+        self.missing_required.is_empty()
+    }
+}
+
 /// Result for a single recipe.
 pub struct SmokeResult {
     pub recipe_id: String,
     /// `docker_image:tag` string used during this run.
     pub image: String,
     pub outcome: SmokeOutcome,
+    /// Console probe result; `None` = not applicable for this recipe.
+    pub console: Option<ConsoleCheckResult>,
+    /// Declared-paths check; `None` = server never became ready to check.
+    pub paths: Option<PathsCheckResult>,
+}
+
+impl SmokeResult {
+    /// Combined verdict: the server booted AND (if applicable) its console
+    /// responded AND all recipe-declared config files exist in the volume.
+    pub fn is_passing(&self) -> bool {
+        self.outcome.is_passing()
+            && self.console.as_ref().is_none_or(|c| c.passed)
+            && self.paths.as_ref().is_none_or(|p| p.passed())
+    }
 }
 
 /// Aggregated report returned by `run_smoke`.
@@ -104,9 +153,9 @@ pub struct SmokeReport {
 }
 
 impl SmokeReport {
-    /// Returns true if every result is passing.
+    /// Returns true if every result is passing (boot + console + paths).
     pub fn all_passing(&self) -> bool {
-        self.results.iter().all(|r| r.outcome.is_passing())
+        self.results.iter().all(|r| r.is_passing())
     }
 }
 
@@ -156,13 +205,21 @@ pub async fn run_smoke(
             let overall_timeout = opts.overall_timeout;
             let keep_on_failure = opts.keep_on_failure;
             let port_offset = opts.port_offset;
+            let volume_root = opts.volume_root.clone();
 
             // We can't move `host` into a spawned task (it's `!Send` for the
             // sqlite pool in some configs), so run sequentially within the
             // chunk instead of actually spawning.
-            let result =
-                smoke_one(host, recipe, overall_timeout, keep_on_failure, port_offset, events)
-                    .await;
+            let result = smoke_one(
+                host,
+                recipe,
+                overall_timeout,
+                keep_on_failure,
+                port_offset,
+                volume_root,
+                events,
+            )
+            .await;
             handles.push(result);
         }
         results.extend(handles);
@@ -196,6 +253,7 @@ async fn smoke_one(
     overall_timeout: Duration,
     keep_on_failure: bool,
     port_offset: u16,
+    volume_root: Option<PathBuf>,
     events: Arc<dyn EventSink>,
 ) -> SmokeResult {
     let image = format!("{}:{}", recipe.docker_image, recipe.default_tag);
@@ -232,12 +290,18 @@ async fn smoke_one(
     );
 
     let config = CreateServerConfig {
-        name: server_name,
+        name: server_name.clone(),
         recipe_id: recipe.id.clone(),
         port_overrides: Some(port_overrides),
         env_overrides,
-        volume_path: None,
+        volume_path: volume_root
+            .as_ref()
+            .map(|root| root.join(&server_name).to_string_lossy().into_owned()),
         tag_override: None,
+        // Keep the readiness watcher alive past our own poll timeout so its
+        // container-status fallback write can never masquerade as a genuine
+        // "readiness pattern matched" while steamcmd is still downloading.
+        readiness_timeout_override_secs: Some(overall_timeout.as_secs() + 60),
     };
 
     let has_readiness = recipe.readiness.is_some();
@@ -251,6 +315,8 @@ async fn smoke_one(
                 recipe_id: recipe.id,
                 image,
                 outcome: SmokeOutcome::ImagePullFailed(e.to_string()),
+                console: None,
+                paths: None,
             };
         }
     };
@@ -259,8 +325,26 @@ async fn smoke_one(
     // or the overall timeout fires.
     let outcome = poll_until_ready(host, &server.id, has_readiness, overall_timeout, wall_start).await;
 
-    let is_failure = !outcome.is_passing();
-    if is_failure && keep_on_failure {
+    // Post-readiness checks (v0.2.0): probe the console transport and verify
+    // the recipe-declared config/file-tab paths exist. Only meaningful while
+    // the server is still up, so they run before the delete decision.
+    let (console, paths) = if outcome.is_passing() {
+        let console = console_check(host, &recipe, &server.id).await;
+        let paths = paths_check(host, &recipe, &server.id).await;
+        (console, paths)
+    } else {
+        (None, None)
+    };
+
+    let result = SmokeResult {
+        recipe_id: recipe.id.clone(),
+        image,
+        outcome,
+        console,
+        paths,
+    };
+
+    if !result.is_passing() && keep_on_failure {
         info!(
             recipe_id = %recipe.id,
             server_id = %server.id,
@@ -272,16 +356,117 @@ async fn smoke_one(
 
     info!(
         recipe_id = %recipe.id,
-        outcome = %outcome.label(),
+        outcome = %result.outcome.label(),
+        passing = %result.is_passing(),
         elapsed_secs = %wall_start.elapsed().as_secs(),
         "Smoke: done"
     );
 
-    SmokeResult {
-        recipe_id: recipe.id,
-        image,
-        outcome,
+    result
+}
+
+/// Probe the server's console with the recipe's `dashboard.command.probe`.
+/// RCON often isn't accepting connections the instant the readiness pattern
+/// fires, so retry up to 5 times over ~1 minute. Returns `None` when the
+/// recipe has no interactive console or declares no probe.
+async fn console_check(
+    host: &LocalServerHost,
+    recipe: &recipes::Recipe,
+    server_id: &str,
+) -> Option<ConsoleCheckResult> {
+    let cmd_meta = recipe.dashboard.as_ref()?.command.as_ref()?;
+    if !matches!(cmd_meta.mode.as_str(), "source_rcon" | "docker_exec") {
+        return None;
     }
+    let probe = cmd_meta.probe.clone()?;
+
+    const ATTEMPTS: u32 = 5;
+    const RETRY_DELAY: Duration = Duration::from_secs(12);
+
+    let mut last_err = String::new();
+    for attempt in 1..=ATTEMPTS {
+        match host.send_server_command(server_id, &probe).await {
+            // docker_exec helpers print errors to stdout and still exit 0
+            // (e.g. itzg `send-command`'s "ERROR: failed to search…"), so a
+            // successful exec with "ERROR" in the output is a failure.
+            Ok(out) if cmd_meta.mode == "docker_exec" && out.contains("ERROR") => {
+                last_err = out;
+            }
+            Ok(out) => {
+                let mut detail = out.trim().replace('\n', " ");
+                detail.truncate(120);
+                return Some(ConsoleCheckResult {
+                    probe,
+                    passed: true,
+                    detail,
+                    attempts: attempt,
+                });
+            }
+            Err(e) => last_err = e.to_string(),
+        }
+        if attempt < ATTEMPTS {
+            tokio::time::sleep(RETRY_DELAY).await;
+        }
+    }
+
+    last_err.truncate(200);
+    Some(ConsoleCheckResult {
+        probe,
+        passed: false,
+        detail: last_err,
+        attempts: ATTEMPTS,
+    })
+}
+
+/// Verify the recipe's declared `config_files` (required) and
+/// `dashboard.file_tabs` (advisory) exist under the server's volume.
+/// Templated paths containing `{` are skipped. One 5 s retry covers config
+/// files the game writes moments after its readiness line.
+async fn paths_check(
+    host: &LocalServerHost,
+    recipe: &recipes::Recipe,
+    server_id: &str,
+) -> Option<PathsCheckResult> {
+    if recipe.config_files.is_empty()
+        && recipe.dashboard.as_ref().is_none_or(|d| d.file_tabs.is_empty())
+    {
+        return None;
+    }
+    let volume = PathBuf::from(host.get_server(server_id).await.ok()?.volume_path);
+
+    let missing_required = |vol: &PathBuf| -> Vec<String> {
+        recipe
+            .config_files
+            .iter()
+            .filter(|cf| !cf.path.contains('{'))
+            .filter(|cf| !vol.join(&cf.path).exists())
+            .map(|cf| cf.path.clone())
+            .collect()
+    };
+
+    let mut required = missing_required(&volume);
+    if !required.is_empty() {
+        tokio::time::sleep(Duration::from_secs(5)).await;
+        required = missing_required(&volume);
+    }
+
+    let missing_optional: Vec<String> = recipe
+        .dashboard
+        .as_ref()
+        .map(|d| {
+            d.file_tabs
+                .iter()
+                .filter(|t| !t.path.contains('{'))
+                .filter(|t| !volume.join(&t.path).exists())
+                .map(|t| t.path.clone())
+                .collect()
+        })
+        .unwrap_or_default();
+
+    Some(PathsCheckResult {
+        missing_required: required,
+        missing_optional,
+    })
 }
 
 async fn poll_until_ready(
@@ -373,13 +558,30 @@ fn build_report_json(
                     (0, serde_json::json!(last_logs))
                 }
             };
+            let console = r.console.as_ref().map(|c| {
+                serde_json::json!({
+                    "probe": c.probe,
+                    "passed": c.passed,
+                    "detail": c.detail,
+                    "attempts": c.attempts,
+                })
+            });
+            let paths = r.paths.as_ref().map(|p| {
+                serde_json::json!({
+                    "passed": p.passed(),
+                    "missing_required": p.missing_required,
+                    "missing_optional": p.missing_optional,
+                })
+            });
             serde_json::json!({
                 "recipe_id": r.recipe_id,
                 "image": r.image,
                 "outcome": r.outcome.label(),
-                "passing": r.outcome.is_passing(),
+                "passing": r.is_passing(),
                 "duration_secs": duration_secs,
                 "detail": detail,
+                "console": console,
+                "paths": paths,
             })
         })
         .collect();

@@ -29,12 +29,112 @@ pub struct Recipe {
     /// (e.g. Terraria's `-autocreate 2 -worldname MyWorld`).
     #[serde(default)]
     pub server_cmd: Option<Vec<String>>,
+    /// Extra Linux capabilities to grant the primary container (`HostConfig.cap_add`).
+    /// Required by a few images whose console helper needs elevated access — e.g.
+    /// itzg Bedrock's `send-command` scans `/proc/<pid>/exe` of the demoted
+    /// (uid-1000, non-dumpable) server process, which needs `SYS_PTRACE`.
+    #[serde(default)]
+    pub cap_add: Vec<String>,
     /// Log-based readiness detection. When present, the server status stays
     /// `"starting"` until `log_pattern` appears in the container logs, at
     /// which point it is promoted to `"running"`. When absent, the container
     /// being alive 2 s after start is sufficient.
     #[serde(default)]
     pub readiness: Option<RecipeReadiness>,
+    /// Optional dashboard behavior metadata. Drives the generic dashboard's
+    /// command console, managed-file tabs, and config editors without
+    /// hand-writing a component per game. Absent → the dashboard falls back to
+    /// its built-in defaults (logs + flat files + env settings).
+    #[serde(default)]
+    pub dashboard: Option<RecipeDashboard>,
+    /// Files written into the fresh volume before the container's first boot.
+    /// Needed when an image only patches config values into files that already
+    /// exist — Project Zomboid's entrypoint seds `RCONPassword=` into the ini,
+    /// but PZ itself generates that ini one boot too late, leaving RCON dead
+    /// until a manual restart. `{ENV_KEY}` tokens in `path` and `content` are
+    /// substituted from the server's resolved environment. Existing files are
+    /// never overwritten.
+    #[serde(default)]
+    pub seed_files: Vec<RecipeSeedFile>,
+}
+
+/// A file seeded into the server volume at create time. `path` is relative to
+/// the volume root; both fields support `{ENV_KEY}` substitution.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RecipeSeedFile {
+    pub path: String,
+    pub content: String,
+}
+
+/// Recipe-declared dashboard behavior. Every field is optional so a recipe can
+/// opt into just a console, just file tabs, or both.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RecipeDashboard {
+    /// How console commands reach this server (RCON / docker exec / external).
+    #[serde(default)]
+    pub command: Option<RecipeCommand>,
+    /// Named folder tabs (Mods, Plugins, Worlds, Resources, …) exposed for
+    /// upload/delete. Each maps to a subpath of the server's data volume.
+    #[serde(default)]
+    pub file_tabs: Vec<RecipeFileTab>,
+}
+
+/// Console command transport for a recipe.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RecipeCommand {
+    /// `source_rcon` | `docker_exec` | `external` | `none`.
+    pub mode: String,
+    /// For `source_rcon`: which port (matched by `RecipePort::role`) carries
+    /// RCON. Defaults to looking up the `"25575/tcp"` mapping when unset.
+    #[serde(default)]
+    pub port_role: Option<String>,
+    /// Env var holding the console/RCON password.
+    #[serde(default)]
+    pub password_env: Option<String>,
+    /// Fallback password when `password_env` is unset on the server.
+    #[serde(default)]
+    pub password_default: Option<String>,
+    /// For `docker_exec`: the fixed argv run inside the container. The user's
+    /// command is appended as a SINGLE trailing argument — never shell-joined.
+    #[serde(default)]
+    pub exec_template: Vec<String>,
+    /// For `docker_exec`: optional user to run the exec as (name or uid).
+    /// Some helpers (itzg Bedrock's `send-command`) must run as `root` to scan
+    /// `/proc` for the server process. Unset → the image's default exec user.
+    #[serde(default)]
+    pub exec_user: Option<String>,
+    /// Harmless read-only command the smoke harness sends to verify the
+    /// console transport end-to-end (e.g. `list`, `status`). Unset → the
+    /// harness skips the console check for this recipe.
+    #[serde(default)]
+    pub probe: Option<String>,
+    /// Curated common commands surfaced as one-click buttons in the console.
+    #[serde(default)]
+    pub quick_commands: Vec<RecipeQuickCommand>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RecipeQuickCommand {
+    pub label: String,
+    pub command: String,
+}
+
+/// A managed folder tab inside the dashboard.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RecipeFileTab {
+    /// Subpath of the server's data volume (e.g. `"mods"`, `"oxide/plugins"`).
+    pub path: String,
+    pub label: String,
+    /// Allowed upload extensions (e.g. `[".jar"]`). Empty → any file.
+    #[serde(default)]
+    pub file_types: Vec<String>,
+    /// Whether the tab offers an upload button. Defaults to true.
+    #[serde(default = "default_true")]
+    pub upload: bool,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 /// Controls log-pattern-based readiness detection for a recipe.
@@ -60,6 +160,10 @@ pub struct RecipePort {
     pub default_host_port: u16,
     pub protocol: String,
     pub label: String,
+    /// Semantic role: `game` | `query` | `admin` | `web` | `rcon` | `rest`.
+    /// Lets the dashboard resolve "the RCON port" without hardcoding numbers.
+    #[serde(default)]
+    pub role: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -82,8 +186,35 @@ pub struct RecipeVolume {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RecipeConfigFile {
     pub path: String,
+    /// `properties` | `ini` | `cfg` | `lua` | `json` | `text`.
     pub format: String,
     pub label: String,
+    /// Friendly editable fields. Empty → the frontend renders a raw text editor.
+    #[serde(default)]
+    pub fields: Vec<RecipeConfigField>,
+}
+
+/// One editable key within a config file.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RecipeConfigField {
+    pub key: String,
+    pub label: String,
+    /// `string` | `number` | `boolean` | `select`.
+    #[serde(rename = "type")]
+    pub field_type: String,
+    /// For `ini` files: the section header (e.g. `"[ServerSettings]"`).
+    #[serde(default)]
+    pub section: Option<String>,
+    #[serde(default)]
+    pub options: Vec<String>,
+    #[serde(default)]
+    pub min: Option<f64>,
+    #[serde(default)]
+    pub max: Option<f64>,
+    #[serde(default)]
+    pub step: Option<f64>,
+    #[serde(default)]
+    pub default: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -184,6 +315,63 @@ mod tests {
     }
 
     #[test]
+    fn load_recipes_parses_dashboard_metadata() {
+        let dir = tempdir().unwrap();
+        let json = r#"{
+            "id": "dash-game",
+            "name": "Dash Game",
+            "description": "Has dashboard metadata.",
+            "icon": "dash-game",
+            "available": true,
+            "docker_image": "example/dash",
+            "default_tag": "1.0.0",
+            "ports": [{"container_port": 27015, "default_host_port": 27015, "protocol": "tcp", "label": "RCON", "role": "rcon"}],
+            "environment": [],
+            "volumes": [{"container_path": "/data", "label": "Data"}],
+            "config_files": [
+                {"path": "server.properties", "format": "properties", "label": "Server Properties",
+                 "fields": [{"key": "difficulty", "label": "Difficulty", "type": "select", "options": ["easy","hard"]}]}
+            ],
+            "dashboard": {
+                "command": {
+                    "mode": "source_rcon",
+                    "port_role": "rcon",
+                    "password_env": "RCON_PW",
+                    "password_default": "secret",
+                    "probe": "list",
+                    "quick_commands": [{"label": "List", "command": "list"}]
+                },
+                "file_tabs": [{"path": "mods", "label": "Mods", "file_types": [".jar"]}]
+            }
+        }"#;
+        write_recipe(dir.path(), "dash-game.json", json);
+        let r = get_recipe(dir.path(), "dash-game").unwrap();
+
+        assert_eq!(r.ports[0].role.as_deref(), Some("rcon"));
+        assert_eq!(r.config_files[0].fields[0].key, "difficulty");
+
+        let dash = r.dashboard.expect("dashboard metadata missing");
+        let cmd = dash.command.expect("command metadata missing");
+        assert_eq!(cmd.mode, "source_rcon");
+        assert_eq!(cmd.port_role.as_deref(), Some("rcon"));
+        assert_eq!(cmd.probe.as_deref(), Some("list"));
+        assert_eq!(cmd.quick_commands[0].command, "list");
+        assert_eq!(dash.file_tabs[0].path, "mods");
+        // `upload` defaults to true when omitted.
+        assert!(dash.file_tabs[0].upload);
+    }
+
+    #[test]
+    fn load_recipes_without_dashboard_still_loads() {
+        // The MINIMAL_RECIPE has no dashboard/role/fields — must parse fine.
+        let dir = tempdir().unwrap();
+        write_recipe(dir.path(), "test-game.json", MINIMAL_RECIPE);
+        let r = get_recipe(dir.path(), "test-game").unwrap();
+        assert!(r.dashboard.is_none());
+        assert!(r.ports[0].role.is_none());
+    }
+
+    #[test]
     fn load_recipes_skips_invalid_json() {
         let dir = tempdir().unwrap();
         write_recipe(dir.path(), "broken.json", "{ not valid json }");
@@ -258,8 +446,21 @@ mod tests {
             assert!(!r.docker_image.is_empty(), "{ctx}: docker_image is empty");
             assert!(!r.default_tag.is_empty(), "{ctx}: default_tag is empty");
 
-            // Available recipes must pin a named tag (not the rolling "latest")
-            if r.available {
+            // Available recipes must pin a named tag (not the rolling "latest").
+            //
+            // Exception: rust-game. Rust force-updates monthly and RustDedicated's
+            // glibc floor moves with it, so any frozen didstopia/rust-server tag
+            // eventually can't run the binary steamcmd downloads (the pinned
+            // `full` tag from 2025-02 died with `GLIBC_2.34 not found` in the
+            // v0.2.0 smoke campaign). The repo rebuilds only `latest` in
+            // lockstep with the game — it is the only tag that keeps working.
+            //
+            // Exception: motortown. coderocket/motortown publishes no pinned
+            // tags at all — `latest` is the only tag that exists. The image is
+            // a thin steamcmd wrapper that downloads the current game server
+            // at boot, so there is no frozen game payload to protect anyway.
+            const ROLLING_TAG_EXCEPTIONS: &[&str] = &["rust-game", "motortown"];
+            if r.available && !ROLLING_TAG_EXCEPTIONS.contains(&r.id.as_str()) {
                 assert_ne!(
                     r.default_tag, "latest",
                     "{ctx}: available recipe uses unpinned 'latest' tag \
