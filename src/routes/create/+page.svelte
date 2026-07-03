@@ -60,6 +60,12 @@
 
   async function handleCreate() {
     if (!selectedRecipeId || !selectedRecipe) return;
+    // The backend receives volume_path verbatim and cannot expand "~", so a
+    // hand-typed home-relative path would create a literal "~" directory.
+    if (volumePathDirty && volumePath.startsWith('~')) {
+      createError = 'Install location must be an absolute path (e.g. /home/you/servers) — "~" is not expanded.';
+      return;
+    }
     creating = true;
     createError = null;
     createStep = 'preparing';
@@ -73,7 +79,9 @@
     });
 
     try {
-      const vp = volumePath.startsWith('~/') ? undefined : volumePath;
+      // Only the untouched "~/Cubelit/<name>" default defers to the backend's
+      // own default directory; anything the user edited is passed through.
+      const vp = !volumePathDirty && volumePath.startsWith('~/') ? undefined : volumePath;
       const result = await createServer({
         name: serverName,
         recipe_id: selectedRecipeId,

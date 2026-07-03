@@ -885,6 +885,11 @@ impl ServerLifecycle for LocalServerHost {
         // Validate env vars before persisting
         validate_env_vars(&environment)?;
 
+        // Load the recipe BEFORE the destructive stop/remove below: recreating
+        // the container without its recipe would silently drop server_cmd,
+        // cap_add, and additional volume binds from the container contract.
+        let recipe = recipes::get_recipe(&self.recipes_dir, &cubelit.recipe_id)?;
+
         // Stop and remove the existing container
         if let Some(ref container_id) = cubelit.container_id {
             let _ = containers::stop_container(&self.docker, container_id).await;
@@ -904,17 +909,11 @@ impl ServerLifecycle for LocalServerHost {
         // Re-read to get updated env
         let cubelit = queries::get_cubelit(&self.db, id).await?;
 
-        // Load recipe for server_cmd, readiness config, and additional volume binds.
-        let recipe = recipes::get_recipe(&self.recipes_dir, &cubelit.recipe_id).ok();
-        let server_cmd = recipe.as_ref().and_then(|r| r.server_cmd.clone());
-        let cap_add = recipe
-            .as_ref()
-            .map(|r| r.cap_add.clone())
-            .unwrap_or_default();
+        // Recipe-derived container contract: server_cmd, capabilities, binds.
+        let server_cmd = recipe.server_cmd.clone();
+        let cap_add = recipe.cap_add.clone();
         let mut extra_binds = self.extra_binds_for(&cubelit);
-        if let Some(ref r) = recipe {
-            extra_binds.extend(additional_volume_binds(&cubelit.volume_path, r));
-        }
+        extra_binds.extend(additional_volume_binds(&cubelit.volume_path, &recipe));
         let new_container_id =
             containers::create_container(&self.docker, &cubelit, &extra_binds, server_cmd, &cap_add)
                 .await?;
@@ -947,7 +946,7 @@ impl ServerLifecycle for LocalServerHost {
                 verify_container_status(&self.docker, &new_container_id).await == "running";
 
             if running {
-                if let Some(ref r) = recipe.as_ref().and_then(|r| r.readiness.as_ref()).cloned() {
+                if let Some(ref r) = recipe.readiness {
                     let pattern = r.log_pattern.clone();
                     let timeout = std::time::Duration::from_secs(r.timeout_secs);
                     queries::update_cubelit_status(
@@ -1133,7 +1132,13 @@ fn write_seed_files(
 ) {
     for seed in &recipe.seed_files {
         let rel = substitute_env_tokens(&seed.path, env);
-        if rel.starts_with('/') || rel.split('/').any(|seg| seg == "..") {
+        // Reject absolute paths, traversal, and Windows-style separators or
+        // drive prefixes (`..\\x`, `C:\\x`) that `split('/')` would miss.
+        if rel.starts_with('/')
+            || rel.contains('\\')
+            || rel.contains(':')
+            || rel.split('/').any(|seg| seg == "..")
+        {
             warn!(path = %rel, "Seed file path escapes the volume; skipping");
             continue;
         }
@@ -1575,10 +1580,20 @@ mod tests {
                 path: "/absolute.ini".into(),
                 content: "x".into(),
             },
+            crate::recipes::RecipeSeedFile {
+                path: r"..\win-outside.ini".into(),
+                content: "x".into(),
+            },
+            crate::recipes::RecipeSeedFile {
+                path: r"C:\win-drive.ini".into(),
+                content: "x".into(),
+            },
         ];
         write_seed_files(&recipe, dir.path(), &HashMap::new());
         assert!(!dir.path().parent().unwrap().join("outside.ini").exists());
         assert!(!std::path::Path::new("/absolute.ini").exists());
+        assert!(!dir.path().parent().unwrap().join("win-outside.ini").exists());
+        assert!(std::fs::read_dir(dir.path()).unwrap().next().is_none());
     }
 
     // ─── CreateGuard / cleanup_volume_path tests ──────────────────────────────

@@ -149,6 +149,8 @@ Bundled via `tauri.conf.json` → `bundle.resources: ["recipes/*"]`. The `recipe
 
 **Docker tag pinning**: Always use a specific tag in `default_tag`, never `"latest"`. For `itzg/minecraft-server` use Java-version tags (`java25` as of 0.1.8 — bump as Mojang's bundler advances; current Minecraft releases ship a Java 25 bundler with class file version 69.0). For other images, check Docker Hub for the latest stable tag before enabling a recipe. FiveM (`spritsail/fivem`) uses date-based tags — check Docker Hub for the current stable tag before enabling.
 
+**Pinning exceptions**: A recipe may track `latest` only when pinning is impossible or actively harmful, and only if it is listed (with a rationale comment) in `ROLLING_TAG_EXCEPTIONS` inside `bundled_recipes_pass_validation` (`crates/core/src/recipes.rs`) — the test fails otherwise. Current exceptions: `rust-game` (the game force-updates monthly and moves its glibc floor; only `latest` is rebuilt in lockstep, so every frozen tag eventually cannot run the binary steamcmd downloads) and `motortown` (the image publishes no other tags).
+
 ## Key Patterns
 
 - **Tauri v2 path API**: Use `app.path().app_data_dir()`, NOT `app.path_resolver()`.

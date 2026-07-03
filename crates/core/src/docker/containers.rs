@@ -185,6 +185,12 @@ pub async fn remove_host_dir_as_root(docker: &Docker, image: &str, host_path: &s
         }
     }
 
+    if !is_safe_cleanup_path(host_path) {
+        tracing::warn!(path = %host_path,
+            "Refusing root cleanup of a suspicious volume path; data left on disk");
+        return;
+    }
+
     let config = ContainerCreateBody {
         image: Some(image.to_string()),
         entrypoint: Some(vec!["/bin/sh".to_string()]),
@@ -253,6 +259,37 @@ pub async fn remove_host_dir_as_root(docker: &Docker, image: &str, host_path: &s
     }
 }
 
+/// Refuse to run the root cleanup container on anything but a deeply nested,
+/// absolute, `..`-free path. A corrupt or hand-edited `volume_path` like `/`,
+/// `/home`, or the user's home directory must never be emptied as root.
+fn is_safe_cleanup_path(host_path: &str) -> bool {
+    use std::path::Component;
+
+    let path = std::path::Path::new(host_path);
+    if !path.is_absolute() {
+        return false;
+    }
+    let mut normals = 0usize;
+    for c in path.components() {
+        match c {
+            Component::Normal(_) => normals += 1,
+            Component::RootDir | Component::Prefix(_) => {}
+            // `..` / `.` have no business in a persisted volume path.
+            Component::ParentDir | Component::CurDir => return false,
+        }
+    }
+    if normals < 2 {
+        return false;
+    }
+    // Never empty the user's home directory itself.
+    if let Ok(home) = std::env::var("HOME") {
+        if !home.is_empty() && path == std::path::Path::new(&home) {
+            return false;
+        }
+    }
+    true
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -274,6 +311,22 @@ mod tests {
             sidecar_image: None,
             created_at: "2026-01-01T00:00:00Z".to_string(),
             updated_at: "2026-01-01T00:00:00Z".to_string(),
+        }
+    }
+
+    #[test]
+    fn is_safe_cleanup_path_rejects_roots_and_traversal() {
+        assert!(!is_safe_cleanup_path("/"));
+        assert!(!is_safe_cleanup_path("/home"));
+        assert!(!is_safe_cleanup_path("/mnt"));
+        assert!(!is_safe_cleanup_path("relative/path"));
+        assert!(!is_safe_cleanup_path("/srv/../etc"));
+        assert!(is_safe_cleanup_path("/mnt/games/my-server"));
+        assert!(is_safe_cleanup_path("/home/user/Cubelit/my-server"));
+        if let Ok(home) = std::env::var("HOME") {
+            if !home.is_empty() {
+                assert!(!is_safe_cleanup_path(&home));
+            }
         }
     }
 

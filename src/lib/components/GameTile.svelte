@@ -41,7 +41,7 @@
         <div class="text-sm font-semibold text-cubelit-text">{recipe.name}</div>
       </div>
       <div class="text-xs text-cubelit-text-dim mt-0.5">{gameDef.cardStyle?.subtitle ?? recipe.description}</div>
-      <div class="text-[11px] text-cubelit-muted font-mono mt-1.5 truncate">itzg/{recipe.id.replace('-java','').replace('-game','')}</div>
+      <div class="text-[11px] text-cubelit-muted font-mono mt-1.5 truncate">{recipe.tags.slice(0, 3).join(' · ')}</div>
     </div>
   </button>
 {/if}

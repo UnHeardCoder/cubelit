@@ -150,7 +150,14 @@ fn truncate(s: &str, max: usize) -> String {
     if s.len() <= max {
         s.to_string()
     } else {
-        format!("{}…", &s[..max])
+        // Cut at a char boundary — byte slicing panics on multi-byte UTF-8.
+        let end = s
+            .char_indices()
+            .take_while(|(i, _)| *i <= max)
+            .last()
+            .map(|(i, _)| i)
+            .unwrap_or(0);
+        format!("{}…", &s[..end])
     }
 }
 

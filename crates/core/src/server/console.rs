@@ -202,38 +202,50 @@ pub async fn exec_command(
     let mut argv: Vec<String> = exec_template.to_vec();
     argv.push(command.to_string());
 
-    let exec = docker
-        .create_exec(
-            container_id,
-            CreateExecOptions {
-                attach_stdout: Some(true),
-                attach_stderr: Some(true),
-                cmd: Some(argv),
-                user: exec_user.map(|u| u.to_string()),
-                ..Default::default()
-            },
-        )
-        .await
-        .map_err(|e| CoreError::Validation(format!("Failed to start console command: {e}")))?;
+    let exchange = async {
+        let exec = docker
+            .create_exec(
+                container_id,
+                CreateExecOptions {
+                    attach_stdout: Some(true),
+                    attach_stderr: Some(true),
+                    cmd: Some(argv),
+                    user: exec_user.map(|u| u.to_string()),
+                    ..Default::default()
+                },
+            )
+            .await
+            .map_err(|e| {
+                CoreError::Validation(format!("Failed to start console command: {e}"))
+            })?;
 
-    let mut output = String::new();
-    match docker
-        .start_exec(&exec.id, None)
-        .await
-        .map_err(|e| CoreError::Validation(format!("Failed to run console command: {e}")))?
-    {
-        StartExecResults::Attached { output: mut stream, .. } => {
-            while let Some(item) = stream.next().await {
-                match item {
-                    Ok(log) => output.push_str(&log.to_string()),
-                    Err(_) => break,
+        let mut output = String::new();
+        match docker
+            .start_exec(&exec.id, None)
+            .await
+            .map_err(|e| CoreError::Validation(format!("Failed to run console command: {e}")))?
+        {
+            StartExecResults::Attached { output: mut stream, .. } => {
+                while let Some(item) = stream.next().await {
+                    match item {
+                        Ok(log) => output.push_str(&log.to_string()),
+                        Err(_) => break,
+                    }
                 }
             }
+            StartExecResults::Detached => {}
         }
-        StartExecResults::Detached => {}
-    }
 
-    Ok(output.trim_end().to_string())
+        Ok(output.trim_end().to_string())
+    };
+
+    // Same requirement as the RCON path: a helper that never exits (blocked on
+    // stdin, broken entrypoint) must not hang the IPC call forever.
+    tokio::time::timeout(std::time::Duration::from_secs(30), exchange)
+        .await
+        .map_err(|_| {
+            CoreError::Validation("Console command timed out waiting for a response".into())
+        })?
 }
 
 #[cfg(test)]

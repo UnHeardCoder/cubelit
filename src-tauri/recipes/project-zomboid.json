@@ -144,7 +144,7 @@
   "seed_files": [
     {
       "path": "project-zomboid-config/Server/{SERVER_NAME}.ini",
-      "content": "RCONPassword=\nRCONPort={RCON_PORT}\n"
+      "content": "RCONPassword={RCON_PASSWORD}\nRCONPort={RCON_PORT}\n"
     }
   ]
 }

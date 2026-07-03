@@ -65,8 +65,15 @@
           version: update.version,
           download: async () => {
             updateLoading = true;
-            await update.downloadAndInstall();
-            await relaunch();
+            try {
+              await update.downloadAndInstall();
+              await relaunch();
+            } catch (e) {
+              // Leave the banner usable — a failed download must not strand
+              // the button in a disabled "Installing…" state.
+              console.error('Update install failed:', e);
+              updateLoading = false;
+            }
           },
         };
       }

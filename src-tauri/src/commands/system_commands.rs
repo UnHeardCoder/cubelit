@@ -278,6 +278,37 @@ fn dism_feature_probe(feature_name: &str) -> (OptionalFeatureState, Option<Strin
     (state, error)
 }
 
+/// A failed DISM probe means the feature state is UNKNOWN, not disabled.
+/// Classifying an unknown as NeedsInstall would send the user through feature
+/// enablement they may not need — any probe failure becomes CheckFailed with
+/// the underlying error(s) surfaced.
+#[cfg(any(target_os = "windows", test))]
+fn dism_failure_diagnostic(
+    subsystem_error: Option<String>,
+    vm_platform_error: Option<String>,
+    reboot_required: bool,
+) -> Option<WslDiagnostic> {
+    if subsystem_error.is_none() && vm_platform_error.is_none() {
+        return None;
+    }
+    Some(WslDiagnostic {
+        state: WslState::CheckFailed,
+        wsl_installed: None,
+        wsl2_enabled: None,
+        reboot_required,
+        error: Some(
+            [subsystem_error, vm_platform_error]
+                .into_iter()
+                .flatten()
+                .collect::<Vec<_>>()
+                .join("\n"),
+        ),
+        features_enabled: None,
+        default_version_2: None,
+        distro_version_2_present: None,
+    })
+}
+
 #[cfg(target_os = "windows")]
 fn check_wsl_diagnostic() -> WslDiagnostic {
     let reboot_required = reboot_pending_windows();
@@ -287,21 +318,10 @@ fn check_wsl_diagnostic() -> WslDiagnostic {
         dism_feature_probe("Microsoft-Windows-Subsystem-Linux");
     let (vm_platform_feature, vm_platform_error) = dism_feature_probe("VirtualMachinePlatform");
 
-    if subsystem_error.is_some() && vm_platform_error.is_some() {
-        return WslDiagnostic {
-            state: WslState::CheckFailed,
-            wsl_installed: None,
-            wsl2_enabled: None,
-            reboot_required,
-            error: Some(format!(
-                "{}\n{}",
-                subsystem_error.unwrap_or_default(),
-                vm_platform_error.unwrap_or_default()
-            )),
-            features_enabled: None,
-            default_version_2: None,
-            distro_version_2_present: None,
-        };
+    if let Some(diag) =
+        dism_failure_diagnostic(subsystem_error, vm_platform_error, reboot_required)
+    {
+        return diag;
     }
 
     let status = command_probe(wsl_exe, &["--status"]);
@@ -685,6 +705,21 @@ mod tests {
         assert!(!parse_wsl_list_has_v2(
             "Windows Subsystem for Linux has no installed distributions."
         ));
+    }
+
+    #[test]
+    fn dism_single_probe_failure_is_check_failed_not_needs_install() {
+        let diag = dism_failure_diagnostic(Some("dism failed: boom".into()), None, false)
+            .expect("one failed probe must produce a diagnostic");
+        assert_eq!(diag.state, WslState::CheckFailed);
+        assert_eq!(diag.error.as_deref(), Some("dism failed: boom"));
+
+        let diag = dism_failure_diagnostic(None, Some("vm probe failed".into()), true)
+            .expect("one failed probe must produce a diagnostic");
+        assert_eq!(diag.state, WslState::CheckFailed);
+        assert!(diag.reboot_required);
+
+        assert!(dism_failure_diagnostic(None, None, false).is_none());
     }
 
     #[test]

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, onDestroy } from 'svelte';
+  import { onMount } from 'svelte';
   import { open } from '@tauri-apps/plugin-dialog';
   import { invoke } from '@tauri-apps/api/core';
   import { getServerStats, updateServerSettings } from '$lib/api/docker';
@@ -37,7 +37,6 @@
   let cpuPct = $state(0);
   let memUsed = $state(0);
   let memTotal = $state(1);
-  let statsInterval: ReturnType<typeof setInterval> | null = null;
   let publicIp = $state<string | null>(null);
 
   async function loadStats() {
@@ -164,18 +163,19 @@
     await loadFiles();
   }
 
-  onMount(async () => {
-    if (server.status === 'running') {
-      await loadStats();
-      statsInterval = setInterval(loadStats, 5000);
-    }
+  onMount(() => {
     getPublicIp().then(ip => { publicIp = ip; }).catch(() => { publicIp = null; });
     loadEnv();
     getRecipeDetail(server.recipe_id).then(r => { recipe = r; }).catch(() => { recipe = null; });
   });
 
-  onDestroy(() => {
-    if (statsInterval) clearInterval(statsInterval);
+  // Keyed on status so gauges start/stop when the server transitions after
+  // mount (onMount alone never started polling for a server that boots later).
+  $effect(() => {
+    if (server.status !== 'running') return;
+    loadStats();
+    const interval = setInterval(loadStats, 5000);
+    return () => clearInterval(interval);
   });
 
   $effect(() => {

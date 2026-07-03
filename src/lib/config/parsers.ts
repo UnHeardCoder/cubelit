@@ -12,7 +12,7 @@
  * special-case in `GenericDashboard.svelte` so the migration can't regress.
  */
 
-export type ConfigFormat = "properties" | "ini" | "cfg" | "lua" | "json" | "text";
+export type { ConfigFormat } from "$lib/types/recipe";
 
 /** Formats whose individual keys can be parsed into friendly form fields. */
 export function supportsFields(format: string): boolean {

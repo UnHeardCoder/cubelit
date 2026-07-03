@@ -48,18 +48,27 @@
     loading = true;
     server = null;
 
+    // If the ID changes (or the page unmounts) mid-flight, the stale load
+    // must not overwrite state or leave an orphaned event listener behind.
+    let cancelled = false;
+
     syncServerStatus(id)
       .then(async (s) => {
+        if (cancelled) return;
         server = s;
         // Subscribe to live status changes for this server
-        statusUnlisten = await listen<string>('server-status-changed', async (event) => {
+        const unlisten = await listen<string>('server-status-changed', async (event) => {
           if (server && event.payload === server.id) {
             server = await syncServerStatus(server.id);
           }
         });
+        if (cancelled) unlisten();
+        else statusUnlisten = unlisten;
       })
-      .catch(() => goto('/'))
-      .finally(() => { loading = false; });
+      .catch(() => { if (!cancelled) goto('/'); })
+      .finally(() => { if (!cancelled) loading = false; });
+
+    return () => { cancelled = true; };
   });
 
   onDestroy(() => {
@@ -76,7 +85,9 @@
   }
 
   async function saveName() {
-    if (!server || isSavingName) return;
+    // The `editing` guard also swallows the blur that fires when Escape
+    // unmounts the input — without it the discarded edit would be saved.
+    if (!server || isSavingName || !editing) return;
     const trimmed = editName.trim();
     if (!trimmed || trimmed === server.name) { editing = false; return; }
     isSavingName = true;
@@ -89,7 +100,7 @@
     }
   }
 
-  function cancelEdit() { editing = false; }
+  function cancelEdit() { editing = false; editName = server?.name ?? ''; }
 
   async function handleStart() {
     if (!server) return;

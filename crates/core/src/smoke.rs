@@ -493,8 +493,16 @@ async fn poll_until_ready(
         };
 
         match server.status.as_str() {
-            "running" => {
+            // With a readiness pattern, "running" means the watcher saw it —
+            // a verified Ready. Without one, "running" (2s post-start) is only
+            // a Started: the process is up but nothing confirmed the game is.
+            "running" if has_readiness => {
                 return SmokeOutcome::Ready {
+                    duration: wall_start.elapsed(),
+                };
+            }
+            "running" => {
+                return SmokeOutcome::Started {
                     duration: wall_start.elapsed(),
                 };
             }
@@ -502,29 +510,9 @@ async fn poll_until_ready(
                 let last_logs = fetch_last_logs(host, server_id).await;
                 return SmokeOutcome::ContainerCrashed { last_logs };
             }
-            "starting" => {
-                // Readiness watcher is running in background — keep polling.
-            }
             _ => {
-                // "created" or unknown — still initialising, keep polling.
-                if !has_readiness && wall_start.elapsed() > Duration::from_secs(10) {
-                    // No readiness pattern and container has been up long enough.
-                    // Check if it's actually running by looking at the stored status.
-                    if server.status == "running" {
-                        return SmokeOutcome::Started {
-                            duration: wall_start.elapsed(),
-                        };
-                    }
-                }
+                // "starting", "created", or unknown — keep polling.
             }
-        }
-
-        // For recipes without a readiness pattern, once the container is
-        // marked "running" (2s post-start) that's our passing signal.
-        if !has_readiness && server.status == "running" {
-            return SmokeOutcome::Started {
-                duration: wall_start.elapsed(),
-            };
         }
 
         tokio::time::sleep(poll_interval).await;
