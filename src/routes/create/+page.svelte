@@ -4,6 +4,7 @@
   import { listen } from '@tauri-apps/api/event';
   import { getRecipesStore } from '$lib/stores/recipes.svelte';
   import { getServersStore } from '$lib/stores/servers.svelte';
+  import { getSettingsStore } from '$lib/stores/settings.svelte';
   import { getRecipeDetail } from '$lib/api/recipes';
   import { createServer } from '$lib/api/servers';
   import { getGameDefinition } from '$lib/games/registry';
@@ -16,6 +17,7 @@
 
   const recipesStore = getRecipesStore();
   const serversStore = getServersStore();
+  const settingsStore = getSettingsStore();
 
   let step = $state(1);
   let selectedRecipeId = $state<string | null>(null);
@@ -36,10 +38,11 @@
 
   function getDefaultVolumePath(name: string): string {
     const sanitized = name.replace(/[^a-zA-Z0-9 _-]/g, '');
-    return `~/Cubelit/${sanitized}`;
+    const root = settingsStore.effectiveInstallRoot;
+    return root ? `${root}/${sanitized}` : `~/Cubelit/${sanitized}`;
   }
 
-  onMount(async () => { await recipesStore.load(); });
+  onMount(async () => { settingsStore.init(); await recipesStore.load(); });
   onDestroy(() => { if (unlisten) unlisten(); });
 
   async function selectRecipe(id: string) {

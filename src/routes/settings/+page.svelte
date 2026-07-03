@@ -1,8 +1,17 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { getThemeStore, type GridMode } from '$lib/stores/theme.svelte';
+  import { getSettingsStore, isAbsolutePath } from '$lib/stores/settings.svelte';
   import Cube from '$lib/components/Cube.svelte';
 
   const themeStore = getThemeStore();
+  const settingsStore = getSettingsStore();
+
+  onMount(() => settingsStore.init());
+
+  const installRootInvalid = $derived(
+    settingsStore.installRoot.trim() !== '' && !isAbsolutePath(settingsStore.installRoot.trim())
+  );
 
   const gridOptions: { value: GridMode; label: string; preview: string }[] = [
     { value: 'none',  label: 'None',  preview: 'No background pattern' },
@@ -91,6 +100,32 @@
         {/each}
       </div>
     </div>
+  </section>
+
+  <!-- Storage -->
+  <section class="bg-cubelit-surface border border-cubelit-border rounded-2xl p-5 mb-4">
+    <div class="text-[11px] text-cubelit-muted font-mono uppercase tracking-widest mb-4">Storage</div>
+
+    <div class="text-sm font-medium text-cubelit-text mb-1">Default install location</div>
+    <div class="text-xs text-cubelit-text-dim mb-3">
+      Where new servers store their game files. The create wizard prefills
+      <span class="font-mono">&lt;location&gt;/&lt;server name&gt;</span> — you can still change it per server.
+      Applies to new servers only; existing servers keep their current folder.
+    </div>
+    <input
+      type="text"
+      value={settingsStore.installRoot}
+      oninput={(e) => settingsStore.setInstallRoot(e.currentTarget.value)}
+      placeholder="~/Cubelit (default)"
+      spellcheck="false"
+      class="w-full bg-cubelit-bg-2 border rounded-lg px-3 py-2 text-sm font-mono text-cubelit-text placeholder-cubelit-muted/40 focus:outline-none transition-colors
+        {installRootInvalid ? 'border-cubelit-error' : 'border-cubelit-border focus:border-cubelit-accent'}"
+    />
+    {#if installRootInvalid}
+      <div class="text-xs text-cubelit-error mt-1.5">
+        Enter an absolute path (e.g. /mnt/games/Cubelit) — relative paths are ignored.
+      </div>
+    {/if}
   </section>
 
   <!-- About -->
