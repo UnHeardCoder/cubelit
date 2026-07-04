@@ -35,7 +35,7 @@ Versions follow [Semantic Versioning](https://semver.org/).
 - Docker onboarding redesign with numbered steps, progress strip, and WSL2 → Docker guidance
 - Dedicated settings page in the app shell
 - New shared UI components: Cube, StatusPill, GaugeCard, Sparkline, ConnRow, GameArt, GameIcon, and SkeletonCard
-- Inter + JetBrains Mono typography via @fontsource
+- Inter + JetBrains Mono typography via `@fontsource`
 - Smoke-test harness in `cubelit-core` for recipe lifecycle validation (create → ready/start → cleanup)
 - `cubelit smoke-test` CLI subcommand with tabular output and optional JSON report export
 - Ignored Docker-backed CLI integration test scaffold for end-to-end smoke coverage
