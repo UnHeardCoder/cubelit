@@ -151,25 +151,26 @@
 </head>
 <body>
   <main>
-    <span class="eyebrow">v0.2.0 audit - June 16, 2026</span>
+    <span class="eyebrow">v0.2.0 audit - July 3, 2026</span>
     <h1>Release Readiness Audit</h1>
     <p class="summary">
-      v0.2.0 is a broad public-facing release candidate: the desktop interface has been overhauled,
-      all bundled recipes are available, Windows WSL2/Docker onboarding has been corrected, and the
-      website/docs now match the release claim. The release is close, with Windows acceptance testing
-      still pending before the final live score.
+      v0.2.0 pairs the desktop overhaul with a full verification campaign: every bundled game was
+      boot-tested end-to-end (create &rarr; readiness &rarr; console probe &rarr; config paths &rarr; delete),
+      the failures that campaign surfaced were fixed, and an external code review pass hardened the
+      file and volume handling. Windows acceptance testing is the last gate before tagging.
     </p>
 
     <section class="score-row">
       <div class="score-card">
-        <div class="score">90</div>
+        <div class="score">94</div>
         <div class="score-label">Readiness score</div>
       </div>
       <div class="panel">
-        <div class="verdict">Release candidate, not final live release yet.</div>
+        <div class="verdict">Verified release candidate — one manual gate left.</div>
         <div class="muted">
-          Automated checks have passed locally, version metadata is aligned, and the remaining blockers
-          are validation and disclosure work rather than known app-code failures.
+          All eleven playable games passed the automated smoke campaign on real Docker, automated
+          checks and code review are green, and version metadata is aligned. The remaining blocker
+          is Windows acceptance testing, not known app-code failures.
         </div>
       </div>
     </section>
@@ -177,34 +178,47 @@
     <h2>What Improved</h2>
     <div class="grid">
       <div class="item good">
+        <strong>All 11 games boot-verified</strong>
+        The extended smoke harness booted every available recipe to readiness on real Docker,
+        exercised each in-app console via a probe command, and verified expected config paths —
+        including the heavy steamcmd titles (Rust, ARK, CS2, ARK: Survival Ascended).
+      </div>
+      <div class="item good">
+        <strong>In-app console for every supported game</strong>
+        Recipe-driven console transports: Source RCON (Minecraft Java, CS2, ARK, ASA, Project
+        Zomboid) and container-exec (Bedrock, Rust, Palworld), with per-game quick commands.
+      </div>
+      <div class="item good">
+        <strong>Campaign fixes landed</strong>
+        The readiness watcher survives bootstrap container restarts, Source RCON follows the Valve
+        spec, deletes remove root-owned volume files, and the stale Rust/CS2 images plus wrong
+        ARK/Rust readiness patterns were corrected.
+      </div>
+      <div class="item good">
+        <strong>Config &amp; file management UI</strong>
+        Recipe-declared config files render as typed forms with raw-edit fallback; managed file
+        tabs (mods, saves, plugins) support drag-drop upload; a new default install location
+        setting prefills the create wizard.
+      </div>
+      <div class="item good">
+        <strong>Code review hardening</strong>
+        An external review pass (17 findings) was fully addressed: volume cleanup path guards,
+        symlink-escape fixes in file writes, exec timeouts, and safer Windows WSL diagnostics.
+      </div>
+      <div class="item good">
         <strong>Major UI overhaul</strong>
-        The desktop app moved to the Console-inspired redesign with updated dashboard, cards, detail
-        views, onboarding, and shared UI components.
-      </div>
-      <div class="item good">
-        <strong>11 games enabled</strong>
-        The bundled recipe catalog now exposes Minecraft Java, FiveM, Bedrock, both ARK variants,
-        CS2, Palworld, Project Zomboid, Rust, Terraria, and Valheim.
-      </div>
-      <div class="item good">
-        <strong>WSL2/Docker onboarding corrected</strong>
-        Windows readiness now accepts the Docker Desktop path where WSL features and default WSL2 are
-        configured but no standalone distro exists.
-      </div>
-      <div class="item good">
-        <strong>Smoke-test harness added</strong>
-        The core crate now has recipe lifecycle smoke-test support, and the CLI exposes a
-        <code>smoke-test</code> command for Docker-backed validation.
+        The desktop app moved to the Console-inspired redesign with updated dashboard, cards,
+        detail views, onboarding, and shared UI components.
       </div>
       <div class="item good">
         <strong>Automated checks passing</strong>
-        App checks and website checks have passed locally: Rust tests/clippy, frontend check/test/build,
-        plus website check/build.
+        Rust tests/clippy (deny warnings), frontend check/test/build, and website check/build are
+        all green on CI for the release branch.
       </div>
       <div class="item good">
         <strong>Version metadata aligned</strong>
-        App package metadata, Tauri config, changelog, website package version, release docs, and audit
-        manifest now agree on v0.2.0.
+        App package metadata, Tauri config, changelog, website package version, release docs, and
+        audit manifest agree on v0.2.0.
       </div>
     </div>
 
@@ -221,15 +235,16 @@
         users to GitHub Releases until those builds are manually tested.
       </div>
       <div class="item gap">
-        <strong>Recipe coverage exceeds smoke coverage</strong>
-        The recipe list is much broader than the manual smoke-test coverage. ARK, Rust, and Valheim
-        should be prioritized because their image tags changed for this release.
+        <strong>Two recipes track a rolling tag by necessity</strong>
+        Rust force-updates monthly and moves its glibc floor, so only <code>latest</code> keeps
+        working; Motor Town's image publishes no other tag. Both are documented, test-enforced
+        exceptions (<code>ROLLING_TAG_EXCEPTIONS</code>) rather than policy drift.
       </div>
       <div class="item gap">
-        <strong>Changed-tag smoke follow-up</strong>
-        Local optional smoke testing on June 16, 2026 confirmed Valheim reaches ready on
-        <code>sha-732221f4d5b5</code>. ARK hit a SteamCMD app update failure, and Rust cycled through
-        SteamCMD update/startup without reaching readiness before the local run was stopped.
+        <strong>Motor Town ships as Coming Soon</strong>
+        Its dedicated server requires an owning Steam account plus interactive Steam Guard —
+        incompatible with one-click hosting today. The recipe and art are in place to flip when a
+        credential-less install path exists.
       </div>
       <div class="item gap">
         <strong>Vite/Node warning remains</strong>
@@ -241,11 +256,12 @@
     <h2>Evidence</h2>
     <div class="panel">
       <ul>
+        <li>Smoke campaign (July 2&ndash;3, 2026): minecraft-java 14s, bedrock 5s, terraria 70s, valheim 131s, fivem 14s, palworld 224s, project-zomboid 112s, rust ~340s, ark 534s, cs2 2545s, ark-survival-ascended 781s — all reached ready; console probes answered on every game that has an in-app console.</li>
         <li>App versions are stamped as <code>0.2.0</code> across the five release-checked app files.</li>
-        <li><code>CHANGELOG.md</code> has a v0.2.0 section with the redesign, smoke-test, recipe, and onboarding notes.</li>
-        <li>Recipe <code>default_tag</code> values no longer use the moving <code>latest</code> tag.</li>
-        <li>Website download copy now acknowledges experimental macOS builds without promoting direct macOS asset URLs.</li>
-        <li>Roadmap now presents v0.2.0 as the current release candidate and v0.3.0 remote agent as the next focus.</li>
+        <li><code>CHANGELOG.md</code> v0.2.0 section covers the redesign, consoles, config/file tabs, seed files, and every campaign fix.</li>
+        <li>Recipe <code>default_tag</code> values are pinned except the two documented, test-enforced rolling-tag exceptions.</li>
+        <li>External code review on the release PR: 17 findings, 15 fixed, 2 answered as intentional with rationale.</li>
+        <li>Website download copy acknowledges experimental macOS builds without promoting direct macOS asset URLs.</li>
       </ul>
     </div>
   </main>
