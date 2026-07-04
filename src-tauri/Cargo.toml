@@ -1,8 +1,9 @@
 [package]
 name = "cubelit"
-version = "0.1.10"
-description = "A Tauri App"
+version = "0.2.0"
+description = "Desktop app for managing game servers via Docker"
 authors = ["Cubelit Contributors"]
+license = "MIT"
 edition = "2021"
 default-run = "cubelit-desktop"
 

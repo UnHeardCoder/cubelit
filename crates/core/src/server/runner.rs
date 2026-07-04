@@ -27,11 +27,14 @@ pub trait ServerRunner: Send + Sync {
 
     /// Create the primary container for `cubelit`. `extra_binds` are appended
     /// to the recipe's default bind list — used by FiveM to attach `/txData`.
+    /// `server_cmd` overrides the Docker CMD (used by games like Terraria that
+    /// require runtime flags the image cannot express as env vars).
     /// Returns the new container ID.
     async fn create_container(
         &self,
         cubelit: &Cubelit,
         extra_binds: &[String],
+        server_cmd: Option<Vec<String>>,
     ) -> CoreResult<String>;
 
     /// Start a previously-created container. Idempotent at the Docker level.

@@ -28,7 +28,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use sqlx::sqlite::SqlitePoolOptions;
 use sqlx::SqlitePool;
-use tracing::{error, info};
+use tracing::{error, info, warn};
 
 use crate::db::{models::Cubelit, queries, run_migrations};
 use crate::docker::{containers, images, stats::ContainerStats};
@@ -41,7 +41,7 @@ use super::minecraft;
 use super::runner::ServerRunner;
 use super::types::CreateServerConfig;
 use super::watchers::{
-    readiness_pattern, spawn_readiness_watcher, validate_env_vars, verify_container_status,
+    spawn_readiness_watcher, validate_env_vars, verify_container_status,
 };
 
 pub struct LocalServerHost {
@@ -49,6 +49,84 @@ pub struct LocalServerHost {
     pub db: SqlitePool,
     pub data_dir: PathBuf,
     pub recipes_dir: PathBuf,
+}
+
+/// Tracks partial resources created during [`LocalServerHost::create_server`] so
+/// they can be rolled back if provisioning fails at any later step.
+///
+/// Cleanup order: main container → sidecar container → Docker network →
+/// DB row → auto-generated volume directory.  Errors during cleanup are
+/// logged but never propagated — the caller always receives the original
+/// create error.
+struct CreateGuard {
+    id: String,
+    /// `Some(path)` only when CubeLit auto-generated the volume path AND the
+    /// directory did not exist before this create attempt.  `None` means either
+    /// the user supplied the path (never remove) or the directory already existed
+    /// (don't wipe pre-existing data).
+    auto_volume_path: Option<String>,
+    db_row_inserted: bool,
+    main_container_id: Option<String>,
+    sidecar_container_id: Option<String>,
+    network_name: Option<String>,
+}
+
+impl CreateGuard {
+    fn new(id: String, auto_volume_path: Option<String>) -> Self {
+        Self {
+            id,
+            auto_volume_path,
+            db_row_inserted: false,
+            main_container_id: None,
+            sidecar_container_id: None,
+            network_name: None,
+        }
+    }
+
+    async fn cleanup(self, docker: &bollard::Docker, db: &SqlitePool) {
+        // Remove main container (force=true handles containers that are still running)
+        if let Some(ref cid) = self.main_container_id {
+            if let Err(e) = containers::remove_container(docker, cid).await {
+                error!(server_id = %self.id, container_id = %cid, error = %e,
+                    "Cleanup: failed to remove main container");
+            }
+        }
+
+        // Stop and remove sidecar container
+        if let Some(ref sidecar_id) = self.sidecar_container_id {
+            let _ = containers::stop_container(docker, sidecar_id).await;
+            if let Err(e) = containers::remove_container(docker, sidecar_id).await {
+                error!(server_id = %self.id, container_id = %sidecar_id, error = %e,
+                    "Cleanup: failed to remove sidecar container");
+            }
+        }
+
+        // Remove Docker network (after containers are detached/removed so no active endpoints)
+        if let Some(ref net) = self.network_name {
+            if let Err(e) = docker.remove_network(net).await {
+                error!(server_id = %self.id, network = %net, error = %e,
+                    "Cleanup: failed to remove Docker network");
+            }
+        }
+
+        // Delete DB row
+        if self.db_row_inserted {
+            if let Err(e) = queries::delete_cubelit(db, &self.id).await {
+                error!(server_id = %self.id, error = %e,
+                    "Cleanup: failed to delete DB row");
+            }
+        }
+
+        // Remove auto-generated volume dir only when CubeLit created it fresh this attempt
+        if let Some(ref path) = self.auto_volume_path {
+            if let Err(e) = std::fs::remove_dir_all(path) {
+                if e.kind() != std::io::ErrorKind::NotFound {
+                    error!(server_id = %self.id, path = %path, error = %e,
+                        "Cleanup: failed to remove auto volume dir");
+                }
+            }
+        }
+    }
 }
 
 impl LocalServerHost {
@@ -104,6 +182,31 @@ impl LocalServerHost {
         }
     }
 
+    /// Create host-side directories for recipe volumes beyond the primary (index 0).
+    /// Each additional volume gets a subdirectory under `volume_path` named after
+    /// the last segment of its container path (e.g. `/opt/valheim` → `{volume_path}/valheim`).
+    fn create_additional_volume_dirs(
+        volume_path: &str,
+        recipe: &recipes::Recipe,
+    ) -> CoreResult<()> {
+        for v in recipe.volumes.iter().skip(1) {
+            let segment = additional_volume_subdir(&v.container_path);
+            std::fs::create_dir_all(format!("{}/{}", volume_path, segment))?;
+        }
+        Ok(())
+    }
+
+    fn fivem_mysql_connection_string(db_container_name: &str, db_password: &str) -> String {
+        if db_password.is_empty() {
+            format!("mysql://root@{}:3306/fivem", db_container_name)
+        } else {
+            format!(
+                "mysql://root:{}@{}:3306/fivem",
+                db_password, db_container_name
+            )
+        }
+    }
+
     /// Provision the FiveM MariaDB sidecar: pulls MariaDB image, creates
     /// the cubelit-{id}-net network, creates and starts the MariaDB
     /// container, persists the sidecar info on the server row, and
@@ -115,6 +218,7 @@ impl LocalServerHost {
         id: &str,
         env: &mut HashMap<String, String>,
         events: &dyn EventSink,
+        guard: &mut CreateGuard,
     ) -> CoreResult<()> {
         events.emit(CoreEvent::ServerCreateProgress(ServerCreateProgress {
             step: "creating".into(),
@@ -141,6 +245,7 @@ impl LocalServerHost {
             ..Default::default()
         };
         self.docker.create_network(network_config).await?;
+        guard.network_name = Some(network_name.clone());
 
         // Create MariaDB data directory
         let db_data_dir = self.data_dir.join("servers").join(id).join("db");
@@ -200,6 +305,7 @@ impl LocalServerHost {
             .create_container(Some(db_create_opts), db_config)
             .await?;
         let sidecar_id = db_response.id;
+        guard.sidecar_container_id = Some(sidecar_id.clone());
 
         // Connect MariaDB container to the network
         self.docker
@@ -219,14 +325,7 @@ impl LocalServerHost {
         queries::update_cubelit_sidecar(&self.db, id, &sidecar_id, mariadb_image).await?;
 
         // Add MySQL connection string to FiveM env (root user, password may be empty)
-        let conn_str = if db_password.is_empty() {
-            format!("mysql://root@{}:3306/fivem", db_container_name)
-        } else {
-            format!(
-                "mysql://root:{}@{}:3306/fivem",
-                db_password, db_container_name
-            )
-        };
+        let conn_str = Self::fivem_mysql_connection_string(&db_container_name, &db_password);
         env.insert("MYSQL_CONNECTION_STRING".to_string(), conn_str);
 
         // txAdmin mode: skip server.cfg and let txAdmin manage the server via its web UI.
@@ -258,8 +357,9 @@ impl ServerRunner for LocalServerHost {
         &self,
         cubelit: &Cubelit,
         extra_binds: &[String],
+        server_cmd: Option<Vec<String>>,
     ) -> CoreResult<String> {
-        containers::create_container(&self.docker, cubelit, extra_binds).await
+        containers::create_container(&self.docker, cubelit, extra_binds, server_cmd, &[]).await
     }
 
     async fn start_container(&self, container_id: &str) -> CoreResult<()> {
@@ -336,12 +436,15 @@ impl ServerLifecycle for LocalServerHost {
 
         let id = uuid::Uuid::new_v4().to_string();
         let now = chrono::Utc::now().to_rfc3339();
+        // Captured up front — `config` is partially moved further down.
+        let readiness_timeout_override = config.readiness_timeout_override_secs;
 
         // Use user-provided volume path or default to ~/Cubelit/{sanitized-name}.
         // For FiveM: the spritsail/fivem image only copies its default resources when /config is
         // empty on first boot. If the default path already has content (e.g. from a previously
         // deleted server with the same name whose files were kept), fall back to a unique path
         // using the server ID so the image always starts with an empty volume.
+        let volume_path_is_auto = config.volume_path.is_none();
         let volume_path = if let Some(ref vp) = config.volume_path {
             vp.clone()
         } else {
@@ -360,7 +463,11 @@ impl ServerLifecycle for LocalServerHost {
                 base_path.to_string_lossy().to_string()
             }
         };
+        // Decide cleanup path BEFORE creating the directory: only remove if CubeLit
+        // auto-generated it AND it didn't exist yet (don't wipe pre-existing data).
+        let cleanup_vol = cleanup_volume_path(&volume_path, !volume_path_is_auto);
         std::fs::create_dir_all(&volume_path)?;
+        Self::create_additional_volume_dirs(&volume_path, &recipe)?;
 
         // Get container mount path from recipe (e.g. "/data" for Minecraft, "/config" for FiveM)
         let container_mount_path = recipe
@@ -380,6 +487,10 @@ impl ServerLifecycle for LocalServerHost {
 
         // Validate env vars before touching Docker
         validate_env_vars(&env)?;
+
+        // Seed recipe-declared files into the fresh volume before first boot
+        // (some entrypoints only patch config files that already exist).
+        write_seed_files(&recipe, std::path::Path::new(&volume_path), &env);
 
         // Use protocol-aware port keys: "25565/tcp", "30120/udp"
         let mut ports: HashMap<String, u16> = recipe
@@ -416,6 +527,8 @@ impl ServerLifecycle for LocalServerHost {
         };
 
         queries::insert_cubelit(&self.db, &cubelit).await?;
+        let mut guard = CreateGuard::new(id.clone(), cleanup_vol);
+        guard.db_row_inserted = true;
 
         events.emit(CoreEvent::ServerCreateProgress(ServerCreateProgress {
             step: "pulling".into(),
@@ -423,12 +536,22 @@ impl ServerLifecycle for LocalServerHost {
             message: format!("Pulling image {}...", image),
         }));
 
-        images::pull_image(&self.docker, &image, events.as_ref()).await?;
+        if let Err(e) = images::pull_image(&self.docker, &image, events.as_ref()).await {
+            error!(server_id = %id, error = %e, "create_server: image pull failed; cleaning up");
+            guard.cleanup(&self.docker, &self.db).await;
+            return Err(e);
+        }
 
         // FiveM sidecar: MariaDB + Docker network
         if cubelit.recipe_id == "fivem" {
-            self.provision_fivem_sidecar(&id, &mut env, events.as_ref())
-                .await?;
+            if let Err(e) = self
+                .provision_fivem_sidecar(&id, &mut env, events.as_ref(), &mut guard)
+                .await
+            {
+                error!(server_id = %id, error = %e, "create_server: FiveM sidecar failed; cleaning up");
+                guard.cleanup(&self.docker, &self.db).await;
+                return Err(e);
+            }
         }
 
         events.emit(CoreEvent::ServerCreateProgress(ServerCreateProgress {
@@ -438,16 +561,41 @@ impl ServerLifecycle for LocalServerHost {
         }));
 
         // Re-read cubelit from DB to get updated env (with sidecar connection string)
-        let cubelit = queries::get_cubelit(&self.db, &id).await?;
-        let extra_binds: Vec<String> = self.extra_binds_for(&cubelit);
-        let container_id =
-            containers::create_container(&self.docker, &cubelit, &extra_binds).await?;
+        let cubelit = match queries::get_cubelit(&self.db, &id).await {
+            Ok(c) => c,
+            Err(e) => {
+                error!(server_id = %id, error = %e, "create_server: DB refresh failed; cleaning up");
+                guard.cleanup(&self.docker, &self.db).await;
+                return Err(e);
+            }
+        };
+        let mut extra_binds = self.extra_binds_for(&cubelit);
+        extra_binds.extend(additional_volume_binds(&cubelit.volume_path, &recipe));
+
+        let container_id = match containers::create_container(
+            &self.docker,
+            &cubelit,
+            &extra_binds,
+            recipe.server_cmd.clone(),
+            &recipe.cap_add,
+        )
+        .await
+        {
+            Ok(cid) => cid,
+            Err(e) => {
+                error!(server_id = %id, error = %e, "create_server: container creation failed; cleaning up");
+                guard.cleanup(&self.docker, &self.db).await;
+                return Err(e);
+            }
+        };
+        guard.main_container_id = Some(container_id.clone());
 
         // If FiveM, connect the main container to the network too
         if cubelit.recipe_id == "fivem" {
             let network_name = format!("cubelit-{}-net", id);
             let container_name = format!("cubelit-{}", id);
-            self.docker
+            if let Err(e) = self
+                .docker
                 .connect_network(
                     &network_name,
                     bollard::models::NetworkConnectRequest {
@@ -455,7 +603,12 @@ impl ServerLifecycle for LocalServerHost {
                         endpoint_config: None,
                     },
                 )
-                .await?;
+                .await
+            {
+                error!(server_id = %id, error = %e, "create_server: network connect failed; cleaning up");
+                guard.cleanup(&self.docker, &self.db).await;
+                return Err(e.into());
+            }
         }
 
         events.emit(CoreEvent::ServerCreateProgress(ServerCreateProgress {
@@ -464,44 +617,71 @@ impl ServerLifecycle for LocalServerHost {
             message: "Starting server...".into(),
         }));
 
-        containers::start_container(&self.docker, &container_id).await?;
+        if let Err(e) = containers::start_container(&self.docker, &container_id).await {
+            error!(server_id = %id, error = %e, "create_server: container start failed; cleaning up");
+            guard.cleanup(&self.docker, &self.db).await;
+            return Err(e);
+        }
 
-        // Post-start verification: wait 2s then check if container is actually running
+        // Post-start: the container is now started. No cleanup on later failures —
+        // the server may be running even if status-update DB writes fail.
         tokio::time::sleep(std::time::Duration::from_secs(2)).await;
         let running = verify_container_status(&self.docker, &container_id).await == "running";
 
-        if let Some(pattern) = readiness_pattern(&cubelit.recipe_id).filter(|_| running) {
-            // Game needs log-based readiness detection — keep "starting" until Done
-            queries::update_cubelit_status(
-                &self.db,
-                &id,
-                "starting",
-                Some(Some(&container_id)),
-            )
-            .await?;
-            spawn_readiness_watcher(
-                self.docker.clone(),
-                self.db.clone(),
-                events.clone(),
-                id.clone(),
-                container_id.clone(),
-                pattern,
-            );
-        } else {
-            let status = if running { "running" } else { "error" };
-            queries::update_cubelit_status(&self.db, &id, status, Some(Some(&container_id)))
+        // Track whether a readiness watcher was spawned so the completion
+        // event carries an accurate message (watcher ≠ ready).
+        let watcher_spawned = if running {
+            if let Some(ref r) = recipe.readiness {
+                let pattern = r.log_pattern.clone();
+                let timeout = std::time::Duration::from_secs(
+                    readiness_timeout_override.unwrap_or(r.timeout_secs),
+                );
+                queries::update_cubelit_status(
+                    &self.db,
+                    &id,
+                    "starting",
+                    Some(Some(&container_id)),
+                )
                 .await?;
-        }
+                spawn_readiness_watcher(
+                    self.docker.clone(),
+                    self.db.clone(),
+                    events.clone(),
+                    id.clone(),
+                    container_id.clone(),
+                    pattern,
+                    timeout,
+                );
+                true
+            } else {
+                queries::update_cubelit_status(
+                    &self.db,
+                    &id,
+                    "running",
+                    Some(Some(&container_id)),
+                )
+                .await?;
+                false
+            }
+        } else {
+            queries::update_cubelit_status(&self.db, &id, "error", Some(Some(&container_id)))
+                .await?;
+            false
+        };
 
         let updated = queries::get_cubelit(&self.db, &id).await?;
 
         events.emit(CoreEvent::ServerCreateProgress(ServerCreateProgress {
             step: "ready".into(),
             progress: Some(1.0),
-            message: if running {
-                "Server is ready!".into()
-            } else {
+            message: if !running {
                 "Server started but may have encountered an error.".into()
+            } else if watcher_spawned {
+                // Container is up but the readiness pattern hasn't matched yet.
+                // The watcher will emit ServerStatusChanged when it does.
+                "Server is starting up — monitoring logs for readiness...".into()
+            } else {
+                "Server is ready!".into()
             },
         }));
 
@@ -527,6 +707,8 @@ impl ServerLifecycle for LocalServerHost {
                 CoreError::NotFound("No container associated with this server".into())
             })?;
 
+        let recipe = recipes::get_recipe(&self.recipes_dir, &cubelit.recipe_id).ok();
+
         // Also start sidecar if present
         if let Some(ref sidecar_id) = cubelit.sidecar_container_id {
             let _ = containers::start_container(&self.docker, sidecar_id).await;
@@ -537,19 +719,25 @@ impl ServerLifecycle for LocalServerHost {
         tokio::time::sleep(std::time::Duration::from_secs(2)).await;
         let running = verify_container_status(&self.docker, &container_id).await == "running";
 
-        if let Some(pattern) = readiness_pattern(&cubelit.recipe_id).filter(|_| running) {
-            queries::update_cubelit_status(&self.db, id, "starting", None).await?;
-            spawn_readiness_watcher(
-                self.docker.clone(),
-                self.db.clone(),
-                events,
-                id.to_string(),
-                container_id.clone(),
-                pattern,
-            );
+        if running {
+            if let Some(ref r) = recipe.as_ref().and_then(|r| r.readiness.as_ref()).cloned() {
+                let pattern = r.log_pattern.clone();
+                let timeout = std::time::Duration::from_secs(r.timeout_secs);
+                queries::update_cubelit_status(&self.db, id, "starting", None).await?;
+                spawn_readiness_watcher(
+                    self.docker.clone(),
+                    self.db.clone(),
+                    events,
+                    id.to_string(),
+                    container_id.clone(),
+                    pattern,
+                    timeout,
+                );
+            } else {
+                queries::update_cubelit_status(&self.db, id, "running", None).await?;
+            }
         } else {
-            let status = if running { "running" } else { "error" };
-            queries::update_cubelit_status(&self.db, id, status, None).await?;
+            queries::update_cubelit_status(&self.db, id, "error", None).await?;
         }
 
         if running {
@@ -596,6 +784,8 @@ impl ServerLifecycle for LocalServerHost {
                 CoreError::NotFound("No container associated with this server".into())
             })?;
 
+        let recipe = recipes::get_recipe(&self.recipes_dir, &cubelit.recipe_id).ok();
+
         // Also restart sidecar if present
         if let Some(ref sidecar_id) = cubelit.sidecar_container_id {
             let _ = containers::restart_container(&self.docker, sidecar_id).await;
@@ -606,19 +796,25 @@ impl ServerLifecycle for LocalServerHost {
         tokio::time::sleep(std::time::Duration::from_secs(2)).await;
         let running = verify_container_status(&self.docker, &container_id).await == "running";
 
-        if let Some(pattern) = readiness_pattern(&cubelit.recipe_id).filter(|_| running) {
-            queries::update_cubelit_status(&self.db, id, "starting", None).await?;
-            spawn_readiness_watcher(
-                self.docker.clone(),
-                self.db.clone(),
-                events,
-                id.to_string(),
-                container_id.clone(),
-                pattern,
-            );
+        if running {
+            if let Some(ref r) = recipe.as_ref().and_then(|r| r.readiness.as_ref()).cloned() {
+                let pattern = r.log_pattern.clone();
+                let timeout = std::time::Duration::from_secs(r.timeout_secs);
+                queries::update_cubelit_status(&self.db, id, "starting", None).await?;
+                spawn_readiness_watcher(
+                    self.docker.clone(),
+                    self.db.clone(),
+                    events,
+                    id.to_string(),
+                    container_id.clone(),
+                    pattern,
+                    timeout,
+                );
+            } else {
+                queries::update_cubelit_status(&self.db, id, "running", None).await?;
+            }
         } else {
-            let status = if running { "running" } else { "error" };
-            queries::update_cubelit_status(&self.db, id, status, None).await?;
+            queries::update_cubelit_status(&self.db, id, "error", None).await?;
         }
 
         if running {
@@ -658,7 +854,15 @@ impl ServerLifecycle for LocalServerHost {
         queries::delete_cubelit(&self.db, id).await?;
 
         if delete_data {
-            let _ = std::fs::remove_dir_all(&cubelit.volume_path);
+            // Some game images (Valheim, Project Zomboid) write volume files as
+            // root, which a plain remove_dir_all can't delete — fall back to a
+            // one-shot root container using the server's own image.
+            containers::remove_host_dir_as_root(
+                &self.docker,
+                &cubelit.docker_image,
+                &cubelit.volume_path,
+            )
+            .await;
             // Also remove Cubelit-managed server data (MariaDB data, txAdmin data)
             let server_data_dir = self.data_dir.join("servers").join(&cubelit.id);
             let _ = std::fs::remove_dir_all(&server_data_dir);
@@ -681,6 +885,11 @@ impl ServerLifecycle for LocalServerHost {
         // Validate env vars before persisting
         validate_env_vars(&environment)?;
 
+        // Load the recipe BEFORE the destructive stop/remove below: recreating
+        // the container without its recipe would silently drop server_cmd,
+        // cap_add, and additional volume binds from the container contract.
+        let recipe = recipes::get_recipe(&self.recipes_dir, &cubelit.recipe_id)?;
+
         // Stop and remove the existing container
         if let Some(ref container_id) = cubelit.container_id {
             let _ = containers::stop_container(&self.docker, container_id).await;
@@ -700,9 +909,14 @@ impl ServerLifecycle for LocalServerHost {
         // Re-read to get updated env
         let cubelit = queries::get_cubelit(&self.db, id).await?;
 
-        let extra_binds: Vec<String> = self.extra_binds_for(&cubelit);
+        // Recipe-derived container contract: server_cmd, capabilities, binds.
+        let server_cmd = recipe.server_cmd.clone();
+        let cap_add = recipe.cap_add.clone();
+        let mut extra_binds = self.extra_binds_for(&cubelit);
+        extra_binds.extend(additional_volume_binds(&cubelit.volume_path, &recipe));
         let new_container_id =
-            containers::create_container(&self.docker, &cubelit, &extra_binds).await?;
+            containers::create_container(&self.docker, &cubelit, &extra_binds, server_cmd, &cap_add)
+                .await?;
 
         // Re-connect FiveM containers to their network
         if cubelit.recipe_id == "fivem" {
@@ -731,28 +945,40 @@ impl ServerLifecycle for LocalServerHost {
             let running =
                 verify_container_status(&self.docker, &new_container_id).await == "running";
 
-            if let Some(pattern) = readiness_pattern(&cubelit.recipe_id).filter(|_| running) {
-                queries::update_cubelit_status(
-                    &self.db,
-                    id,
-                    "starting",
-                    Some(Some(&new_container_id)),
-                )
-                .await?;
-                spawn_readiness_watcher(
-                    self.docker.clone(),
-                    self.db.clone(),
-                    events.clone(),
-                    id.to_string(),
-                    new_container_id.clone(),
-                    pattern,
-                );
+            if running {
+                if let Some(ref r) = recipe.readiness {
+                    let pattern = r.log_pattern.clone();
+                    let timeout = std::time::Duration::from_secs(r.timeout_secs);
+                    queries::update_cubelit_status(
+                        &self.db,
+                        id,
+                        "starting",
+                        Some(Some(&new_container_id)),
+                    )
+                    .await?;
+                    spawn_readiness_watcher(
+                        self.docker.clone(),
+                        self.db.clone(),
+                        events.clone(),
+                        id.to_string(),
+                        new_container_id.clone(),
+                        pattern,
+                        timeout,
+                    );
+                } else {
+                    queries::update_cubelit_status(
+                        &self.db,
+                        id,
+                        "running",
+                        Some(Some(&new_container_id)),
+                    )
+                    .await?;
+                }
             } else {
-                let status = if running { "running" } else { "error" };
                 queries::update_cubelit_status(
                     &self.db,
                     id,
-                    status,
+                    "error",
                     Some(Some(&new_container_id)),
                 )
                 .await?;
@@ -826,9 +1052,120 @@ impl ServerLifecycle for LocalServerHost {
         minecraft::send_minecraft_command(&self.db, id, command).await
     }
 
+    async fn send_server_command(&self, id: &str, command: &str) -> CoreResult<String> {
+        super::console::send_server_command(&self.docker, &self.db, &self.recipes_dir, id, command)
+            .await
+    }
+
     async fn backup_server(&self, id: &str) -> CoreResult<String> {
         minecraft::backup_server(&self.db, id).await
     }
+}
+
+// ─── Volume helpers ───────────────────────────────────────────────────────────
+
+/// Build bind strings for recipe volumes at index 1+ (the primary volume at
+/// index 0 is already represented by `cubelit.volume_path`/`container_mount_path`).
+///
+/// Each additional volume is mapped to a subdirectory under `volume_path`
+/// whose name is the last path segment of the container path:
+///   `/opt/valheim`          → `{volume_path}/valheim:/opt/valheim`
+///   `/project-zomboid-config` → `{volume_path}/project-zomboid-config:/project-zomboid-config`
+pub fn additional_volume_binds(volume_path: &str, recipe: &recipes::Recipe) -> Vec<String> {
+    recipe
+        .volumes
+        .iter()
+        .skip(1)
+        .map(|v| {
+            let segment = additional_volume_subdir(&v.container_path);
+            format!("{}/{}:{}", volume_path, segment, v.container_path)
+        })
+        .collect()
+}
+
+/// Returns `Some(path)` when CubeLit should remove `path` on create-server
+/// failure, or `None` when the path must be left alone.
+///
+/// We only auto-remove when:
+/// - the path was auto-generated by CubeLit (not supplied by the user), AND
+/// - the directory did not exist before this create attempt (no pre-existing data).
+fn cleanup_volume_path(volume_path: &str, user_provided: bool) -> Option<String> {
+    if user_provided || std::path::Path::new(volume_path).exists() {
+        None
+    } else {
+        Some(volume_path.to_string())
+    }
+}
+
+fn additional_volume_subdir(container_path: &str) -> String {
+    let segment = std::path::Path::new(container_path)
+        .file_name()
+        .and_then(|s| s.to_str())
+        .unwrap_or("data");
+    let sanitized: String = segment
+        .chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.') {
+                c
+            } else {
+                '_'
+            }
+        })
+        .collect();
+
+    if sanitized.is_empty() {
+        "data".to_string()
+    } else {
+        sanitized
+    }
+}
+
+/// Write the recipe's `seed_files` into a fresh volume, substituting
+/// `{ENV_KEY}` tokens in both path and content from the resolved env map.
+/// Best-effort: existing files are never overwritten, escaping paths are
+/// skipped, and IO failures are logged rather than failing the create — a
+/// missing seed degrades to the image's own first-boot behavior.
+fn write_seed_files(
+    recipe: &recipes::Recipe,
+    volume_path: &std::path::Path,
+    env: &HashMap<String, String>,
+) {
+    for seed in &recipe.seed_files {
+        let rel = substitute_env_tokens(&seed.path, env);
+        // Reject absolute paths, traversal, and Windows-style separators or
+        // drive prefixes (`..\\x`, `C:\\x`) that `split('/')` would miss.
+        if rel.starts_with('/')
+            || rel.contains('\\')
+            || rel.contains(':')
+            || rel.split('/').any(|seg| seg == "..")
+        {
+            warn!(path = %rel, "Seed file path escapes the volume; skipping");
+            continue;
+        }
+        let dest = volume_path.join(&rel);
+        if dest.exists() {
+            continue;
+        }
+        let write = || -> std::io::Result<()> {
+            if let Some(parent) = dest.parent() {
+                std::fs::create_dir_all(parent)?;
+            }
+            std::fs::write(&dest, substitute_env_tokens(&seed.content, env))
+        };
+        if let Err(e) = write() {
+            warn!(path = %dest.display(), error = %e, "Failed to write seed file");
+        }
+    }
+}
+
+/// Replace `{KEY}` tokens with values from the env map. Unknown tokens are
+/// left as-is.
+fn substitute_env_tokens(s: &str, env: &HashMap<String, String>) -> String {
+    let mut out = s.to_string();
+    for (k, v) in env {
+        out = out.replace(&format!("{{{k}}}"), v);
+    }
+    out
 }
 
 // ─── Free helpers (used by lifecycle methods + the desktop crash watcher) ───
@@ -894,6 +1231,46 @@ pub async fn sync_all_servers(
     queries::list_cubelits(db).await
 }
 
+/// At startup, promote any server stuck in `"starting"` to `"running"` when
+/// Docker confirms its container is actually up.
+///
+/// Readiness watchers are in-process tokio tasks — they die with the process.
+/// If CubeLit restarts while a server is still in `"starting"` state, no
+/// watcher is re-attached, so the status would be stuck forever. Call this
+/// once at startup, **after** `sync_all_servers` and **before** spawning any
+/// new readiness watchers, to clean up orphaned starting states.
+///
+/// Servers whose container is not running (or has no container) are left
+/// unchanged; `sync_all_servers` already reconciled them to `"stopped"`.
+pub async fn reconcile_orphaned_starting_servers(
+    docker: &bollard::Docker,
+    db: &SqlitePool,
+) -> CoreResult<()> {
+    let cubelits = queries::list_cubelits(db).await?;
+    for cubelit in &cubelits {
+        if cubelit.status != "starting" {
+            continue;
+        }
+        let is_running = match &cubelit.container_id {
+            Some(cid) => match docker.inspect_container(cid, None).await {
+                Ok(info) => info.state.and_then(|s| s.running).unwrap_or(false),
+                Err(_) => false,
+            },
+            None => false,
+        };
+        if is_running {
+            queries::update_cubelit_status(db, &cubelit.id, "running", None).await?;
+            tracing::warn!(
+                server_id = %cubelit.id,
+                name = %cubelit.name,
+                "Server was in 'starting' with no active readiness watcher (process restart?); \
+                promoted to 'running' — it may not yet be accepting connections",
+            );
+        }
+    }
+    Ok(())
+}
+
 // ─── Unit tests (no Docker required) ─────────────────────────────────────────
 
 #[cfg(test)]
@@ -951,5 +1328,335 @@ mod tests {
             "expected NotFound, got: {:?}",
             err
         );
+    }
+
+    fn starting_cubelit(id: &str) -> Cubelit {
+        Cubelit {
+            id: id.to_string(),
+            name: "Test Server".to_string(),
+            game: "Test Game".to_string(),
+            recipe_id: "test".to_string(),
+            docker_image: "test:1.0".to_string(),
+            container_id: None,
+            status: "starting".to_string(),
+            port_mappings: "{}".to_string(),
+            environment: "{}".to_string(),
+            volume_path: "/tmp".to_string(),
+            container_mount_path: "/data".to_string(),
+            sidecar_container_id: None,
+            sidecar_image: None,
+            created_at: "2024-01-01T00:00:00Z".to_string(),
+            updated_at: "2024-01-01T00:00:00Z".to_string(),
+        }
+    }
+
+    #[tokio::test]
+    async fn sync_single_preserves_starting_when_no_container() {
+        // A server in "starting" with no container_id (e.g. created but container
+        // not yet assigned) must not be demoted — no Docker call is made.
+        let host = test_host().await;
+        let cubelit = starting_cubelit("sync-nocontainer");
+        queries::insert_cubelit(&host.db, &cubelit).await.unwrap();
+
+        let status = sync_single_server(&host.docker, &host.db, &cubelit)
+            .await
+            .unwrap();
+
+        assert_eq!(
+            status, "starting",
+            "no-container starting server must stay starting"
+        );
+        // DB row also unchanged
+        let row = queries::get_cubelit(&host.db, "sync-nocontainer")
+            .await
+            .unwrap();
+        assert_eq!(row.status, "starting");
+    }
+
+    #[tokio::test]
+    async fn reconcile_orphaned_noop_when_no_container() {
+        // With no container_id, Docker inspect is never attempted, so the
+        // server stays in "starting" (no promotion).
+        let host = test_host().await;
+        let cubelit = starting_cubelit("orphan-nocontainer");
+        queries::insert_cubelit(&host.db, &cubelit).await.unwrap();
+
+        reconcile_orphaned_starting_servers(&host.docker, &host.db)
+            .await
+            .unwrap();
+
+        let row = queries::get_cubelit(&host.db, "orphan-nocontainer")
+            .await
+            .unwrap();
+        assert_eq!(
+            row.status, "starting",
+            "no-container server must not be promoted"
+        );
+    }
+
+    #[tokio::test]
+    async fn reconcile_orphaned_noop_for_non_starting_statuses() {
+        // Only "starting" servers are candidates for promotion.
+        let host = test_host().await;
+        for (id, status) in [
+            ("orphan-running", "running"),
+            ("orphan-stopped", "stopped"),
+            ("orphan-error", "error"),
+        ] {
+            let mut c = starting_cubelit(id);
+            c.status = status.to_string();
+            queries::insert_cubelit(&host.db, &c).await.unwrap();
+        }
+
+        reconcile_orphaned_starting_servers(&host.docker, &host.db)
+            .await
+            .unwrap();
+
+        for (id, expected_status) in [
+            ("orphan-running", "running"),
+            ("orphan-stopped", "stopped"),
+            ("orphan-error", "error"),
+        ] {
+            let row = queries::get_cubelit(&host.db, id).await.unwrap();
+            assert_eq!(
+                row.status, expected_status,
+                "non-starting server '{}' must not be touched",
+                id
+            );
+        }
+    }
+
+    #[test]
+    fn fivem_mysql_connection_string_handles_empty_and_non_empty_passwords() {
+        let container_name = "cubelit-test-db";
+
+        assert_eq!(
+            LocalServerHost::fivem_mysql_connection_string(container_name, ""),
+            "mysql://root@cubelit-test-db:3306/fivem"
+        );
+        assert_eq!(
+            LocalServerHost::fivem_mysql_connection_string(container_name, "test-secret"),
+            "mysql://root:test-secret@cubelit-test-db:3306/fivem"
+        );
+    }
+
+    fn make_recipe(container_paths: &[&str]) -> crate::recipes::Recipe {
+        crate::recipes::Recipe {
+            id: "test".into(),
+            name: "Test".into(),
+            description: "".into(),
+            icon: "test".into(),
+            docker_image: "test/image".into(),
+            default_tag: "latest".into(),
+            ports: vec![],
+            environment: vec![],
+            volumes: container_paths
+                .iter()
+                .map(|p| crate::recipes::RecipeVolume {
+                    container_path: p.to_string(),
+                    label: p.to_string(),
+                })
+                .collect(),
+            config_files: vec![],
+            mods: None,
+            available: true,
+            estimated_disk_mb: 0,
+            tags: vec![],
+            server_cmd: None,
+            cap_add: vec![],
+            readiness: None,
+            dashboard: None,
+            seed_files: vec![],
+        }
+    }
+
+    #[test]
+    fn additional_volume_binds_single_volume_returns_empty() {
+        let recipe = make_recipe(&["/data"]);
+        let binds = additional_volume_binds("/home/user/Cubelit/MyServer", &recipe);
+        assert!(binds.is_empty());
+    }
+
+    #[test]
+    fn additional_volume_binds_valheim_layout() {
+        // Valheim: volumes[0]=/config (primary), volumes[1]=/opt/valheim (secondary)
+        let recipe = make_recipe(&["/config", "/opt/valheim"]);
+        let binds = additional_volume_binds("/home/user/Cubelit/MyServer", &recipe);
+        assert_eq!(binds.len(), 1);
+        assert_eq!(
+            binds[0],
+            "/home/user/Cubelit/MyServer/valheim:/opt/valheim"
+        );
+    }
+
+    #[test]
+    fn additional_volume_binds_project_zomboid_layout() {
+        // Project Zomboid: volumes[0]=/project-zomboid, volumes[1]=/project-zomboid-config
+        let recipe = make_recipe(&["/project-zomboid", "/project-zomboid-config"]);
+        let binds = additional_volume_binds("/home/user/Cubelit/MyServer", &recipe);
+        assert_eq!(binds.len(), 1);
+        assert_eq!(
+            binds[0],
+            "/home/user/Cubelit/MyServer/project-zomboid-config:/project-zomboid-config"
+        );
+    }
+
+    #[test]
+    fn additional_volume_binds_three_volumes() {
+        let recipe = make_recipe(&["/data", "/config", "/logs"]);
+        let binds = additional_volume_binds("/srv/servers/test", &recipe);
+        assert_eq!(binds.len(), 2);
+        assert_eq!(binds[0], "/srv/servers/test/config:/config");
+        assert_eq!(binds[1], "/srv/servers/test/logs:/logs");
+    }
+
+    #[test]
+    fn additional_volume_binds_sanitizes_host_subdir_name() {
+        let recipe = make_recipe(&["/data", "/path/with spaces"]);
+        let binds = additional_volume_binds("/srv/servers/test", &recipe);
+        assert_eq!(
+            binds,
+            vec!["/srv/servers/test/with_spaces:/path/with spaces"]
+        );
+    }
+
+    // ─── Seed file tests ──────────────────────────────────────────────────────
+
+    #[test]
+    fn substitute_env_tokens_replaces_known_and_keeps_unknown() {
+        let env = HashMap::from([
+            ("SERVER_NAME".to_string(), "CubelitPZ".to_string()),
+            ("RCON_PORT".to_string(), "27015".to_string()),
+        ]);
+        assert_eq!(
+            substitute_env_tokens("Server/{SERVER_NAME}.ini", &env),
+            "Server/CubelitPZ.ini"
+        );
+        assert_eq!(
+            substitute_env_tokens("{UNKNOWN}/{RCON_PORT}", &env),
+            "{UNKNOWN}/27015"
+        );
+    }
+
+    #[test]
+    fn write_seed_files_writes_templated_file_and_never_overwrites() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut recipe = make_recipe(&[]);
+        recipe.seed_files = vec![crate::recipes::RecipeSeedFile {
+            path: "cfg/Server/{SERVER_NAME}.ini".into(),
+            content: "RCONPassword=\nRCONPort={RCON_PORT}\n".into(),
+        }];
+        let env = HashMap::from([
+            ("SERVER_NAME".to_string(), "MyPZ".to_string()),
+            ("RCON_PORT".to_string(), "27099".to_string()),
+        ]);
+
+        write_seed_files(&recipe, dir.path(), &env);
+        let dest = dir.path().join("cfg/Server/MyPZ.ini");
+        assert_eq!(
+            std::fs::read_to_string(&dest).unwrap(),
+            "RCONPassword=\nRCONPort=27099\n"
+        );
+
+        // Second write must not clobber existing (user-modified) content.
+        std::fs::write(&dest, "RCONPassword=usercustom\n").unwrap();
+        write_seed_files(&recipe, dir.path(), &env);
+        assert_eq!(
+            std::fs::read_to_string(&dest).unwrap(),
+            "RCONPassword=usercustom\n"
+        );
+    }
+
+    #[test]
+    fn write_seed_files_skips_escaping_paths() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut recipe = make_recipe(&[]);
+        recipe.seed_files = vec![
+            crate::recipes::RecipeSeedFile {
+                path: "../outside.ini".into(),
+                content: "x".into(),
+            },
+            crate::recipes::RecipeSeedFile {
+                path: "/absolute.ini".into(),
+                content: "x".into(),
+            },
+            crate::recipes::RecipeSeedFile {
+                path: r"..\win-outside.ini".into(),
+                content: "x".into(),
+            },
+            crate::recipes::RecipeSeedFile {
+                path: r"C:\win-drive.ini".into(),
+                content: "x".into(),
+            },
+        ];
+        write_seed_files(&recipe, dir.path(), &HashMap::new());
+        assert!(!dir.path().parent().unwrap().join("outside.ini").exists());
+        assert!(!std::path::Path::new("/absolute.ini").exists());
+        assert!(!dir.path().parent().unwrap().join("win-outside.ini").exists());
+        assert!(std::fs::read_dir(dir.path()).unwrap().next().is_none());
+    }
+
+    // ─── CreateGuard / cleanup_volume_path tests ──────────────────────────────
+
+    #[test]
+    fn cleanup_volume_path_user_provided_is_never_removed() {
+        assert_eq!(cleanup_volume_path("/user/provided/path", true), None);
+    }
+
+    #[test]
+    fn cleanup_volume_path_auto_existing_dir_is_preserved() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().to_str().unwrap();
+        assert_eq!(
+            cleanup_volume_path(path, false),
+            None,
+            "pre-existing directory must not be scheduled for removal"
+        );
+    }
+
+    #[test]
+    fn cleanup_volume_path_auto_new_dir_is_removed() {
+        // Use a path that reliably doesn't exist; the function is pure so no fs side-effects.
+        let path = "/tmp/__cubelit_test_nonexistent_volume_dir__";
+        let _ = std::fs::remove_dir_all(path); // ensure clean state
+        assert_eq!(
+            cleanup_volume_path(path, false),
+            Some(path.to_string()),
+            "auto-generated, not-yet-existing path must be scheduled for removal"
+        );
+    }
+
+    #[tokio::test]
+    async fn create_guard_cleanup_deletes_db_row() {
+        let host = test_host().await;
+        let cubelit = starting_cubelit("guard-cleanup-db-test");
+        queries::insert_cubelit(&host.db, &cubelit).await.unwrap();
+
+        // Verify row exists before cleanup
+        queries::get_cubelit(&host.db, "guard-cleanup-db-test")
+            .await
+            .unwrap();
+
+        // Guard with only the DB row flagged — no Docker resource IDs, so no
+        // Docker API calls are made during cleanup.
+        let mut guard = CreateGuard::new("guard-cleanup-db-test".to_string(), None);
+        guard.db_row_inserted = true;
+        guard.cleanup(&host.docker, &host.db).await;
+
+        let result = queries::get_cubelit(&host.db, "guard-cleanup-db-test").await;
+        assert!(
+            matches!(result, Err(crate::error::CoreError::NotFound(_))),
+            "cleanup must delete the DB row"
+        );
+    }
+
+    #[tokio::test]
+    async fn create_guard_cleanup_skips_db_when_not_inserted() {
+        let host = test_host().await;
+        // db_row_inserted defaults to false — guard must not attempt a DELETE
+        // for a row that was never inserted (which would silently succeed but
+        // is wasteful and masks bugs).
+        let guard = CreateGuard::new("nonexistent-guard-id".to_string(), None);
+        guard.cleanup(&host.docker, &host.db).await; // must not panic
     }
 }

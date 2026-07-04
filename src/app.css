@@ -1,25 +1,532 @@
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+@import "@fontsource/inter/700.css";
+@import "@fontsource/jetbrains-mono/400.css";
+@import "@fontsource/jetbrains-mono/500.css";
 @import "tailwindcss";
 
-@theme {
-  --color-cubelit-bg: #23272f;
-  --color-cubelit-surface: #33373d;
-  --color-cubelit-border: #4b5058;
-  --color-cubelit-text: #f5f5f6;
-  --color-cubelit-muted: #b0b1b5;
-  --color-cubelit-accent: #ff8800;
-  --color-cubelit-accent-hover: #e26600;
-  --color-cubelit-success: #00ff00;
-  --color-cubelit-warning: #ffff00;
-  --color-cubelit-error: #ff0000;
+/* ── CSS custom properties (dark theme defaults) ─────────────────── */
+:root {
+  --c-bg:          #0e1012;
+  --c-bg-2:        #15181c;
+  --c-surface:     #1a1e24;
+  --c-surface-2:   #20252c;
+  --c-border:      #262c34;
+  --c-border-2:    #323944;
+  --c-text:        #e7eaee;
+  --c-text-dim:    #a7adb6;
+  --c-muted:       #6b7280;
+  --c-accent:      #f6851f;
+  --c-accent-2:    #ffb26b;
+  --c-accent-soft: #f6851f22;
+  --c-success:     #4ade80;
+  --c-warning:     #f5c93a;
+  --c-error:       #f16a6a;
+  --c-grid-line:   rgba(255, 255, 255, 0.042);
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
-/* Hide browser-native number input spinners */
+/* ── Light theme overrides ─────────────────────────────────────────── */
+[data-theme="light"] {
+  --c-bg:          #f6f5f2;
+  --c-bg-2:        #ecebe6;
+  --c-surface:     #ffffff;
+  --c-surface-2:   #f9f8f5;
+  --c-border:      #e5e3dc;
+  --c-border-2:    #d3d1c9;
+  --c-text:        #171a1f;
+  --c-text-dim:    #4c525c;
+  --c-muted:       #8b8f97;
+  --c-accent:      #d96a0f;
+  --c-accent-2:    #f6851f;
+  --c-accent-soft: #d96a0f18;
+  --c-success:     #17874a;
+  --c-warning:     #b7860b;
+  --c-error:       #c5382f;
+  --c-grid-line:   rgba(20, 25, 35, 0.065);
+}
+
+/* ── Tailwind v4 theme — maps utilities to CSS vars ─────────────────── */
+@theme {
+  --color-cubelit-bg:           var(--c-bg);
+  --color-cubelit-bg-2:         var(--c-bg-2);
+  --color-cubelit-surface:      var(--c-surface);
+  --color-cubelit-surface-2:    var(--c-surface-2);
+  --color-cubelit-border:       var(--c-border);
+  --color-cubelit-border-2:     var(--c-border-2);
+  --color-cubelit-text:         var(--c-text);
+  --color-cubelit-text-dim:     var(--c-text-dim);
+  --color-cubelit-muted:        var(--c-muted);
+  --color-cubelit-accent:       var(--c-accent);
+  --color-cubelit-accent-2:     var(--c-accent-2);
+  --color-cubelit-accent-soft:  var(--c-accent-soft);
+  --color-cubelit-accent-hover: color-mix(in oklab, var(--c-accent) 85%, black);
+  --color-cubelit-success:      var(--c-success);
+  --color-cubelit-warning:      var(--c-warning);
+  --color-cubelit-error:        var(--c-error);
+  --font-family-sans: var(--font-sans);
+  --font-family-mono: var(--font-mono);
+}
+
+/* ── Base ─────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0; height: 100%;
+  font-family: var(--font-sans);
+  background: var(--c-bg);
+  color: var(--c-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'cv11','ss01','ss03';
+}
+
+/* Smooth colour transition when switching dark ↔ light */
+body, body * {
+  transition-property: background-color, border-color, color;
+  transition-duration: 180ms;
+  transition-timing-function: ease;
+}
+/* But don't slow down transforms/opacity (hover, animations) */
+body *:not([class*="animate-"]):not(.status-dot) {
+  transition-property: background-color, border-color, color, box-shadow;
+}
+
+/* ── Scrollbar ────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--c-border-2); border-radius: 6px; border: 2px solid var(--c-bg); }
+::-webkit-scrollbar-thumb:hover { background: var(--c-muted); }
+
+/* ── Keyframe animations ──────────────────────────────────────────── */
+@keyframes blink    { 50% { opacity: 0; } }
+@keyframes pulse    { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+@keyframes spin     { to { transform: rotate(360deg); } }
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position:  400px 0; }
+}
+@keyframes drawPath {
+  from { stroke-dashoffset: 1; }
+  to   { stroke-dashoffset: 0; }
+}
+@keyframes ringPulse {
+  0%   { box-shadow: 0 0 0 0   color-mix(in oklab, var(--c-success) 60%, transparent); }
+  70%  { box-shadow: 0 0 0 6px color-mix(in oklab, var(--c-success) 0%, transparent); }
+  100% { box-shadow: 0 0 0 0   color-mix(in oklab, var(--c-success) 0%, transparent); }
+}
+
+/* ── Animation utility classes ────────────────────────────────────── */
+.cursor-blink { animation: blink 1s steps(1) infinite; }
+
+.animate-fade-up {
+  animation: fadeUp 0.32s ease both;
+}
+.animate-fade-in {
+  animation: fadeIn 0.22s ease both;
+}
+.animate-scale-in {
+  animation: scaleIn 0.25s ease both;
+}
+.animate-slide-in-left {
+  animation: slideInLeft 0.24s ease both;
+}
+
+/* Stagger helpers — apply to nth-child in lists */
+.stagger-1  { animation-delay: 0ms; }
+.stagger-2  { animation-delay: 50ms; }
+.stagger-3  { animation-delay: 100ms; }
+.stagger-4  { animation-delay: 150ms; }
+.stagger-5  { animation-delay: 200ms; }
+.stagger-6  { animation-delay: 250ms; }
+.stagger-7  { animation-delay: 300ms; }
+.stagger-8  { animation-delay: 350ms; }
+
+/* Skeleton shimmer */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--c-surface) 25%,
+    var(--c-surface-2) 50%,
+    var(--c-surface) 75%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.5s infinite linear;
+  border-radius: 6px;
+}
+
+/* ── Number input — hide spinners ────────────────────────────────── */
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
-input[type="number"] {
-  appearance: textfield;
+input[type="number"] { appearance: textfield; }
+
+/* ── Status dots ──────────────────────────────────────────────────── */
+.status-dot {
+  width: 8px; height: 8px; border-radius: 999px;
+  background: var(--c-muted); display: inline-block; flex-shrink: 0;
+  transition: none;
+}
+.status-dot.running {
+  background: var(--c-success);
+  animation: ringPulse 2.2s ease-out infinite;
+}
+.status-dot.starting {
+  background: var(--c-warning);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--c-warning) 20%, transparent);
+  animation: pulse 0.9s infinite;
+}
+.status-dot.stopped { background: var(--c-muted); }
+.status-dot.error   { background: var(--c-error); }
+
+/* ── Pill badges ──────────────────────────────────────────────────── */
+.pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 8px; border-radius: 999px;
+  font-size: 11px; font-weight: 500;
+  border: 1px solid var(--c-border);
+  background: var(--c-surface);
+  color: var(--c-text-dim);
+  white-space: nowrap;
+}
+.pill.success { color: var(--c-success); border-color: color-mix(in oklab, var(--c-success) 40%, var(--c-border)); background: color-mix(in oklab, var(--c-success) 10%, transparent); }
+.pill.warning { color: var(--c-warning); border-color: color-mix(in oklab, var(--c-warning) 40%, var(--c-border)); background: color-mix(in oklab, var(--c-warning) 10%, transparent); }
+.pill.error   { color: var(--c-error);   border-color: color-mix(in oklab, var(--c-error)   40%, var(--c-border)); background: color-mix(in oklab, var(--c-error)   10%, transparent); }
+.pill.accent  { color: var(--c-accent);  border-color: color-mix(in oklab, var(--c-accent)  40%, var(--c-border)); background: var(--c-accent-soft); }
+
+/* ── Card hover lift ──────────────────────────────────────────────── */
+/* Apply .card-lift to any interactive card */
+.card-lift {
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease !important;
+}
+.card-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+}
+[data-theme="light"] .card-lift:hover {
+  box-shadow: 0 8px 24px rgba(20, 25, 35, 0.10);
 }
 
+/* ── Grid background system ───────────────────────────────────────── */
+/* Applied to the .app-main element (the <main> in +layout.svelte).   */
+/* data-grid="dots|lines|cross" on <html> activates the pattern.       */
+.app-main {
+  position: relative;
+}
+.app-main::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  /* Pattern is set via --grid-image below */
+  background-image: var(--grid-image, none);
+  background-size:  var(--grid-size,  32px 32px);
+  background-position: 0 0;
+  /* Fade from top — grid visible at top, invisible at bottom */
+  mask-image: radial-gradient(ellipse 120% 70% at 50% 0%, black 40%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 120% 70% at 50% 0%, black 40%, transparent 100%);
+  opacity: var(--grid-opacity, 0);
+  transition: opacity 0.3s ease;
+}
+/* Children of .app-main must sit above the pseudo-element */
+.app-main > :not(.cubelit-modal-root) { position: relative; z-index: 1; }
+.cubelit-modal-root { position: fixed; z-index: 100; }
+
+/* Grid pattern definitions */
+[data-grid="dots"] {
+  --grid-image:   radial-gradient(var(--c-grid-line) 1px, transparent 1.4px);
+  --grid-size:    22px 22px;
+  --grid-opacity: 1;
+}
+[data-grid="lines"] {
+  --grid-image:
+    linear-gradient(to right,  var(--c-grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--c-grid-line) 1px, transparent 1px);
+  --grid-size:    32px 32px;
+  --grid-opacity: 1;
+}
+[data-grid="cross"] {
+  --grid-image:
+    linear-gradient(to right,  var(--c-grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--c-grid-line) 1px, transparent 1px);
+  --grid-size:    64px 64px;
+  --grid-opacity: 1;
+}
+
+/* ── Sparkline SVG path animation ─────────────────────────────────── */
+.sparkline-path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  vector-effect: non-scaling-stroke;
+  animation: drawPath 0.8s ease forwards;
+}
+
+/* ── Voxel grid spinner ───────────────────────────────────────────── */
+@keyframes vsp {
+  0%, 70%, 100% { transform: scale(0.3); opacity: 0.25; }
+  35%            { transform: scale(1);   opacity: 1; }
+}
+.spin-voxel-stack {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px;
+}
+.spin-voxel-stack i {
+  display: block;
+  background: var(--c-accent);
+  border-radius: 2px;
+  animation: vsp 1.4s infinite ease-in-out;
+}
+.spin-voxel-stack i:nth-child(1) { animation-delay: 0.0s; }
+.spin-voxel-stack i:nth-child(2) { animation-delay: 0.1s; }
+.spin-voxel-stack i:nth-child(3) { animation-delay: 0.2s; }
+.spin-voxel-stack i:nth-child(4) { animation-delay: 0.1s; }
+.spin-voxel-stack i:nth-child(5) { animation-delay: 0.2s; }
+.spin-voxel-stack i:nth-child(6) { animation-delay: 0.3s; }
+.spin-voxel-stack i:nth-child(7) { animation-delay: 0.2s; }
+.spin-voxel-stack i:nth-child(8) { animation-delay: 0.3s; }
+.spin-voxel-stack i:nth-child(9) { animation-delay: 0.4s; }
+
+/* ── Terminal blocks spinner ──────────────────────────────────────── */
+@keyframes term-blk {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-4px); }
+}
+.spin-term {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--c-text-dim);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.spin-term .blk {
+  display: inline-block;
+  width: 8px; height: 13px;
+  background: var(--c-accent);
+  animation: term-blk 1s infinite steps(2, jump-none);
+}
+.spin-term .blk:nth-child(2) { animation-delay: 0.15s; opacity: 0.7; }
+.spin-term .blk:nth-child(3) { animation-delay: 0.30s; opacity: 0.4; }
+
+/* ── Ping rings spinner ───────────────────────────────────────────── */
+@keyframes ping-out {
+  0%         { transform: scale(1); opacity: 1; }
+  80%, 100%  { transform: scale(4); opacity: 0; }
+}
+.spin-ping {
+  width: 48px; height: 48px;
+  position: relative;
+  display: grid; place-items: center;
+}
+.spin-ping i {
+  position: absolute;
+  width: 12px; height: 12px;
+  background: var(--c-accent);
+  border-radius: 2px;
+}
+.spin-ping i.ring {
+  background: transparent;
+  border: 1.5px solid var(--c-accent);
+  animation: ping-out 1.6s cubic-bezier(0, 0, .2, 1) infinite;
+}
+.spin-ping i.ring.r2 { animation-delay: 0.5s; }
+.spin-ping i.ring.r3 { animation-delay: 1.0s; }
+
+/* ── Breathing cube spinner ───────────────────────────────────────── */
+@keyframes breath {
+  0%, 100% { transform: rotate(0deg) scale(1); border-radius: 4px; }
+  50%       { transform: rotate(45deg) scale(0.7); border-radius: 50%; }
+}
+@keyframes breath-ring {
+  0%, 100% { inset: 0; opacity: 0; }
+  50%       { inset: -10px; opacity: 1; }
+}
+.spin-breath {
+  width: 36px; height: 36px;
+  background: var(--c-accent);
+  border-radius: 4px;
+  position: relative;
+  animation: breath 2s ease-in-out infinite;
+}
+.spin-breath::before {
+  content: ''; position: absolute; inset: 0;
+  border: 1.5px solid var(--c-accent);
+  border-radius: 6px;
+  animation: breath-ring 2s ease-in-out infinite;
+}
+
+/* ── Amplitude bars spinner ───────────────────────────────────────── */
+@keyframes bars {
+  0%, 100% { transform: scaleY(0.3); }
+  50%       { transform: scaleY(1); }
+}
+.spin-bars {
+  display: flex; gap: 3px; align-items: flex-end; height: 36px;
+}
+.spin-bars i {
+  width: 5px; height: 100%;
+  background: var(--c-accent);
+  border-radius: 1px;
+  animation: bars 1.1s ease-in-out infinite;
+  transform-origin: bottom;
+}
+.spin-bars i:nth-child(2) { animation-delay: 0.1s; opacity: 0.85; }
+.spin-bars i:nth-child(3) { animation-delay: 0.2s; opacity: 0.7; }
+.spin-bars i:nth-child(4) { animation-delay: 0.3s; opacity: 0.85; }
+.spin-bars i:nth-child(5) { animation-delay: 0.4s; }
+
+/* ── Skeleton shimmer (orange-tinted) ─────────────────────────────── */
+@keyframes skel-shimmer {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
+}
+.skel-line, .skel-block {
+  background: linear-gradient(
+    90deg,
+    var(--c-surface-2) 0%,
+    color-mix(in oklab, var(--c-accent) 8%, var(--c-surface-2)) 50%,
+    var(--c-surface-2) 100%
+  );
+  background-size: 200% 100%;
+  animation: skel-shimmer 1.6s linear infinite;
+  border-radius: 4px;
+}
+.skel-line { height: 10px; }
+.skel-line.w90 { width: 90%; }
+.skel-line.w70 { width: 70%; }
+.skel-line.w50 { width: 50%; }
+.skel-block { border-radius: 8px; }
+
+/* ── Indeterminate progress bar ───────────────────────────────────── */
+@keyframes indet {
+  0%   { left: -40%; width: 40%; }
+  50%  { left: 30%;  width: 60%; }
+  100% { left: 100%; width: 40%; }
+}
+.pbar-indet {
+  height: 4px;
+  background: var(--c-surface-2);
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+.pbar-indet::after {
+  content: '';
+  position: absolute; top: 0; bottom: 0; left: 0;
+  width: 40%;
+  background: var(--c-accent);
+  border-radius: 2px;
+  animation: indet 1.5s cubic-bezier(.4, 0, .2, 1) infinite;
+}
+
+/* ── Floating cube (empty state) ──────────────────────────────────── */
+@keyframes float-cube {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50%       { transform: translateY(-10px) rotate(8deg); }
+}
+.float-cube { animation: float-cube 3s ease-in-out infinite; }
+
+/* ── Toast slide-in ───────────────────────────────────────────────── */
+@keyframes toast-slide {
+  0%   { transform: translateY(-12px); opacity: 0; }
+  100% { transform: translateY(0);     opacity: 1; }
+}
+.animate-toast { animation: toast-slide 0.4s cubic-bezier(.2, .7, .1, 1.1) forwards; }
+
+/* ── Error shake ──────────────────────────────────────────────────── */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25%       { transform: translateX(-4px); }
+  75%       { transform: translateX(4px); }
+}
+.animate-shake { animation: shake 0.4s ease; }
+
+/* ── Checkmark draw ───────────────────────────────────────────────── */
+@keyframes draw-check {
+  to { stroke-dashoffset: 0; }
+}
+
+/* ── Boot stage fill bar ──────────────────────────────────────────── */
+@keyframes boot-fill {
+  0%   { transform: scaleX(0); }
+  100% { transform: scaleX(1); }
+}
+.boot-stages {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 6px;
+  width: 100%;
+}
+.boot-stages .st {
+  padding: 8px 10px;
+  background: var(--c-bg-2);
+  border: 1px solid var(--c-border);
+  border-radius: 8px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--c-muted);
+  display: flex; flex-direction: column; gap: 4px;
+}
+.boot-stages .st .lab { letter-spacing: 0.06em; text-transform: uppercase; }
+.boot-stages .st .bar {
+  height: 2px;
+  background: var(--c-border);
+  border-radius: 1px;
+  overflow: hidden;
+  position: relative;
+}
+.boot-stages .st.done {
+  color: var(--c-success);
+  border-color: color-mix(in oklab, var(--c-success) 30%, var(--c-border));
+}
+.boot-stages .st.done .bar { background: var(--c-success); }
+.boot-stages .st.active {
+  color: var(--c-accent);
+  border-color: var(--c-accent);
+  background: color-mix(in oklab, var(--c-accent) 6%, var(--c-bg-2));
+}
+.boot-stages .st.active .bar::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: var(--c-accent);
+  transform-origin: left;
+  animation: boot-fill 2s ease-in-out infinite;
+}
+
+/* ── Primary button shimmer ───────────────────────────────────────── */
+.btn-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.btn-shimmer::before {
+  content: '';
+  position: absolute; top: 0; bottom: 0; left: -60%;
+  width: 50%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.28), transparent);
+  transform: skewX(-20deg);
+  pointer-events: none;
+  transition: left 0.65s ease;
+}
+.btn-shimmer:hover::before { left: 160%; }

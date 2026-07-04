@@ -95,6 +95,11 @@ pub trait ServerLifecycle: Send + Sync {
     /// or auth fails.
     async fn send_minecraft_command(&self, id: &str, command: &str) -> CoreResult<String>;
 
+    /// Send a console command to any server, dispatching by the recipe's
+    /// `dashboard.command` descriptor (Source RCON / docker exec / external).
+    /// Errors with `Validation` if the server isn't running or has no console.
+    async fn send_server_command(&self, id: &str, command: &str) -> CoreResult<String>;
+
     /// Snapshot the server's data directory into a timestamped backup
     /// folder. Returns the absolute path of the new backup.
     async fn backup_server(&self, id: &str) -> CoreResult<String>;

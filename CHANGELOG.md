@@ -11,6 +11,71 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.2.0] — 2026-07-03
+
+### Added
+- In-app server console for every game that supports one, driven by recipe metadata: Source RCON (Minecraft Java, CS2, ARK, ARK ASA, Project Zomboid) and container-exec (Bedrock, Rust, Palworld) transports, with per-game quick commands
+- Config Files tab on the generic dashboard: recipe-declared config files rendered as typed forms (properties/ini/json/text) with raw-edit fallback
+- Managed Files tabs (mods, saves, plugins) on the generic dashboard, driven by recipe `file_tabs` metadata, with drag-drop upload
+- "Default install location" app setting — the create wizard prefills `<location>/<server-name>` for new servers (existing servers are unaffected)
+- Recipe `seed_files`: files written into a fresh server volume before first boot with `{ENV}` substitution (fixes Project Zomboid RCON being dead until a manual restart)
+- Recipe `cap_add`: extra Linux capabilities for the game container (fixes Bedrock console — `send-command` needs `SYS_PTRACE`)
+- Motor Town: Behind The Wheel recipe as Coming Soon (its dedicated server currently requires an owning Steam account + interactive Steam Guard, which doesn't fit one-click hosting yet)
+- Smoke-test harness now verifies each game's console (sends the recipe's probe command) and expected config/file paths, plus a `--volume-root` flag to place test volumes on a chosen disk
+- Full desktop UI overhaul with a Console-inspired visual direction (Pterodactyl-meets-Linear aesthetic)
+- Dark ↔ light theme toggle, persisted to localStorage
+- Collapsible sidebar (240px expanded / 64px icon-only) with inline server list and live status dots
+- SteamGridDB hero art integration for Minecraft Java and FiveM, plus per-game art/gradient treatments for the full bundled lineup
+- Dashboard stat strip for total servers, running, stopped, and unique games
+- Server card redesign with hero art banners, GameIcon, and StatusPill
+- Server detail redesign with hero banners plus Overview / Console / Files / Settings tabs
+- Sparkline CPU / memory charts on server overview panels
+- Connection address rows with copy-to-clipboard actions
+- Terminal-style server creation progress display
+- Docker onboarding redesign with numbered steps, progress strip, and WSL2 → Docker guidance
+- Dedicated settings page in the app shell
+- New shared UI components: Cube, StatusPill, GaugeCard, Sparkline, ConnRow, GameArt, GameIcon, and SkeletonCard
+- Inter + JetBrains Mono typography via @fontsource
+- Smoke-test harness in `cubelit-core` for recipe lifecycle validation (create → ready/start → cleanup)
+- `cubelit smoke-test` CLI subcommand with tabular output and optional JSON report export
+- Ignored Docker-backed CLI integration test scaffold for end-to-end smoke coverage
+- ARK: Survival Ascended recipe, game registry entry, UI art treatment, and dashboard support
+- Root MIT `LICENSE` file
+
+### Changed
+- Design tokens shifted to a deeper, more polished Console-style palette
+- Sidebar upgraded from a fixed 64px icon rail to a collapsible navigation + server list layout
+- GenericDashboard rebuilt around the new Console-direction layout system
+- StatusRibbon replaced by StatusPill across the UI
+- Create flow, server detail pages, and onboarding screens were restyled to match the new visual system
+- Game art, animated backgrounds, and theme handling were expanded across the dashboard experience
+- All 9 previously coming-soon bundled games are now surfaced as available (Bedrock, ARK: Survival Evolved, ARK: Survival Ascended, CS2, Palworld, Project Zomboid, Rust, Terraria, Valheim)
+- All bundled recipe `default_tag` values are now pinned to specific image versions instead of `latest`
+- Release metadata, docs, and website supported-game messaging were updated for the v0.2.0 release state
+
+### Fixed
+- Windows onboarding no longer treats "WSL optional features enabled, default WSL version set to 2, but no standalone distro installed" as a blocker for Docker Desktop. Docker Desktop is expected to create and manage its own WSL backend, and Cubelit now offers an "Open Docker Desktop" action when Docker Desktop is installed but the engine is not running.
+- FiveM sidecar MariaDB connection strings now use the correct `mariadb://` DSN format; sidecar container naming and network joins were also corrected
+- Terraria now preserves the recipe `server_cmd` during settings updates / container recreation instead of silently dropping it
+- Terraria recipe handling was tightened around `server_cmd` metadata, autocreate behavior, and art mapping support
+- Readiness lifecycle semantics were corrected: a server moves to `Running` only after readiness actually succeeds, and startup sync no longer clobbers servers still inside the readiness window
+- All recipe-declared volumes are now mounted instead of only the first volume entry
+- Partial resources (containers, DB rows, and created volume state) are cleaned up when `create_server` fails mid-flight
+- Stale cache references and UI accessibility warnings were cleaned up during the overhaul pass
+- Loading states, action buttons, and modals were hardened across the dashboard and create flow to reduce duplicate or misleading actions
+- Server detail pages once again expose Delete Server actions for game-specific dashboards, including Minecraft Java and FiveM
+- Minecraft console actions now remain usable while the UI reports `starting`, avoiding a false-disabled console during early boot
+- Readiness watcher survives container restarts during bootstrap (Project Zomboid restarts itself on first boot; the log stream EOF no longer strands servers in `starting`)
+- Source RCON handling now follows the Valve spec: servers that send an empty response before the auth reply (CS2, Project Zomboid) authenticate correctly and command output is no longer swallowed
+- Deleting a server now removes volume files written as root by the game container (Valheim, Project Zomboid) via a one-shot cleanup container
+- Rust recipe tracks `didstopia/rust-server:latest` — the game force-updates monthly and moves its glibc floor, so every frozen tag eventually breaks (documented exception to the pinned-tag policy)
+- CS2 recipe bumped to `joedwards32/cs2:4.0.1` — the pinned 3.0.6 image predates CS2's libv8 dependency and segfaults on boot
+- Corrected readiness log patterns for Rust (`Server startup complete`) and ARK: Survival Evolved (`server is up`); both previously never matched, leaving healthy servers marked `starting`
+- ARK: Survival Ascended no longer advertises `Game.ini` editing — the server image consumes that file on every boot, so edits could not persist
+- Every bundled game was boot-verified end-to-end for this release (create → ready → console probe → config paths → delete), including the heavy steamcmd titles (Rust, ARK, CS2, ARK ASA)
+
+---
+
 ## [0.1.10] — 2026-04-28
 
 ### Added

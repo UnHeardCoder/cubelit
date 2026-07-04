@@ -6,6 +6,7 @@
 //! the local Docker socket and the bundled SQLite DB. Future transports add
 //! their own impls without touching the trait surface.
 
+pub mod console;
 pub mod lifecycle;
 pub mod local;
 pub mod minecraft;
@@ -14,10 +15,11 @@ pub mod types;
 pub mod watchers;
 
 pub use lifecycle::ServerLifecycle;
-pub use local::{sync_all_servers, sync_single_server, LocalServerHost};
+pub use local::{
+    reconcile_orphaned_starting_servers, sync_all_servers, sync_single_server, LocalServerHost,
+};
 pub use runner::ServerRunner;
 pub use types::CreateServerConfig;
 pub use watchers::{
-    readiness_pattern, spawn_crash_watcher, spawn_readiness_watcher, validate_env_vars,
-    verify_container_status,
+    spawn_crash_watcher, spawn_readiness_watcher, validate_env_vars, verify_container_status,
 };

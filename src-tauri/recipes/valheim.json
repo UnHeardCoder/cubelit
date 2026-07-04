@@ -3,9 +3,9 @@
   "name": "Valheim",
   "description": "Viking survival and exploration game set in a procedurally generated world.",
   "icon": "valheim",
-  "available": false,
+  "available": true,
   "docker_image": "lloesche/valheim-server",
-  "default_tag": "latest",
+  "default_tag": "sha-732221f4d5b5",
   "ports": [
     {
       "container_port": 2456,
@@ -60,12 +60,28 @@
       "label": "Server Data"
     }
   ],
-  "config_files": [],
+  "config_files": [
+    { "path": "adminlist.txt", "format": "text", "label": "Admin List (SteamID64 per line)" },
+    { "path": "permittedlist.txt", "format": "text", "label": "Permitted List (allowlist)" },
+    { "path": "bannedlist.txt", "format": "text", "label": "Banned List" }
+  ],
+  "dashboard": {
+    "command": {
+      "mode": "external"
+    },
+    "file_tabs": [
+      { "path": "BepInEx/plugins", "label": "Mods", "file_types": [".dll"] }
+    ]
+  },
   "mods": {
     "supported": true,
     "path": "BepInEx/plugins",
     "file_types": [".dll"]
   },
   "estimated_disk_mb": 3000,
-  "tags": ["survival", "coop", "moddable"]
+  "tags": ["survival", "coop", "moddable"],
+  "readiness": {
+    "log_pattern": "Game server connected",
+    "timeout_secs": 600
+  }
 }

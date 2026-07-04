@@ -8,7 +8,11 @@
   import { getRecipeDetail } from "$lib/api/recipes";
   import { parsePorts, parseEnv, STATUS_COLORS } from "$lib/utils/server";
   import type { Recipe } from "$lib/types/recipe";
-  import StatsCards from "$lib/components/StatsCards.svelte";
+  import { getServerStats } from '$lib/api/docker';
+  import GaugeCard from '$lib/components/GaugeCard.svelte';
+  import Sparkline from '$lib/components/Sparkline.svelte';
+  import ConnRow from '$lib/components/ConnRow.svelte';
+  import { GAME_HUE } from '$lib/games/art';
   import Button from "$lib/components/Button.svelte";
   import Modal from "$lib/components/Modal.svelte";
   import LogViewer from "$lib/components/LogViewer.svelte";
@@ -69,9 +73,18 @@
   });
 
   const isRunning = $derived(server.status === "running");
+  const canSendConsoleCommand = $derived(server.status === "running" || server.status === "starting");
 
   // ─── Public IP ────────────────────────────────────────────────────────────
   let publicIp = $state<string | null>(null);
+
+  // ─── Stats state ─────────────────────────────────────────────────────────
+  let cpuPct = $state(0);
+  let memUsed = $state(0);
+  let memTotal = $state(1);
+  let statsInterval: ReturnType<typeof setInterval> | null = null;
+  const hue = $derived(GAME_HUE[server.recipe_id] ?? 142);
+  const memPct = $derived(memTotal > 0 ? (memUsed / memTotal) * 100 : 0);
 
   function getPort(): string {
     const ports = parsePorts(server.port_mappings);
@@ -270,6 +283,7 @@
     try {
       const path = await backupServer(server.id);
       backupMessage = `Backup saved to: ${path}`;
+      setTimeout(() => { backupMessage = null; }, 5000);
     } catch (e) {
       backupMessage = `Backup failed: ${e}`;
     } finally {
@@ -319,9 +333,28 @@
     } catch (e) {
       console.error("Failed to set up drag-drop listener:", e);
     }
+
+    // Load live stats
+    if (server.status === 'running' || server.status === 'starting') {
+      getServerStats(server.id).then(s => {
+        cpuPct = s.cpu_percent;
+        memUsed = s.memory_usage_mb / 1024;
+        memTotal = s.memory_limit_mb / 1024;
+      }).catch(() => {});
+      statsInterval = setInterval(() => {
+        if (server.status === 'running') {
+          getServerStats(server.id).then(s => {
+            cpuPct = s.cpu_percent;
+            memUsed = s.memory_usage_mb / 1024;
+            memTotal = s.memory_limit_mb / 1024;
+          }).catch(() => {});
+        }
+      }, 5000);
+    }
   });
 
   onDestroy(() => {
+    if (statsInterval) clearInterval(statsInterval);
     unlistenDragDrop?.();
   });
 
@@ -441,24 +474,36 @@
 
     <div class="bg-cubelit-surface border border-cubelit-border rounded-xl p-5">
       <h3 class="text-sm font-medium text-cubelit-muted mb-3">Connection</h3>
-      <div class="space-y-2">
-        <div class="flex items-center justify-between gap-2">
-          <span class="text-xs text-cubelit-muted shrink-0">Local</span>
-          <span class="text-cubelit-text font-mono text-sm">{getAddress()}</span>
+      <div class="flex flex-col gap-2">
+          <ConnRow label="Local"  value={getAddress()} />
+          <ConnRow label="Public" value={publicIp ? `${publicIp}:${getPort()}` : '—'} />
         </div>
-        <div class="flex items-center justify-between gap-2">
-          <span class="text-xs text-cubelit-muted shrink-0">Public</span>
-          {#if publicIp}
-            <span class="text-cubelit-text font-mono text-sm">{publicIp}:{getPort()}</span>
-          {:else}
-            <span class="text-cubelit-muted font-mono text-sm text-xs">fetching…</span>
-          {/if}
-        </div>
-        <p class="text-xs text-cubelit-muted/60 pt-1">Friends use the Public address to connect. Make sure port {getPort()} is forwarded on your router.</p>
-      </div>
+        <p class="text-xs text-cubelit-muted mt-2">Share your public IP with friends. Port {getPort()} must be forwarded on your router.</p>
     </div>
 
-    <StatsCards serverId={server.id} serverStatus={server.status} />
+    <!-- Gauge cards 2×2 -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+      <GaugeCard label="CPU" value="{cpuPct.toFixed(1)}%" bar={cpuPct} />
+      <GaugeCard label="Memory" value="{memUsed.toFixed(1)} / {memTotal.toFixed(1)} GB" bar={memPct} />
+    </div>
+
+    <!-- CPU Sparkline -->
+    {#if server.status === 'running'}
+      <div class="bg-cubelit-surface border border-cubelit-border rounded-2xl p-4">
+        <div class="flex justify-between items-center mb-2">
+          <div class="text-[11px] text-cubelit-muted font-mono uppercase tracking-widest">CPU · last 60s</div>
+          <div class="text-[11px] font-mono text-cubelit-text-dim">{cpuPct.toFixed(1)}%</div>
+        </div>
+        <Sparkline base={cpuPct} {hue} seed={1} height={64} />
+      </div>
+      <div class="bg-cubelit-surface border border-cubelit-border rounded-2xl p-4">
+        <div class="flex justify-between items-center mb-2">
+          <div class="text-[11px] text-cubelit-muted font-mono uppercase tracking-widest">Memory · last 60s</div>
+          <div class="text-[11px] font-mono text-cubelit-text-dim">{memUsed.toFixed(1)} / {memTotal.toFixed(1)} GB</div>
+        </div>
+        <Sparkline base={memPct} hue={(hue + 200) % 360} seed={2} height={64} />
+      </div>
+    {/if}
 
     <div class="bg-cubelit-surface border border-cubelit-border rounded-xl p-5">
       <h3 class="text-sm font-medium text-cubelit-muted mb-3">Image</h3>
@@ -737,37 +782,37 @@
       <div class="flex flex-wrap gap-2">
         <button
           class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-cubelit-surface border border-cubelit-border text-cubelit-text hover:border-cubelit-accent hover:text-cubelit-accent disabled:opacity-40 disabled:cursor-not-allowed"
-          disabled={!isRunning || !mcUsername.trim() || commandLoading}
+          disabled={!canSendConsoleCommand || !mcUsername.trim() || commandLoading}
           onclick={() => runCommand(`op ${mcUsername.trim()}`)}
         >OP Self</button>
 
         <button
           class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-cubelit-surface border border-cubelit-border text-cubelit-text hover:border-cubelit-accent hover:text-cubelit-accent disabled:opacity-40 disabled:cursor-not-allowed"
-          disabled={!isRunning || !mcUsername.trim() || commandLoading}
+          disabled={!canSendConsoleCommand || !mcUsername.trim() || commandLoading}
           onclick={() => runCommand(`deop ${mcUsername.trim()}`)}
         >Deop Self</button>
 
         <button
           class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-cubelit-surface border border-cubelit-border text-cubelit-text hover:border-cubelit-accent hover:text-cubelit-accent disabled:opacity-40 disabled:cursor-not-allowed"
-          disabled={!isRunning || !mcUsername.trim() || commandLoading}
+          disabled={!canSendConsoleCommand || !mcUsername.trim() || commandLoading}
           onclick={() => runCommand(`whitelist add ${mcUsername.trim()}`)}
         >Whitelist Self</button>
 
         <button
           class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-cubelit-surface border border-cubelit-border text-cubelit-text hover:border-cubelit-accent hover:text-cubelit-accent disabled:opacity-40 disabled:cursor-not-allowed"
-          disabled={!isRunning || commandLoading}
+          disabled={!canSendConsoleCommand || commandLoading}
           onclick={() => runCommand("list")}
         >List Players</button>
 
         <button
           class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-cubelit-surface border border-cubelit-border text-cubelit-text hover:border-cubelit-accent hover:text-cubelit-accent disabled:opacity-40 disabled:cursor-not-allowed"
-          disabled={!isRunning || commandLoading}
+          disabled={!canSendConsoleCommand || commandLoading}
           onclick={() => runCommand("save-all")}
         >Save World</button>
 
         <button
           class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-cubelit-surface border border-cubelit-border text-cubelit-text hover:border-cubelit-accent hover:text-cubelit-accent disabled:opacity-40 disabled:cursor-not-allowed"
-          disabled={!isRunning || commandLoading}
+          disabled={!canSendConsoleCommand || commandLoading}
           onclick={() => runCommand("weather clear")}
         >Clear Weather</button>
 
@@ -791,13 +836,13 @@
           type="text"
           bind:value={commandInput}
           onkeydown={handleCommandKeydown}
-          placeholder={isRunning ? "Enter command  (↑ ↓ for history)" : "Server must be running"}
-          disabled={!isRunning || commandLoading}
+          placeholder={canSendConsoleCommand ? "Enter command  (↑ ↓ for history)" : "Server must be running"}
+          disabled={!canSendConsoleCommand || commandLoading}
           class="flex-1 bg-[#0d1117] border border-cubelit-border rounded-lg px-3 py-2 text-sm font-mono text-cubelit-text placeholder-cubelit-muted/40 focus:outline-none focus:border-cubelit-accent disabled:opacity-50"
         />
         <Button
           size="sm"
-          disabled={!isRunning || !commandInput.trim() || commandLoading}
+          disabled={!canSendConsoleCommand || !commandInput.trim() || commandLoading}
           onclick={() => runCommand(commandInput)}
         >{commandLoading ? "…" : "Send"}</Button>
       </div>

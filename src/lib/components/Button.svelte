@@ -1,52 +1,55 @@
 <script lang="ts">
-  import type { Snippet } from "svelte";
+  import type { Snippet } from 'svelte';
 
   interface Props {
-    variant?: "primary" | "secondary" | "danger" | "ghost";
-    size?: "sm" | "md" | "lg";
+    variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
+    size?: 'sm' | 'md' | 'lg' | 'icon';
     disabled?: boolean;
     loading?: boolean;
+    type?: 'button' | 'submit' | 'reset';
     onclick?: (e: MouseEvent) => void;
     children: Snippet;
     class?: string;
   }
 
   let {
-    variant = "primary",
-    size = "md",
+    variant = 'primary',
+    size = 'md',
     disabled = false,
     loading = false,
+    type = 'button',
     onclick,
     children,
-    class: className = "",
+    class: className = '',
   }: Props = $props();
 
-  const baseClasses = "inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-cubelit-accent/50 disabled:opacity-50 disabled:cursor-not-allowed";
+  const base = 'inline-flex items-center justify-center gap-1.5 font-medium transition-all focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap';
 
-  const variantClasses = {
-    primary: "bg-cubelit-accent text-white hover:bg-cubelit-accent-hover",
-    secondary: "bg-cubelit-surface text-cubelit-text border border-cubelit-border hover:bg-cubelit-border",
-    danger: "bg-cubelit-error/10 text-cubelit-error border border-cubelit-error/30 hover:bg-cubelit-error/20",
-    ghost: "text-cubelit-muted hover:text-cubelit-text hover:bg-cubelit-surface",
+  const variants: Record<string, string> = {
+    primary:   'btn-shimmer bg-cubelit-accent text-white border border-cubelit-accent hover:brightness-110 shadow-sm relative overflow-hidden',
+    secondary: 'bg-cubelit-surface text-cubelit-text border border-cubelit-border hover:bg-cubelit-surface-2 hover:border-cubelit-border-2',
+    danger:    'text-cubelit-error border border-cubelit-error/40 bg-cubelit-error/10 hover:bg-cubelit-error/18',
+    ghost:     'text-cubelit-text-dim bg-transparent border border-transparent hover:text-cubelit-text hover:bg-cubelit-surface',
   };
 
-  const sizeClasses = {
-    sm: "px-3 py-1.5 text-sm",
-    md: "px-4 py-2 text-sm",
-    lg: "px-6 py-3 text-base",
+  const sizes: Record<string, string> = {
+    sm:   'px-2.5 py-1.5 text-xs rounded-md',
+    md:   'px-3.5 py-2 text-sm rounded-lg',
+    lg:   'px-5 py-2.5 text-sm rounded-lg',
+    icon: 'p-2 w-8 h-8 rounded-lg text-sm',
   };
 </script>
 
 <button
-  class="{baseClasses} {variantClasses[variant]} {sizeClasses[size]} {className}"
-  {disabled}
+  {type}
+  class="{base} {variants[variant]} {sizes[size]} {className}"
+  disabled={disabled || loading}
   {onclick}
 >
   {#if loading}
-    <svg class="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-    </svg>
+    <div class="spin-voxel-stack shrink-0" style="width: 14px; height: 14px; gap: 1.5px;">
+      {#each Array(9) as _}<i style="border-radius: 1px;"></i>{/each}
+    </div>
   {/if}
   {@render children()}
 </button>

@@ -5,7 +5,7 @@
   "icon": "fivem",
   "available": true,
   "docker_image": "spritsail/fivem",
-  "default_tag": "latest",
+  "default_tag": "29753",
   "ports": [
     {
       "container_port": 30120,
@@ -75,5 +75,9 @@
     "file_types": [".lua", ".js"]
   },
   "estimated_disk_mb": 5000,
-  "tags": ["popular", "moddable", "roleplay"]
+  "tags": ["popular", "moddable", "roleplay"],
+  "readiness": {
+    "log_pattern": "All ready! Please access:",
+    "timeout_secs": 300
+  }
 }

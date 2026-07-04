@@ -3,9 +3,9 @@
   "name": "Project Zomboid",
   "description": "Open-world zombie survival with deep crafting and building mechanics.",
   "icon": "project-zomboid",
-  "available": false,
-  "docker_image": "dandoby/project-zomboid",
-  "default_tag": "latest",
+  "available": true,
+  "docker_image": "indifferentbroccoli/projectzomboid-server-docker",
+  "default_tag": "v1.1.6",
   "ports": [
     {
       "container_port": 16261,
@@ -18,9 +18,30 @@
       "default_host_port": 16262,
       "protocol": "udp",
       "label": "Direct Connect Port"
+    },
+    {
+      "container_port": 27015,
+      "default_host_port": 27015,
+      "protocol": "tcp",
+      "label": "RCON Port",
+      "role": "rcon"
     }
   ],
   "environment": [
+    {
+      "key": "PUID",
+      "default_value": "1000",
+      "label": "PUID (user ID for file permissions)",
+      "type": "string",
+      "options": []
+    },
+    {
+      "key": "PGID",
+      "default_value": "1000",
+      "label": "PGID (group ID for file permissions)",
+      "type": "string",
+      "options": []
+    },
     {
       "key": "SERVER_NAME",
       "default_value": "CubelitPZ",
@@ -36,6 +57,13 @@
       "options": []
     },
     {
+      "key": "ADMIN_USERNAME",
+      "default_value": "admin",
+      "label": "Admin Username",
+      "type": "string",
+      "options": []
+    },
+    {
       "key": "ADMIN_PASSWORD",
       "default_value": "changeme",
       "label": "Admin Password",
@@ -43,38 +71,80 @@
       "options": []
     },
     {
-      "key": "SERVER_PASSWORD",
+      "key": "PASSWORD",
       "default_value": "",
       "label": "Server Password",
       "type": "string",
       "options": []
     },
     {
-      "key": "MEMORY",
-      "default_value": "4G",
-      "label": "Server RAM",
-      "type": "ram",
-      "options": ["2G", "4G", "6G", "8G"]
+      "key": "RCON_PORT",
+      "default_value": "27015",
+      "label": "RCON Port Inside Container",
+      "type": "number",
+      "options": []
+    },
+    {
+      "key": "RCON_PASSWORD",
+      "default_value": "changeme",
+      "label": "RCON Password",
+      "type": "string",
+      "options": []
     }
   ],
   "volumes": [
     {
-      "container_path": "/data",
-      "label": "Server Data"
-    }
-  ],
-  "config_files": [
+      "container_path": "/project-zomboid",
+      "label": "Server Files"
+    },
     {
-      "path": "Server/servertest.ini",
-      "format": "properties",
+      "container_path": "/project-zomboid-config",
       "label": "Server Config"
     }
   ],
+  "config_files": [],
+  "dashboard": {
+    "command": {
+      "mode": "source_rcon",
+      "port_role": "rcon",
+      "password_env": "RCON_PASSWORD",
+      "password_default": "changeme",
+      "probe": "players",
+      "quick_commands": [
+        {
+          "label": "List players",
+          "command": "players"
+        },
+        {
+          "label": "Save",
+          "command": "save"
+        },
+        {
+          "label": "Quit (save & stop)",
+          "command": "quit"
+        }
+      ]
+    }
+  },
   "mods": {
     "supported": true,
     "path": "Workshop",
     "file_types": []
   },
   "estimated_disk_mb": 5000,
-  "tags": ["survival", "zombie", "moddable"]
+  "tags": [
+    "survival",
+    "zombie",
+    "moddable"
+  ],
+  "readiness": {
+    "log_pattern": "*** SERVER STARTED ****",
+    "timeout_secs": 600
+  },
+  "seed_files": [
+    {
+      "path": "project-zomboid-config/Server/{SERVER_NAME}.ini",
+      "content": "RCONPassword={RCON_PASSWORD}\nRCONPort={RCON_PORT}\n"
+    }
+  ]
 }

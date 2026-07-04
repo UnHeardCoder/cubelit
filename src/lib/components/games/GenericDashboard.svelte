@@ -1,324 +1,511 @@
 <script lang="ts">
-  import type { Cubelit } from "$lib/types/server";
-  import { updateServerSettings } from "$lib/api/docker";
-  import { getRecipeDetail } from "$lib/api/recipes";
-  import { getServerLogs, listServerFiles, copyFileToServer, deleteServerFile } from "$lib/api/files";
-  import { parsePorts, parseEnv, STATUS_COLORS } from "$lib/utils/server";
-  import type { Recipe } from "$lib/types/recipe";
-  import type { FileEntry } from "$lib/types/files";
-  import StatsCards from "$lib/components/StatsCards.svelte";
-  import Button from "$lib/components/Button.svelte";
-  import Modal from "$lib/components/Modal.svelte";
-  import LogViewer from "$lib/components/LogViewer.svelte";
+  import { onMount } from 'svelte';
+  import { open } from '@tauri-apps/plugin-dialog';
+  import { invoke } from '@tauri-apps/api/core';
+  import { getServerStats, updateServerSettings } from '$lib/api/docker';
+  import { getPublicIp } from '$lib/api/system';
+  import { getServerLogs, listServerFiles, copyFileToServer, deleteServerFile } from '$lib/api/files';
+  import { backupServer } from '$lib/api/minecraft';
+  import { getRecipeDetail } from '$lib/api/recipes';
+  import { getServersStore } from '$lib/stores/servers.svelte';
+  import { goto } from '$app/navigation';
+  import { GAME_HUE } from '$lib/games/art';
+  import GaugeCard from '$lib/components/GaugeCard.svelte';
+  import Sparkline from '$lib/components/Sparkline.svelte';
+  import ConnRow from '$lib/components/ConnRow.svelte';
+  import Modal from '$lib/components/Modal.svelte';
+  import Button from '$lib/components/Button.svelte';
+  import ServerConsole from '$lib/components/ServerConsole.svelte';
+  import ConfigFilesTab from '$lib/components/ConfigFilesTab.svelte';
+  import ManagedFilesTab from '$lib/components/ManagedFilesTab.svelte';
+  import type { Cubelit } from '$lib/types/server';
+  import type { Recipe } from '$lib/types/recipe';
 
-  interface Props {
-    server: Cubelit;
-  }
-
+  interface Props { server: Cubelit; }
   let { server }: Props = $props();
 
-  let activeTab = $state<"overview" | "files" | "logs" | "settings">("overview");
-
-  // ─── Settings state ───────────────────────────────────────────────────────
+  // --- Recipe-driven dashboard metadata ---
   let recipe = $state<Recipe | null>(null);
-  let editEnv = $state<Record<string, string>>({});
-  let settingsLoading = $state(false);
-  let settingsSaving = $state(false);
-  let settingsError = $state<string | null>(null);
-  let showApplyModal = $state(false);
+  const command = $derived(recipe?.dashboard?.command ?? null);
+  const fileTabs = $derived(recipe?.dashboard?.file_tabs ?? []);
+  const configFiles = $derived(recipe?.config_files ?? []);
 
-  async function loadSettings() {
-    settingsLoading = true;
-    settingsError = null;
+  // Tab is a string so recipe-declared folder tabs ("folder:<path>") fit too.
+  let tab = $state<string>('overview');
+
+  // --- Overview ---
+  let cpuPct = $state(0);
+  let memUsed = $state(0);
+  let memTotal = $state(1);
+  let publicIp = $state<string | null>(null);
+
+  async function loadStats() {
     try {
-      recipe = await getRecipeDetail(server.recipe_id);
-      editEnv = { ...parseEnv(server.environment) };
+      const s = await getServerStats(server.id);
+      cpuPct = s.cpu_percent;
+      memUsed = s.memory_usage_mb / 1024;
+      memTotal = s.memory_limit_mb / 1024;
+    } catch { /* ignore */ }
+  }
+
+  function getAddress(): string {
+    try {
+      const ports: Record<string, number> = JSON.parse(server.port_mappings);
+      const first = Object.values(ports)[0];
+      if (first) return `localhost:${first}`;
+    } catch { /* ignore */ }
+    return '—';
+  }
+
+  // --- Console / Logs ---
+  let logLines = $state<string[]>([]);
+  let logLoading = $state(false);
+  let logFollow = $state(true);
+  let logContainer = $state<HTMLDivElement | null>(null);
+
+  async function loadLogs() {
+    logLoading = logLines.length === 0;
+    try {
+      const lines = await getServerLogs(server.id, 120);
+      logLines = lines.map((line) => line.length > 4000 ? `${line.slice(0, 4000)}... [truncated]` : line);
+      if (logFollow && logContainer) {
+        requestAnimationFrame(() => {
+          if (logContainer) logContainer.scrollTop = logContainer.scrollHeight;
+        });
+      }
+    } catch { /* ignore */ }
+    logLoading = false;
+  }
+
+  function handleLogScroll() {
+    if (!logContainer) return;
+    const { scrollTop, scrollHeight, clientHeight } = logContainer;
+    logFollow = scrollHeight - scrollTop - clientHeight < 40;
+  }
+
+  // --- Settings ---
+  let envEntries = $state<[string, string][]>([]);
+  let envEdited = $state<Record<string, string>>({});
+  let showApplyModal = $state(false);
+  let applyLoading = $state(false);
+  let applyError = $state<string | null>(null);
+  let showDeleteModal = $state(false);
+  let deleteWithData = $state(false);
+  let deleteLoading = $state(false);
+  let deleteError = $state<string | null>(null);
+  let deleteFileName = $state<string | null>(null);
+  let showDeleteFileModal = $state(false);
+
+  const serversStore = getServersStore();
+
+  function loadEnv() {
+    try {
+      const env: Record<string, string> = JSON.parse(server.environment);
+      envEntries = Object.entries(env);
+      envEdited = { ...env };
     } catch {
-      settingsError = "Failed to load settings.";
-    } finally {
-      settingsLoading = false;
+      envEntries = [];
+      envEdited = {};
     }
   }
 
   async function applySettings() {
-    settingsSaving = true;
-    settingsError = null;
-    showApplyModal = false;
+    applyLoading = true;
+    applyError = null;
     try {
-      await updateServerSettings(server.id, editEnv);
+      await updateServerSettings(server.id, envEdited);
+      showApplyModal = false;
     } catch (e) {
-      settingsError = String(e);
+      applyError = String(e);
     } finally {
-      settingsSaving = false;
+      applyLoading = false;
     }
   }
 
-  // ─── Logs state ───────────────────────────────────────────────────────────
-  let logs = $state<string[]>([]);
-  let logsLoading = $state(false);
-
-  async function loadLogs() {
-    logsLoading = true;
+  async function handleDelete() {
+    deleteLoading = true;
+    deleteError = null;
     try {
-      logs = await getServerLogs(server.id, 200);
-    } catch {
-      logs = [];
-    } finally {
-      logsLoading = false;
+      await serversStore.remove(server.id, deleteWithData);
+      await goto('/');
+    } catch (e) {
+      deleteError = String(e);
+      deleteLoading = false;
     }
   }
 
-  // ─── Files state ──────────────────────────────────────────────────────────
-  let files = $state<FileEntry[]>([]);
+  // --- Flat root files ---
+  let files = $state<{ name: string; size: number }[]>([]);
   let filesLoading = $state(false);
-  let filesError = $state<string | null>(null);
-  let fileToDelete = $state<string | null>(null);
-  let showDeleteFileModal = $state(false);
 
   async function loadFiles() {
     filesLoading = true;
-    filesError = null;
     try {
-      files = (await listServerFiles(server.id)).filter(f => !f.is_dir);
-    } catch {
-      filesError = "Failed to load files.";
-      files = [];
-    } finally {
-      filesLoading = false;
-    }
+      files = await listServerFiles(server.id);
+    } catch { files = []; }
+    finally { filesLoading = false; }
   }
 
-  async function uploadFile() {
-    filesError = null;
-    try {
-      const { open } = await import("@tauri-apps/plugin-dialog");
-      const selected = await open({ title: "Select File" });
-      if (selected) {
-        const filename = (selected as string).split(/[/\\]/).pop()!;
-        await copyFileToServer(server.id, selected as string, filename);
-        await loadFiles();
-      }
-    } catch (e) {
-      filesError = String(e);
-    }
+  async function handleUpload() {
+    const selected = await open({ multiple: false, title: 'Select file to upload' });
+    if (!selected) return;
+    const path = selected as string;
+    const filename = path.split(/[/\\]/).pop() ?? 'file';
+    await copyFileToServer(server.id, path, filename);
+    await loadFiles();
   }
 
   async function confirmDeleteFile() {
-    if (!fileToDelete) return;
-    filesError = null;
-    try {
-      await deleteServerFile(server.id, fileToDelete);
-      await loadFiles();
-    } catch (e) {
-      filesError = String(e);
-    } finally {
-      fileToDelete = null;
-      showDeleteFileModal = false;
-    }
+    if (!deleteFileName) return;
+    await deleteServerFile(server.id, deleteFileName);
+    deleteFileName = null;
+    showDeleteFileModal = false;
+    await loadFiles();
   }
 
+  onMount(() => {
+    getPublicIp().then(ip => { publicIp = ip; }).catch(() => { publicIp = null; });
+    loadEnv();
+    getRecipeDetail(server.recipe_id).then(r => { recipe = r; }).catch(() => { recipe = null; });
+  });
+
+  // Keyed on status so gauges start/stop when the server transitions after
+  // mount (onMount alone never started polling for a server that boots later).
   $effect(() => {
-    if (activeTab === "settings") loadSettings();
+    if (server.status !== 'running') return;
+    loadStats();
+    const interval = setInterval(loadStats, 5000);
+    return () => clearInterval(interval);
   });
 
   $effect(() => {
-    if (activeTab === "logs") {
-      loadLogs();
-      if (server.status === "running" || server.status === "starting") {
-        const interval = setInterval(loadLogs, 3000);
-        return () => clearInterval(interval);
-      }
-    }
+    if (tab !== 'console') return;
+
+    loadLogs();
+    const interval = setInterval(() => {
+      if (server.status === 'running') loadLogs();
+    }, 3000);
+
+    return () => clearInterval(interval);
   });
 
-  $effect(() => {
-    if (activeTab === "files") loadFiles();
-  });
+  // Tab list is recipe-driven: overview + console + folder tabs + config + files + settings.
+  const tabs = $derived([
+    { id: 'overview', label: 'Overview' },
+    { id: 'console', label: 'Console' },
+    ...fileTabs.map((ft) => ({ id: `folder:${ft.path}`, label: ft.label })),
+    ...(configFiles.length > 0 ? [{ id: 'config', label: 'Config' }] : []),
+    { id: 'files', label: 'Files' },
+    { id: 'settings', label: 'Settings' },
+  ]);
 
-  const tabs = [
-    { id: "overview" as const, label: "Overview" },
-    { id: "files" as const, label: "Files" },
-    { id: "logs" as const, label: "Logs" },
-    { id: "settings" as const, label: "Settings" },
-  ];
+  const activeFolderTab = $derived(
+    tab.startsWith('folder:') ? fileTabs.find((ft) => `folder:${ft.path}` === tab) ?? null : null,
+  );
+
+  const hue = $derived(GAME_HUE[server.recipe_id] ?? 30);
+  const memPct = $derived(memTotal > 0 ? (memUsed / memTotal) * 100 : 0);
 </script>
 
-<!-- Apply Settings Modal -->
-<Modal bind:open={showApplyModal} onclose={() => showApplyModal = false} title="Apply Settings">
-  <p class="text-sm text-cubelit-muted mb-6">
-    Applying settings will <span class="text-cubelit-warning font-medium">restart your server</span>. Continue?
-  </p>
-  <div class="flex gap-3 justify-end">
-    <Button variant="ghost" onclick={() => showApplyModal = false}>Cancel</Button>
-    <Button variant="primary" onclick={applySettings}>Apply & Restart</Button>
+<!-- Apply settings modal -->
+<Modal bind:open={showApplyModal} onclose={() => { if (!applyLoading) { showApplyModal = false; applyError = null; } }} title="Apply & Restart">
+  <p class="text-sm text-cubelit-text-dim mb-4">Applying environment changes will recreate the container and restart the server. Continue?</p>
+  {#if applyError}
+    <p class="text-xs text-cubelit-error px-3 py-2 bg-cubelit-error/5 border border-cubelit-error/30 rounded-lg mb-3">{applyError}</p>
+  {/if}
+  <div class="flex gap-2 justify-end">
+    <Button variant="ghost" onclick={() => { showApplyModal = false; applyError = null; }}>Cancel</Button>
+    <Button onclick={applySettings} loading={applyLoading}>Apply & Restart</Button>
   </div>
 </Modal>
 
-<!-- Delete File Modal -->
-<Modal bind:open={showDeleteFileModal} onclose={() => { fileToDelete = null; showDeleteFileModal = false; }} title="Delete File">
-  <p class="text-sm text-cubelit-muted mb-6">
-    Delete <span class="text-cubelit-text font-medium">{fileToDelete}</span>? This cannot be undone.
+<!-- Delete server modal -->
+<Modal bind:open={showDeleteModal} onclose={() => { if (!deleteLoading) { showDeleteModal = false; deleteWithData = false; deleteError = null; } }} title="Delete Server">
+  <p class="text-sm text-cubelit-text-dim mb-4">
+    Delete <span class="text-cubelit-text font-medium">{server.name}</span>? This will stop and remove the container.
   </p>
-  <div class="flex gap-3 justify-end">
-    <Button variant="ghost" onclick={() => { fileToDelete = null; showDeleteFileModal = false; }}>Cancel</Button>
+  <label class="flex items-start gap-3 cursor-pointer mb-4">
+    <input type="checkbox" class="mt-0.5 accent-cubelit-error" bind:checked={deleteWithData} />
+    <div>
+      <p class="text-sm text-cubelit-text">Also delete server files from disk</p>
+      {#if deleteWithData}
+        <p class="text-xs text-cubelit-error mt-0.5">Permanently deletes all world data. Cannot be undone.</p>
+      {:else}
+        <p class="text-xs text-cubelit-muted mt-0.5">Files remain at <span class="font-mono">{server.volume_path}</span></p>
+      {/if}
+    </div>
+  </label>
+  {#if deleteError}
+    <p class="text-xs text-cubelit-error px-3 py-2 bg-cubelit-error/5 border border-cubelit-error/30 rounded-lg mb-3">{deleteError}</p>
+  {/if}
+  <div class="flex gap-2 justify-end">
+    <Button variant="ghost" onclick={() => { showDeleteModal = false; deleteWithData = false; deleteError = null; }} disabled={deleteLoading}>Cancel</Button>
+    <Button variant="danger" onclick={handleDelete} loading={deleteLoading}>Delete Server</Button>
+  </div>
+</Modal>
+
+<!-- Delete file modal -->
+<Modal bind:open={showDeleteFileModal} onclose={() => { deleteFileName = null; showDeleteFileModal = false; }} title="Delete File">
+  <p class="text-sm text-cubelit-text-dim mb-4">Delete <span class="text-cubelit-text font-medium">{deleteFileName}</span>? This cannot be undone.</p>
+  <div class="flex gap-2 justify-end">
+    <Button variant="ghost" onclick={() => { deleteFileName = null; showDeleteFileModal = false; }}>Cancel</Button>
     <Button variant="danger" onclick={confirmDeleteFile}>Delete</Button>
   </div>
 </Modal>
 
 <!-- Tabs -->
-<div class="flex gap-1 mb-6 border-b border-cubelit-border">
-  {#each tabs as tab}
+<div class="flex gap-0.5 border-b border-cubelit-border mb-5 flex-wrap" style="margin-bottom: 20px;">
+  {#each tabs as t}
     <button
       type="button"
-      class="px-4 py-2.5 text-sm font-medium transition-colors relative {activeTab === tab.id
-        ? 'text-cubelit-accent'
-        : 'text-cubelit-muted hover:text-cubelit-text'}"
-      onclick={() => activeTab = tab.id}
-    >
-      {tab.label}
-      {#if activeTab === tab.id}
-        <div class="absolute bottom-0 left-0 right-0 h-0.5 bg-cubelit-accent rounded-t"></div>
-      {/if}
-    </button>
+      onclick={() => {
+        tab = t.id;
+        if (t.id === 'files') loadFiles();
+      }}
+      class="px-3.5 py-2.5 text-[13px] capitalize transition-colors border-b-2 -mb-px"
+      style="
+        color: {tab === t.id ? 'var(--c-text)' : 'var(--c-text-dim)'};
+        border-bottom-color: {tab === t.id ? 'var(--c-accent)' : 'transparent'};
+      "
+    >{t.label}</button>
   {/each}
 </div>
 
-{#if activeTab === "overview"}
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-    <div class="bg-cubelit-surface border border-cubelit-border rounded-xl p-5">
-      <h3 class="text-sm font-medium text-cubelit-muted mb-3">Status</h3>
-      <p class="text-lg font-semibold capitalize {STATUS_COLORS[server.status] ?? 'text-cubelit-muted'}">
-        {server.status}
-      </p>
+<!-- ── Overview tab ── -->
+{#if tab === 'overview'}
+  <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 14px;">
+    <!-- Left column -->
+    <div class="flex flex-col gap-3.5">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <GaugeCard label="CPU" value="{cpuPct.toFixed(1)}%" bar={cpuPct} />
+        <GaugeCard
+          label="Memory"
+          value="{memUsed.toFixed(1)} / {memTotal.toFixed(1)} GB"
+          bar={memPct}
+        />
+        <GaugeCard label="Status" value={server.status} />
+        <GaugeCard label="Created" value={server.created_at?.slice(0, 10) ?? '—'} />
+      </div>
+
+      <div class="bg-cubelit-surface border border-cubelit-border rounded-2xl p-4">
+        <div class="text-[11px] text-cubelit-muted font-mono uppercase tracking-widest mb-3">Connect</div>
+        <div class="flex flex-col gap-2">
+          <ConnRow label="Local" value={getAddress()} />
+          <ConnRow label="Public" value={publicIp ? `${publicIp}:${getAddress().split(':')[1] ?? ''}` : '—'} />
+        </div>
+        <p class="text-[11px] text-cubelit-muted mt-3">Share your public address with friends. Port forwarding may be required.</p>
+      </div>
+
+      {#if server.status === 'running'}
+        <div class="bg-cubelit-surface border border-cubelit-border rounded-2xl p-4">
+          <div class="flex justify-between items-center mb-2">
+            <div class="text-[11px] text-cubelit-muted font-mono uppercase tracking-widest">CPU · last 60s</div>
+            <div class="text-[11px] font-mono text-cubelit-text-dim">{cpuPct.toFixed(1)}%</div>
+          </div>
+          <Sparkline base={cpuPct} {hue} seed={1} height={72} />
+        </div>
+        <div class="bg-cubelit-surface border border-cubelit-border rounded-2xl p-4">
+          <div class="flex justify-between items-center mb-2">
+            <div class="text-[11px] text-cubelit-muted font-mono uppercase tracking-widest">Memory · last 60s</div>
+            <div class="text-[11px] font-mono text-cubelit-text-dim">{memUsed.toFixed(1)} / {memTotal.toFixed(1)} GB</div>
+          </div>
+          <Sparkline base={memPct} hue={(hue + 200) % 360} seed={2} height={72} />
+        </div>
+      {/if}
     </div>
 
-    <StatsCards serverId={server.id} serverStatus={server.status} />
+    <!-- Right column -->
+    <div class="flex flex-col gap-3.5">
+      <div class="bg-cubelit-surface border border-cubelit-border rounded-2xl p-4">
+        <div class="text-[11px] text-cubelit-muted font-mono uppercase tracking-widest mb-3">Details</div>
+        <div class="flex flex-col gap-2 text-xs">
+          {#each [
+            ['Image', server.docker_image],
+            ['Volume', server.volume_path],
+            ['Created', server.created_at?.slice(0, 10) ?? '—'],
+            ['Container', server.container_id ? server.container_id.slice(0, 12) : '—'],
+          ] as [k, v]}
+            <div class="flex justify-between gap-2">
+              <span class="text-cubelit-muted shrink-0">{k}</span>
+              <span class="font-mono text-cubelit-text-dim truncate text-right">{v}</span>
+            </div>
+          {/each}
+        </div>
+      </div>
 
-    <div class="bg-cubelit-surface border border-cubelit-border rounded-xl p-5">
-      <h3 class="text-sm font-medium text-cubelit-muted mb-3">Ports</h3>
-      {#each Object.entries(parsePorts(server.port_mappings)) as [container, host]}
-        <p class="text-cubelit-text text-sm">{container} &rarr; {host}</p>
-      {/each}
-    </div>
-
-    <div class="bg-cubelit-surface border border-cubelit-border rounded-xl p-5">
-      <h3 class="text-sm font-medium text-cubelit-muted mb-3">Image</h3>
-      <p class="text-cubelit-text text-sm font-mono">{server.docker_image}</p>
-    </div>
-
-    <div class="bg-cubelit-surface border border-cubelit-border rounded-xl p-5">
-      <h3 class="text-sm font-medium text-cubelit-muted mb-3">Container ID</h3>
-      <p class="text-cubelit-text text-sm font-mono truncate">{server.container_id ?? "N/A"}</p>
-    </div>
-
-    <div class="bg-cubelit-surface border border-cubelit-border rounded-xl p-5">
-      <h3 class="text-sm font-medium text-cubelit-muted mb-3">Volume Path</h3>
-      <p class="text-cubelit-text text-sm font-mono truncate">{server.volume_path}</p>
+      <div class="bg-cubelit-surface border border-cubelit-border rounded-2xl p-4">
+        <div class="text-[11px] text-cubelit-muted font-mono uppercase tracking-widest mb-3">Files</div>
+        <div class="flex flex-col gap-1.5">
+          <button
+            type="button"
+            class="w-full flex items-center gap-2 px-3 py-2 rounded-lg border border-cubelit-border bg-cubelit-bg-2 text-sm text-cubelit-text-dim hover:text-cubelit-text hover:border-cubelit-border-2 transition-colors"
+            onclick={() => invoke('open_folder', { path: server.volume_path }).catch(() => {})}
+          >
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 7a2 2 0 0 1 2-2h4l2 3h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            </svg>
+            Open server folder
+          </button>
+          <button
+            type="button"
+            class="w-full flex items-center gap-2 px-3 py-2 rounded-lg border border-cubelit-border bg-cubelit-bg-2 text-sm text-cubelit-text-dim hover:text-cubelit-text hover:border-cubelit-border-2 transition-colors"
+            onclick={() => backupServer(server.id).catch(() => {})}
+          >
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+            </svg>
+            Backup now
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
-{:else if activeTab === "files"}
-  <div class="space-y-4">
-    <div class="flex items-center justify-between">
-      <h3 class="text-sm font-medium text-cubelit-text">Server Files</h3>
-      <Button size="sm" onclick={uploadFile}>Upload File</Button>
+<!-- ── Console / Logs tab ── -->
+{:else if tab === 'console'}
+  <div class="space-y-5">
+    <div class="bg-cubelit-surface border border-cubelit-border rounded-2xl overflow-hidden flex flex-col" style="height: 360px;">
+      <div
+        bind:this={logContainer}
+        onscroll={handleLogScroll}
+        class="flex-1 overflow-auto p-3.5 font-mono text-xs leading-relaxed"
+        style="background: #0d1117;"
+      >
+        {#if logLoading && logLines.length === 0}
+          <p class="text-cubelit-muted py-4 text-center">Loading logs…</p>
+        {:else if logLines.length === 0}
+          <p class="text-cubelit-muted py-4 text-center">No log output</p>
+        {:else}
+          {#each logLines as line}
+            <div class="text-gray-300 whitespace-pre-wrap break-all leading-5">{line}</div>
+          {/each}
+        {/if}
+      </div>
+      <div class="border-t border-cubelit-border px-3.5 py-2 flex items-center justify-between bg-cubelit-bg-2">
+        <div class="flex gap-3">
+          <button
+            type="button"
+            onclick={() => {
+              logFollow = !logFollow;
+              if (logFollow && logContainer) logContainer.scrollTop = logContainer.scrollHeight;
+            }}
+            class="text-xs transition-colors {logFollow ? 'text-cubelit-accent' : 'text-cubelit-muted hover:text-cubelit-text'}"
+          >{logFollow ? 'Following' : 'Follow'}</button>
+          <button
+            type="button"
+            class="text-xs text-cubelit-muted hover:text-cubelit-text transition-colors"
+            onclick={loadLogs}
+          >Refresh</button>
+        </div>
+        <span class="text-[11px] text-cubelit-muted font-mono">{logLines.length} lines</span>
+      </div>
     </div>
 
-    {#if filesError}
-      <p class="text-xs text-cubelit-error px-3 py-2 bg-cubelit-error/5 border border-cubelit-error/30 rounded-lg">{filesError}</p>
-    {/if}
+    <div class="border-t border-cubelit-border pt-5">
+      <ServerConsole {server} {command} />
+    </div>
+  </div>
 
-    {#if filesLoading}
-      <p class="text-cubelit-muted text-sm py-8 text-center">Loading files...</p>
-    {:else if files.length === 0}
-      <div class="text-center py-12 bg-cubelit-surface border border-dashed border-cubelit-border rounded-xl">
-        <p class="text-cubelit-muted text-sm">No files found</p>
-        <p class="text-cubelit-muted/70 text-xs mt-1">Upload files or start the server to generate them</p>
+<!-- ── Recipe-declared folder tab ── -->
+{:else if activeFolderTab}
+  {#key activeFolderTab.path}
+    <ManagedFilesTab {server} tab={activeFolderTab} />
+  {/key}
+
+<!-- ── Config tab ── -->
+{:else if tab === 'config'}
+  <ConfigFilesTab {server} {configFiles} />
+
+<!-- ── Files tab ── -->
+{:else if tab === 'files'}
+  <div class="bg-cubelit-surface border border-cubelit-border rounded-2xl overflow-hidden">
+    <div class="p-4 border-b border-cubelit-border flex justify-between items-center">
+      <div>
+        <div class="text-sm font-semibold text-cubelit-text">Files · {files.length}</div>
+        <div class="text-xs text-cubelit-text-dim">Server data volume</div>
       </div>
+      <div class="flex gap-2">
+        <button type="button" onclick={() => invoke('open_folder', { path: server.volume_path }).catch(() => {})}
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-cubelit-border bg-cubelit-bg-2 text-cubelit-text-dim hover:text-cubelit-text hover:border-cubelit-border-2 transition-colors">
+          <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7a2 2 0 0 1 2-2h4l2 3h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+          Open folder
+        </button>
+        <button type="button" onclick={handleUpload}
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-cubelit-accent text-white hover:brightness-110 transition-colors">
+          <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+          Upload
+        </button>
+      </div>
+    </div>
+    {#if filesLoading}
+      <p class="text-cubelit-muted text-sm py-8 text-center">Loading files…</p>
+    {:else if files.length === 0}
+      <p class="text-cubelit-muted text-sm py-8 text-center">No files in this server's volume.</p>
     {:else}
-      <div class="space-y-2">
-        {#each files as file}
-          <div class="flex items-center justify-between bg-cubelit-surface border border-cubelit-border rounded-xl px-4 py-3">
-            <div>
-              <p class="text-sm text-cubelit-text">{file.name}</p>
-              <p class="text-xs text-cubelit-muted">{(file.size / 1024).toFixed(1)} KB</p>
-            </div>
-            <button
-              type="button"
-              class="text-xs text-cubelit-error hover:text-cubelit-error/80 transition-colors"
-              onclick={() => { fileToDelete = file.name; showDeleteFileModal = true; }}
-            >
-              Remove
-            </button>
+      {#each files as file, i}
+        <div class="flex items-center gap-3 px-4 py-2.5 {i < files.length - 1 ? 'border-b border-cubelit-border' : ''}">
+          <div class="w-8 h-6 rounded flex items-center justify-center text-[9px] font-bold text-cubelit-accent bg-cubelit-accent-soft font-mono shrink-0">
+            {file.name.split('.').pop()?.toUpperCase().slice(0, 4) ?? 'FILE'}
           </div>
+          <div class="flex-1 min-w-0">
+            <div class="text-sm text-cubelit-text truncate">{file.name}</div>
+            <div class="text-xs text-cubelit-muted font-mono">{(file.size / 1024).toFixed(1)} KB</div>
+          </div>
+          <button
+            type="button"
+            aria-label="Delete {file.name}"
+            onclick={() => { deleteFileName = file.name; showDeleteFileModal = true; }}
+            class="text-cubelit-muted hover:text-cubelit-error transition-colors p-1"
+          >
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+      {/each}
+    {/if}
+  </div>
+
+<!-- ── Settings tab ── -->
+{:else if tab === 'settings'}
+  <div class="flex flex-col gap-4">
+    <div class="bg-cubelit-surface border border-cubelit-border rounded-2xl p-5">
+      <div class="flex justify-between items-start mb-4">
+        <div>
+          <div class="text-sm font-semibold text-cubelit-text">Environment variables</div>
+          <div class="text-xs text-cubelit-text-dim">Applying changes recreates the container.</div>
+        </div>
+        <Button onclick={() => { showApplyModal = true; }}>
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>
+          </svg>
+          Apply & restart
+        </Button>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        {#each envEntries as [key]}
+          <label class="flex flex-col gap-1.5">
+            <span class="text-[11px] text-cubelit-text-dim font-mono">{key}</span>
+            <input
+              class="w-full px-3 py-2.5 rounded-lg text-sm font-mono text-cubelit-text bg-cubelit-bg-2 border border-cubelit-border focus:outline-none focus:border-cubelit-accent transition-colors"
+              value={envEdited[key] ?? ''}
+              oninput={(e) => { envEdited[key] = (e.target as HTMLInputElement).value; }}
+            />
+          </label>
         {/each}
       </div>
-    {/if}
-  </div>
+    </div>
 
-{:else if activeTab === "logs"}
-  <LogViewer lines={logs} loading={logsLoading} onRefresh={loadLogs} />
-
-{:else if activeTab === "settings"}
-  <div class="space-y-4">
-    <div class="flex items-center justify-between">
-      <h3 class="text-sm font-medium text-cubelit-text">Server Configuration</h3>
-      <Button size="sm" onclick={() => showApplyModal = true} disabled={settingsSaving || settingsLoading}>
-        {settingsSaving ? "Applying…" : "Apply Changes"}
+    <!-- Danger zone -->
+    <div class="rounded-2xl border p-4" style="border-color: color-mix(in oklab, var(--c-error) 30%, var(--c-border)); background: color-mix(in oklab, var(--c-error) 7%, transparent);">
+      <div class="text-sm font-semibold text-cubelit-error mb-1">Danger zone</div>
+      <div class="text-xs text-cubelit-text-dim mb-3">Deleting removes the container. World files can be kept.</div>
+      <Button variant="danger" onclick={() => { showDeleteModal = true; }}>
+        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>
+        </svg>
+        Delete server
       </Button>
     </div>
-
-    {#if settingsError}
-      <p class="text-xs text-cubelit-error px-3 py-2 bg-cubelit-error/5 border border-cubelit-error/30 rounded-lg">{settingsError}</p>
-    {/if}
-
-    {#if settingsLoading}
-      <p class="text-cubelit-muted text-sm py-8 text-center">Loading settings...</p>
-    {:else if recipe}
-      <div class="bg-cubelit-surface border border-cubelit-border rounded-xl p-5 space-y-4">
-        {#each recipe.environment as field}
-          <div class="space-y-1">
-            <label class="text-xs font-medium text-cubelit-muted" for={`generic-${field.key}`}>{field.label}</label>
-            {#if field.type === "boolean"}
-              <div class="flex items-center gap-2">
-                <input
-                  id={`generic-${field.key}`}
-                  type="checkbox"
-                  class="w-4 h-4 accent-cubelit-accent"
-                  checked={editEnv[field.key]?.toLowerCase() === "true"}
-                  onchange={(e) => editEnv[field.key] = (e.currentTarget as HTMLInputElement).checked ? "TRUE" : "FALSE"}
-                />
-                <span class="text-xs text-cubelit-muted font-mono">{field.key}</span>
-              </div>
-            {:else if field.options.length > 0}
-              <div class="relative">
-                <select
-                  id={`generic-${field.key}`}
-                  class="w-full appearance-none bg-cubelit-bg border border-cubelit-border rounded-lg px-3 py-1.5 pr-8 text-sm text-cubelit-text focus:outline-none focus:border-cubelit-accent"
-                  bind:value={editEnv[field.key]}
-                >
-                  {#each field.options as opt}
-                    <option value={opt} style="background-color:#23272f;color:#f5f5f6;">{opt}</option>
-                  {/each}
-                </select>
-                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2.5">
-                  <svg class="w-4 h-4 text-cubelit-muted" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-                  </svg>
-                </div>
-              </div>
-            {:else}
-              <input
-                id={`generic-${field.key}`}
-                type="text"
-                class="w-full bg-cubelit-bg border border-cubelit-border rounded-lg px-3 py-1.5 text-sm text-cubelit-text focus:outline-none focus:border-cubelit-accent"
-                bind:value={editEnv[field.key]}
-              />
-            {/if}
-          </div>
-        {/each}
-      </div>
-      <p class="text-xs text-cubelit-muted">Changes take effect after the server restarts.</p>
-    {/if}
   </div>
 {/if}

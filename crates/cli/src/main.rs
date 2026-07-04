@@ -33,6 +33,31 @@ enum Command {
         #[arg(long, default_value_t = 100_u64)]
         tail: u64,
     },
+    /// Boot each game server and verify it reaches a joinable state
+    SmokeTest {
+        /// Recipe IDs to test (repeatable). Omit to use --all.
+        #[arg(long = "game", value_name = "RECIPE_ID")]
+        games: Vec<String>,
+        /// Test every available recipe (mutually exclusive with --game).
+        #[arg(long, conflicts_with = "games")]
+        all: bool,
+        /// Do not delete failed servers so their logs can be inspected.
+        #[arg(long)]
+        keep_on_fail: bool,
+        /// Value added to every recipe port to avoid clashing with real servers.
+        #[arg(long, default_value_t = 10_000_u16)]
+        port_offset: u16,
+        /// Per-game wall-clock timeout in seconds.
+        #[arg(long, default_value_t = 480_u64)]
+        timeout: u64,
+        /// Write the JSON report to this path (in addition to data_dir/smoke/).
+        #[arg(long, value_name = "PATH")]
+        json: Option<std::path::PathBuf>,
+        /// Store each test server's game files under this directory instead of
+        /// ~/Cubelit — point at a large disk for heavy games (CS2, ARK ASA).
+        #[arg(long, value_name = "PATH")]
+        volume_root: Option<std::path::PathBuf>,
+    },
     /// Remote agent (stub)
     Agent {
         #[command(subcommand)]
@@ -139,6 +164,27 @@ async fn run(cli: Cli) -> Result<(), CoreError> {
             } => commands::server::remove(&ctx, &id, keep_data, yes).await,
         },
         Command::Logs { id, tail } => commands::logs::follow(&ctx, &id, tail).await,
+        Command::SmokeTest {
+            games,
+            all,
+            keep_on_fail,
+            port_offset,
+            timeout,
+            json,
+            volume_root,
+        } => {
+            commands::smoke::run(
+                &ctx,
+                games,
+                all,
+                keep_on_fail,
+                port_offset,
+                timeout,
+                json,
+                volume_root,
+            )
+            .await
+        }
         Command::Agent { sub } => match sub {
             AgentCommand::Start => commands::agent::start_stub(),
         },
@@ -207,6 +253,25 @@ mod cli_parse_tests {
                     port: Some(25566),
                 },
             } if recipe_id == "minecraft-java" && name == "srv"
+        ));
+    }
+
+    #[test]
+    fn parse_smoke_test_volume_root() {
+        let c = Cli::try_parse_from([
+            "cubelit",
+            "smoke-test",
+            "--game",
+            "minecraft-java",
+            "--volume-root",
+            "/mnt/games/Cubelit-smoke",
+        ])
+        .unwrap();
+        assert!(matches!(
+            c.command,
+            Command::SmokeTest { games, volume_root: Some(root), .. }
+                if games == vec!["minecraft-java".to_string()]
+                && root == std::path::Path::new("/mnt/games/Cubelit-smoke")
         ));
     }
 

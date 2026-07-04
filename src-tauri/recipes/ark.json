@@ -3,9 +3,9 @@
   "name": "ARK: Survival Evolved",
   "description": "Dinosaur survival game with taming, building, and multiplayer combat.",
   "icon": "ark",
-  "available": false,
+  "available": true,
   "docker_image": "hermsi/ark-server",
-  "default_tag": "latest",
+  "default_tag": "latest-1780899889",
   "ports": [
     {
       "container_port": 7777,
@@ -55,20 +55,31 @@
       "label": "Admin Password",
       "type": "string",
       "options": []
+    },
+    {
+      "key": "GAME_MOD_IDS",
+      "default_value": "",
+      "label": "Workshop Mod IDs (comma-separated)",
+      "type": "string",
+      "options": []
     }
   ],
   "volumes": [
     {
-      "container_path": "/ark",
+      "container_path": "/app",
       "label": "Server Data"
     }
   ],
   "config_files": [],
   "mods": {
     "supported": true,
-    "path": "ShooterGame/Content/Mods",
+    "path": "server/ShooterGame/Content/Mods",
     "file_types": [".mod"]
   },
   "estimated_disk_mb": 15000,
-  "tags": ["survival", "dinosaurs"]
+  "tags": ["survival", "dinosaurs"],
+  "readiness": {
+    "log_pattern": "server is up",
+    "timeout_secs": 1800
+  }
 }

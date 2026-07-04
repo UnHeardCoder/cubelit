@@ -1,6 +1,8 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
-use bollard::models::{ContainerCreateBody, HostConfig, PortBinding, RestartPolicy, RestartPolicyNameEnum};
+use bollard::models::{
+    ContainerCreateBody, HostConfig, PortBinding, RestartPolicy, RestartPolicyNameEnum,
+};
 use bollard::query_parameters::{
     CreateContainerOptions, RemoveContainerOptions, StartContainerOptions, StopContainerOptions,
 };
@@ -9,7 +11,13 @@ use bollard::Docker;
 use crate::db::models::Cubelit;
 use crate::error::CoreError;
 
-pub async fn create_container(docker: &Docker, cubelit: &Cubelit, extra_binds: &[String]) -> Result<String, CoreError> {
+pub async fn create_container(
+    docker: &Docker,
+    cubelit: &Cubelit,
+    extra_binds: &[String],
+    server_cmd: Option<Vec<String>>,
+    cap_add: &[String],
+) -> Result<String, CoreError> {
     let port_mappings: HashMap<String, u16> =
         serde_json::from_str(&cubelit.port_mappings).unwrap_or_default();
 
@@ -54,12 +62,12 @@ pub async fn create_container(docker: &Docker, cubelit: &Cubelit, extra_binds: &
     labels.insert("cubelit.managed".to_string(), "true".to_string());
     labels.insert("cubelit.role".to_string(), "primary".to_string());
 
-    let mut binds = vec![format!("{}:{}", cubelit.volume_path, cubelit.container_mount_path)];
-    binds.extend_from_slice(extra_binds);
+    let binds = build_container_binds(cubelit, extra_binds);
 
     let host_config = HostConfig {
         port_bindings: Some(port_bindings),
         binds: Some(binds),
+        cap_add: (!cap_add.is_empty()).then(|| cap_add.to_vec()),
         restart_policy: Some(RestartPolicy {
             name: Some(RestartPolicyNameEnum::UNLESS_STOPPED),
             maximum_retry_count: None,
@@ -73,6 +81,7 @@ pub async fn create_container(docker: &Docker, cubelit: &Cubelit, extra_binds: &
         exposed_ports: Some(exposed_ports),
         host_config: Some(host_config),
         labels: Some(labels),
+        cmd: server_cmd,
         ..Default::default()
     };
 
@@ -84,6 +93,35 @@ pub async fn create_container(docker: &Docker, cubelit: &Cubelit, extra_binds: &
 
     let response = docker.create_container(Some(options), config).await?;
     Ok(response.id)
+}
+
+fn build_container_binds(cubelit: &Cubelit, extra_binds: &[String]) -> Vec<String> {
+    let primary_bind = format!("{}:{}", cubelit.volume_path, cubelit.container_mount_path);
+    let mut seen_targets = HashSet::new();
+    let mut binds = Vec::with_capacity(1 + extra_binds.len());
+
+    for bind in std::iter::once(primary_bind).chain(extra_binds.iter().cloned()) {
+        if let Some(target) = bind_container_target(&bind) {
+            if !seen_targets.insert(target.to_string()) {
+                continue;
+            }
+        }
+        binds.push(bind);
+    }
+
+    binds
+}
+
+fn bind_container_target(bind: &str) -> Option<&str> {
+    let mut parts = bind.rsplit(':');
+    let last = parts.next()?;
+    let target = if last.starts_with('/') {
+        last
+    } else {
+        parts.next()?
+    };
+
+    target.starts_with('/').then_some(target)
 }
 
 pub async fn start_container(docker: &Docker, container_id: &str) -> Result<(), CoreError> {
@@ -130,4 +168,224 @@ pub async fn remove_container(docker: &Docker, container_id: &str) -> Result<(),
         )
         .await?;
     Ok(())
+}
+
+/// Delete a server's volume directory even when the game container wrote
+/// files as root (Valheim and Project Zomboid do). Plain removal is tried
+/// first; on failure the contents are cleared by a one-shot root container
+/// using the server's own image (already present locally), then the emptied
+/// directory is removed. Best-effort: failures are logged, never returned.
+pub async fn remove_host_dir_as_root(docker: &Docker, image: &str, host_path: &str) {
+    match std::fs::remove_dir_all(host_path) {
+        Ok(()) => return,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return,
+        Err(e) => {
+            tracing::warn!(path = %host_path, error = %e,
+                "Direct volume removal failed; retrying as root via one-shot container");
+        }
+    }
+
+    if !is_safe_cleanup_path(host_path) {
+        tracing::warn!(path = %host_path,
+            "Refusing root cleanup of a suspicious volume path; data left on disk");
+        return;
+    }
+
+    let config = ContainerCreateBody {
+        image: Some(image.to_string()),
+        entrypoint: Some(vec!["/bin/sh".to_string()]),
+        cmd: Some(vec![
+            "-c".to_string(),
+            // Clear visible + hidden entries; globs that match nothing are fine.
+            "rm -rf /cubelit-cleanup/* /cubelit-cleanup/.[!.]* /cubelit-cleanup/..?*; true"
+                .to_string(),
+        ]),
+        user: Some("0:0".to_string()),
+        host_config: Some(HostConfig {
+            binds: Some(vec![format!("{}:/cubelit-cleanup", host_path)]),
+            network_mode: Some("none".to_string()),
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+
+    let name = format!("cubelit-cleanup-{}", &uuid::Uuid::new_v4().to_string()[..8]);
+    let opts = CreateContainerOptions {
+        name: Some(name),
+        platform: String::from(""),
+    };
+
+    let created = match docker.create_container(Some(opts), config).await {
+        Ok(c) => c,
+        Err(e) => {
+            tracing::warn!(path = %host_path, image = %image, error = %e,
+                "Volume cleanup container could not be created; data left on disk");
+            return;
+        }
+    };
+
+    let run = async {
+        use futures_util::StreamExt;
+        docker
+            .start_container(&created.id, None::<StartContainerOptions>)
+            .await?;
+        // Default wait condition is "not-running" — resolves when rm finishes.
+        docker
+            .wait_container(
+                &created.id,
+                None::<bollard::query_parameters::WaitContainerOptions>,
+            )
+            .next()
+            .await;
+        Ok::<(), bollard::errors::Error>(())
+    };
+    // Even 100 GB installs rm in well under this; don't hang delete forever.
+    let result = tokio::time::timeout(std::time::Duration::from_secs(300), run).await;
+    let _ = remove_container(docker, &created.id).await;
+
+    match result {
+        Ok(Ok(())) => {}
+        Ok(Err(e)) => tracing::warn!(path = %host_path, error = %e,
+            "Volume cleanup container failed to run"),
+        Err(_) => tracing::warn!(path = %host_path,
+            "Volume cleanup container timed out after 300s"),
+    }
+
+    if let Err(e) = std::fs::remove_dir_all(host_path) {
+        if e.kind() != std::io::ErrorKind::NotFound {
+            tracing::warn!(path = %host_path, error = %e,
+                "Volume directory still could not be removed; data left on disk");
+        }
+    }
+}
+
+/// Refuse to run the root cleanup container on anything but a deeply nested,
+/// absolute, `..`-free path. A corrupt or hand-edited `volume_path` like `/`,
+/// `/home`, or the user's home directory must never be emptied as root.
+fn is_safe_cleanup_path(host_path: &str) -> bool {
+    use std::path::Component;
+
+    let path = std::path::Path::new(host_path);
+    if !path.is_absolute() {
+        return false;
+    }
+    let mut normals = 0usize;
+    for c in path.components() {
+        match c {
+            Component::Normal(_) => normals += 1,
+            Component::RootDir | Component::Prefix(_) => {}
+            // `..` / `.` have no business in a persisted volume path.
+            Component::ParentDir | Component::CurDir => return false,
+        }
+    }
+    if normals < 2 {
+        return false;
+    }
+    // Never empty the user's home directory itself.
+    if let Ok(home) = std::env::var("HOME") {
+        if !home.is_empty() && path == std::path::Path::new(&home) {
+            return false;
+        }
+    }
+    true
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn test_cubelit() -> Cubelit {
+        Cubelit {
+            id: "test-id".to_string(),
+            name: "Test Server".to_string(),
+            game: "Test Game".to_string(),
+            recipe_id: "test".to_string(),
+            docker_image: "test/image:latest".to_string(),
+            container_id: None,
+            status: "created".to_string(),
+            port_mappings: "{}".to_string(),
+            environment: "{}".to_string(),
+            volume_path: "/srv/cubelit/test".to_string(),
+            container_mount_path: "/data".to_string(),
+            sidecar_container_id: None,
+            sidecar_image: None,
+            created_at: "2026-01-01T00:00:00Z".to_string(),
+            updated_at: "2026-01-01T00:00:00Z".to_string(),
+        }
+    }
+
+    #[test]
+    fn is_safe_cleanup_path_rejects_roots_and_traversal() {
+        assert!(!is_safe_cleanup_path("/"));
+        assert!(!is_safe_cleanup_path("/home"));
+        assert!(!is_safe_cleanup_path("/mnt"));
+        assert!(!is_safe_cleanup_path("relative/path"));
+        assert!(!is_safe_cleanup_path("/srv/../etc"));
+        assert!(is_safe_cleanup_path("/mnt/games/my-server"));
+        assert!(is_safe_cleanup_path("/home/user/Cubelit/my-server"));
+        if let Ok(home) = std::env::var("HOME") {
+            if !home.is_empty() {
+                assert!(!is_safe_cleanup_path(&home));
+            }
+        }
+    }
+
+    #[test]
+    fn build_container_binds_keeps_primary_volume_first() {
+        let cubelit = test_cubelit();
+        let binds = build_container_binds(
+            &cubelit,
+            &[
+                "/srv/cubelit/test/config:/config".to_string(),
+                "/srv/cubelit/test/logs:/logs".to_string(),
+            ],
+        );
+
+        assert_eq!(
+            binds,
+            vec![
+                "/srv/cubelit/test:/data",
+                "/srv/cubelit/test/config:/config",
+                "/srv/cubelit/test/logs:/logs",
+            ]
+        );
+    }
+
+    #[test]
+    fn build_container_binds_skips_duplicate_container_targets() {
+        let cubelit = test_cubelit();
+        let binds = build_container_binds(
+            &cubelit,
+            &[
+                "/other/data:/data".to_string(),
+                "/srv/cubelit/test/config:/config".to_string(),
+                "/other/config:/config:ro".to_string(),
+            ],
+        );
+
+        assert_eq!(
+            binds,
+            vec![
+                "/srv/cubelit/test:/data",
+                "/srv/cubelit/test/config:/config",
+            ]
+        );
+    }
+
+    #[test]
+    fn build_container_binds_handles_windows_style_host_paths() {
+        let cubelit = test_cubelit();
+        let binds = build_container_binds(
+            &cubelit,
+            &[
+                r"C:\cubelit\config:/config".to_string(),
+                r"D:\other\config:/config:ro".to_string(),
+            ],
+        );
+
+        assert_eq!(
+            binds,
+            vec!["/srv/cubelit/test:/data", r"C:\cubelit\config:/config"]
+        );
+    }
 }

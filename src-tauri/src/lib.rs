@@ -51,18 +51,20 @@ pub fn run() {
                         .try_init();
                 }
 
-                let recipes_dir = app_handle
-                    .path()
-                    .resource_dir()
-                    .expect("failed to resolve resource dir")
-                    .join("recipes");
+                let recipes_dir = resolve_recipes_dir(&app_handle);
 
                 let state = state::AppState::new(data_dir, recipes_dir)
                     .await
                     .expect("failed to initialize app state");
 
                 // Sync server statuses with Docker reality
-                let _ = cubelit_core::server::sync_all_servers(
+                let _ = cubelit_core::server::sync_all_servers(&state.host.docker, &state.host.db)
+                    .await;
+
+                // Promote any server stuck in "starting" to "running" — the
+                // readiness watcher task dies with the process, so after a
+                // restart there is no watcher to advance the status.
+                let _ = cubelit_core::server::reconcile_orphaned_starting_servers(
                     &state.host.docker,
                     &state.host.db,
                 )
@@ -109,16 +111,37 @@ pub fn run() {
             enable_wsl2,
             #[cfg(target_os = "windows")]
             set_wsl_default_version,
+            #[cfg(target_os = "windows")]
+            open_docker_desktop,
             list_server_files,
+            read_server_file,
             copy_file_to_server,
             delete_server_file,
+            write_server_file,
             get_server_logs,
             get_server_stats,
             update_server_settings,
             rename_server,
             send_minecraft_command,
+            send_server_command,
             backup_server,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+fn resolve_recipes_dir(app_handle: &tauri::AppHandle) -> std::path::PathBuf {
+    #[cfg(debug_assertions)]
+    {
+        let source_recipes = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("recipes");
+        if source_recipes.exists() {
+            return source_recipes;
+        }
+    }
+
+    app_handle
+        .path()
+        .resource_dir()
+        .expect("failed to resolve resource dir")
+        .join("recipes")
 }

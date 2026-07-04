@@ -23,4 +23,31 @@ pub struct CreateServerConfig {
     pub volume_path: Option<String>,
     /// Override the recipe's `default_tag` (e.g. "java17", "java8", "latest")
     pub tag_override: Option<String>,
+    /// Override the recipe's `readiness.timeout_secs` for the watcher spawned
+    /// at create time. The smoke harness uses this so long first boots (ASA,
+    /// CS2 steamcmd downloads) aren't prematurely resolved by the watcher's
+    /// fallback status write. Absent from the desktop wizard payload.
+    #[serde(default)]
+    pub readiness_timeout_override_secs: Option<u64>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The desktop wizard's v0.1.7 payload (no override field) must keep
+    /// deserializing — the field is additive.
+    #[test]
+    fn create_server_config_deserializes_without_readiness_override() {
+        let json = r#"{
+            "name": "s",
+            "recipe_id": "minecraft-java",
+            "port_overrides": null,
+            "env_overrides": null,
+            "volume_path": null,
+            "tag_override": null
+        }"#;
+        let cfg: CreateServerConfig = serde_json::from_str(json).unwrap();
+        assert_eq!(cfg.readiness_timeout_override_secs, None);
+    }
 }

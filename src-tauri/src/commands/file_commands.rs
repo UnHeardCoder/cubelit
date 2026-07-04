@@ -59,10 +59,7 @@ fn validate_relative_subpath(subpath: &str) -> Result<(), CoreError> {
 
 /// Canonicalize `path` and verify it starts with `canonical_base`. Used
 /// after a target file/dir is known to exist on disk (delete + read paths).
-fn ensure_canonical_within(
-    canonical_base: &Path,
-    path: &Path,
-) -> Result<PathBuf, CoreError> {
+fn ensure_canonical_within(canonical_base: &Path, path: &Path) -> Result<PathBuf, CoreError> {
     let canonical = path
         .canonicalize()
         .map_err(|_| CoreError::Validation("Path traversal not allowed".into()))?;
@@ -70,6 +67,38 @@ fn ensure_canonical_within(
         return Err(CoreError::Validation("Path traversal not allowed".into()));
     }
     Ok(canonical)
+}
+
+/// Verify the nearest *existing* ancestor of `parent` resolves inside the
+/// volume before any directories are created. Without this, an existing
+/// symlinked ancestor inside the volume would let `create_dir_all` build
+/// directories outside it (the later parent check catches the write, but
+/// the stray directories would already exist).
+fn ensure_creatable_within(canonical_base: &Path, parent: &Path) -> Result<(), CoreError> {
+    let mut probe = parent.to_path_buf();
+    loop {
+        if probe.exists() {
+            let _ = ensure_canonical_within(canonical_base, &probe)?;
+            return Ok(());
+        }
+        match probe.parent() {
+            Some(p) => probe = p.to_path_buf(),
+            None => return Err(CoreError::Validation("Path traversal not allowed".into())),
+        }
+    }
+}
+
+/// Refuse to write or copy through a symlinked final component — the parent
+/// containment check can't see a symlink that lives *at* the destination.
+fn reject_symlink_target(path: &Path) -> Result<(), CoreError> {
+    if let Ok(md) = std::fs::symlink_metadata(path) {
+        if md.file_type().is_symlink() {
+            return Err(CoreError::Validation(
+                "Destination is a symlink; refusing to write through it".into(),
+            ));
+        }
+    }
+    Ok(())
 }
 
 #[tauri::command]
@@ -130,24 +159,20 @@ pub async fn copy_file_to_server(
     validate_relative_subpath(&dest_subpath)?;
 
     let dest = base.join(&dest_subpath);
-
-    // Create the destination's parent before canonicalizing — canonicalize
-    // requires the directory to exist on disk.
-    if let Some(parent) = dest.parent() {
-        std::fs::create_dir_all(parent)?;
-    }
-
-    // Canonical containment check on the parent. We canonicalize the parent
-    // (which now exists) rather than `dest` itself because `dest` is the
-    // about-to-be-created file. Any symlink that would escape the volume
-    // is caught here.
     let canonical_base = base
         .canonicalize()
         .map_err(|_| CoreError::Validation("Server data directory not accessible".into()))?;
     let parent = dest
         .parent()
         .ok_or_else(|| CoreError::Validation("Invalid destination path".into()))?;
+
+    // Prove containment of the nearest existing ancestor BEFORE creating
+    // directories, re-verify the parent after, and never copy through a
+    // symlinked destination.
+    ensure_creatable_within(&canonical_base, parent)?;
+    std::fs::create_dir_all(parent)?;
     let _ = ensure_canonical_within(&canonical_base, parent)?;
+    reject_symlink_target(&dest)?;
 
     std::fs::copy(&source_path, &dest)?;
     Ok(())
@@ -182,6 +207,57 @@ pub async fn delete_server_file(
     } else {
         std::fs::remove_file(&canonical_target)?;
     }
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn read_server_file(
+    state: State<'_, AppState>,
+    id: String,
+    filepath: String,
+) -> Result<String, CoreError> {
+    let cubelit = state.host.get_server(&id).await?;
+    let base = PathBuf::from(&cubelit.volume_path);
+
+    validate_relative_subpath(&filepath)?;
+
+    let full_path = base.join(&filepath);
+    let canonical_base = base
+        .canonicalize()
+        .map_err(|_| CoreError::Validation("Server data directory not accessible".into()))?;
+    let canonical_target = ensure_canonical_within(&canonical_base, &full_path)?;
+
+    Ok(std::fs::read_to_string(canonical_target)?)
+}
+
+#[tauri::command]
+pub async fn write_server_file(
+    state: State<'_, AppState>,
+    id: String,
+    filepath: String,
+    content: String,
+) -> Result<(), CoreError> {
+    let cubelit = state.host.get_server(&id).await?;
+    let base = PathBuf::from(&cubelit.volume_path);
+
+    validate_relative_subpath(&filepath)?;
+
+    let full_path = base.join(&filepath);
+    let parent = full_path
+        .parent()
+        .ok_or_else(|| CoreError::Validation("Invalid destination path".into()))?;
+    let canonical_base = base
+        .canonicalize()
+        .map_err(|_| CoreError::Validation("Server data directory not accessible".into()))?;
+
+    // Same guard order as copy_file_to_server: containment of the nearest
+    // existing ancestor, create, re-verify, and no symlinked targets.
+    ensure_creatable_within(&canonical_base, parent)?;
+    std::fs::create_dir_all(parent)?;
+    let _ = ensure_canonical_within(&canonical_base, parent)?;
+    reject_symlink_target(&full_path)?;
+
+    std::fs::write(full_path, content)?;
     Ok(())
 }
 

@@ -17,7 +17,8 @@
       "container_port": 25575,
       "default_host_port": 25575,
       "protocol": "tcp",
-      "label": "RCON Port"
+      "label": "RCON Port",
+      "role": "rcon"
     }
   ],
   "environment": [
@@ -33,7 +34,14 @@
       "default_value": "VANILLA",
       "label": "Server Type",
       "type": "select",
-      "options": ["VANILLA", "FORGE", "FABRIC", "PAPER", "SPIGOT", "BUKKIT"]
+      "options": [
+        "VANILLA",
+        "FORGE",
+        "FABRIC",
+        "PAPER",
+        "SPIGOT",
+        "BUKKIT"
+      ]
     },
     {
       "key": "VERSION",
@@ -47,14 +55,25 @@
       "default_value": "2G",
       "label": "Server RAM",
       "type": "ram",
-      "options": ["1G", "2G", "4G", "6G", "8G"]
+      "options": [
+        "1G",
+        "2G",
+        "4G",
+        "6G",
+        "8G"
+      ]
     },
     {
       "key": "DIFFICULTY",
       "default_value": "normal",
       "label": "Difficulty",
       "type": "select",
-      "options": ["peaceful", "easy", "normal", "hard"]
+      "options": [
+        "peaceful",
+        "easy",
+        "normal",
+        "hard"
+      ]
     },
     {
       "key": "MAX_PLAYERS",
@@ -95,14 +114,115 @@
     {
       "path": "server.properties",
       "format": "properties",
-      "label": "Server Properties"
+      "label": "Server Properties",
+      "fields": [
+        {
+          "key": "difficulty",
+          "label": "Difficulty",
+          "type": "select",
+          "options": [
+            "peaceful",
+            "easy",
+            "normal",
+            "hard"
+          ]
+        },
+        {
+          "key": "max-players",
+          "label": "Max players",
+          "type": "number",
+          "min": 1,
+          "max": 200
+        },
+        {
+          "key": "pvp",
+          "label": "PvP",
+          "type": "boolean"
+        },
+        {
+          "key": "motd",
+          "label": "Message of the day",
+          "type": "string"
+        },
+        {
+          "key": "view-distance",
+          "label": "View distance",
+          "type": "number",
+          "min": 3,
+          "max": 32
+        },
+        {
+          "key": "spawn-protection",
+          "label": "Spawn protection",
+          "type": "number",
+          "min": 0,
+          "max": 64
+        }
+      ]
     }
   ],
+  "dashboard": {
+    "command": {
+      "mode": "source_rcon",
+      "port_role": "rcon",
+      "password_env": "RCON_PASSWORD",
+      "password_default": "minecraft",
+      "probe": "list",
+      "quick_commands": [
+        {
+          "label": "OP self",
+          "command": "op {user}"
+        },
+        {
+          "label": "Whitelist self",
+          "command": "whitelist add {user}"
+        },
+        {
+          "label": "List players",
+          "command": "list"
+        },
+        {
+          "label": "Save world",
+          "command": "save-all"
+        },
+        {
+          "label": "Clear weather",
+          "command": "weather clear"
+        }
+      ]
+    },
+    "file_tabs": [
+      {
+        "path": "mods",
+        "label": "Mods",
+        "file_types": [
+          ".jar"
+        ]
+      },
+      {
+        "path": "plugins",
+        "label": "Plugins",
+        "file_types": [
+          ".jar"
+        ]
+      }
+    ]
+  },
   "mods": {
     "supported": true,
     "path": "mods",
-    "file_types": [".jar"]
+    "file_types": [
+      ".jar"
+    ]
   },
   "estimated_disk_mb": 1000,
-  "tags": ["popular", "moddable", "java"]
+  "tags": [
+    "popular",
+    "moddable",
+    "java"
+  ],
+  "readiness": {
+    "log_pattern": "! For help, type \"help\"",
+    "timeout_secs": 600
+  }
 }

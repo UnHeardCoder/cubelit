@@ -3,9 +3,9 @@
   "name": "Counter-Strike 2",
   "description": "Competitive tactical FPS. Run your own community server.",
   "icon": "cs2",
-  "available": false,
+  "available": true,
   "docker_image": "joedwards32/cs2",
-  "default_tag": "latest",
+  "default_tag": "4.0.1",
   "ports": [
     {
       "container_port": 27015,
@@ -17,7 +17,8 @@
       "container_port": 27015,
       "default_host_port": 27015,
       "protocol": "tcp",
-      "label": "RCON Port"
+      "label": "RCON Port",
+      "role": "rcon"
     }
   ],
   "environment": [
@@ -47,14 +48,21 @@
       "default_value": "0",
       "label": "Game Type",
       "type": "select",
-      "options": ["0", "1"]
+      "options": [
+        "0",
+        "1"
+      ]
     },
     {
       "key": "CS2_GAMEMODE",
       "default_value": "1",
       "label": "Game Mode",
       "type": "select",
-      "options": ["0", "1", "2"]
+      "options": [
+        "0",
+        "1",
+        "2"
+      ]
     },
     {
       "key": "CS2_RCONPW",
@@ -68,7 +76,16 @@
       "default_value": "de_dust2",
       "label": "Start Map",
       "type": "select",
-      "options": ["de_dust2", "de_mirage", "de_inferno", "de_nuke", "de_overpass", "de_ancient", "de_anubis", "de_vertigo"]
+      "options": [
+        "de_dust2",
+        "de_mirage",
+        "de_inferno",
+        "de_nuke",
+        "de_overpass",
+        "de_ancient",
+        "de_anubis",
+        "de_vertigo"
+      ]
     }
   ],
   "volumes": [
@@ -78,7 +95,38 @@
     }
   ],
   "config_files": [],
+  "dashboard": {
+    "command": {
+      "mode": "source_rcon",
+      "port_role": "rcon",
+      "password_env": "CS2_RCONPW",
+      "password_default": "changeme",
+      "probe": "status",
+      "quick_commands": [
+        {
+          "label": "Status",
+          "command": "status"
+        },
+        {
+          "label": "List maps",
+          "command": "maps *"
+        },
+        {
+          "label": "Restart round",
+          "command": "mp_restartgame 1"
+        }
+      ]
+    }
+  },
   "mods": null,
   "estimated_disk_mb": 35000,
-  "tags": ["popular", "competitive", "fps"]
+  "tags": [
+    "popular",
+    "competitive",
+    "fps"
+  ],
+  "readiness": {
+    "log_pattern": "VAC secure mode is activated",
+    "timeout_secs": 1800
+  }
 }

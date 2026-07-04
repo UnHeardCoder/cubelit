@@ -3,9 +3,9 @@
   "name": "Palworld",
   "description": "Open-world survival crafting game with creature collection.",
   "icon": "palworld",
-  "available": false,
+  "available": true,
   "docker_image": "thijsvanloef/palworld-server-docker",
-  "default_tag": "latest",
+  "default_tag": "v2.3.2",
   "ports": [
     {
       "container_port": 8211,
@@ -18,6 +18,13 @@
       "default_host_port": 27016,
       "protocol": "udp",
       "label": "Query Port"
+    },
+    {
+      "container_port": 25575,
+      "default_host_port": 25575,
+      "protocol": "tcp",
+      "label": "RCON Port",
+      "role": "rcon"
     }
   ],
   "environment": [
@@ -62,6 +69,20 @@
       "label": "Community Server",
       "type": "boolean",
       "options": []
+    },
+    {
+      "key": "RCON_ENABLED",
+      "default_value": "true",
+      "label": "Enable RCON",
+      "type": "boolean",
+      "options": []
+    },
+    {
+      "key": "RCON_PORT",
+      "default_value": "25575",
+      "label": "RCON Port Inside Container",
+      "type": "number",
+      "options": []
     }
   ],
   "volumes": [
@@ -70,8 +91,52 @@
       "label": "Server Data"
     }
   ],
-  "config_files": [],
+  "config_files": [
+    {
+      "path": "Pal/Saved/Config/LinuxServer/PalWorldSettings.ini",
+      "format": "ini",
+      "label": "PalWorld Settings"
+    }
+  ],
+  "dashboard": {
+    "command": {
+      "mode": "source_rcon",
+      "port_role": "rcon",
+      "password_env": "ADMIN_PASSWORD",
+      "password_default": "changeme",
+      "probe": "Info",
+      "quick_commands": [
+        {
+          "label": "Info",
+          "command": "Info"
+        },
+        {
+          "label": "Show players",
+          "command": "ShowPlayers"
+        },
+        {
+          "label": "Save",
+          "command": "Save"
+        }
+      ]
+    },
+    "file_tabs": [
+      {
+        "path": "backups",
+        "label": "Backups",
+        "upload": false
+      }
+    ]
+  },
   "mods": null,
   "estimated_disk_mb": 8000,
-  "tags": ["popular", "survival", "coop"]
+  "tags": [
+    "popular",
+    "survival",
+    "coop"
+  ],
+  "readiness": {
+    "log_pattern": "Running Palworld dedicated server",
+    "timeout_secs": 600
+  }
 }

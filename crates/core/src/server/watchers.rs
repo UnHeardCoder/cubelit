@@ -70,43 +70,31 @@ pub async fn verify_container_status(
     }
 }
 
-/// Returns the log pattern that signals a game server is fully ready, if any.
-/// `None` means the container being "running" is sufficient — no log watching needed.
-///
-/// The pattern MUST be unique to the actual game-server "ready" signal, not to
-/// intermediate setup steps. For Minecraft, the itzg entrypoint scripts also
-/// print lines containing "Done" (e.g. "Done downloading pack"), so we use the
-/// full suffix that only the Minecraft server itself emits:
-///   `Done (11.117s)! For help, type "help"`
-pub fn readiness_pattern(recipe_id: &str) -> Option<&'static str> {
-    match recipe_id {
-        // This exact phrase appears on the SAME line as "Done (X.Xs)!" and is
-        // emitted by net.minecraft.server.dedicated.DedicatedServer across all
-        // versions and mod loaders (Vanilla, Forge, NeoForge, Fabric, FTB…).
-        // It is never printed by the itzg setup scripts or by mod init code.
-        "minecraft-java" => Some(r#"! For help, type "help""#),
-        _ => None,
-    }
-}
-
 /// Spawns a background task that tails container logs and promotes the server
-/// status from "starting" → "running" once the readiness `pattern` is found.
-/// Times out after 10 minutes (promotes anyway) to avoid hanging forever.
+/// status from `"starting"` → `"running"` once `pattern` appears in the output.
+///
+/// The pattern and timeout come from `Recipe::readiness` so each game can
+/// declare its own "I am joinable" signal in recipe JSON rather than having
+/// game-specific logic hardcoded here.
+///
+/// On timeout the watcher re-inspects the container state before writing DB —
+/// a server that crashed mid-startup is reported as `"error"`, not `"running"`.
 pub fn spawn_readiness_watcher(
     docker: bollard::Docker,
     pool: sqlx::SqlitePool,
     events: Arc<dyn EventSink>,
     server_id: String,
     container_id: String,
-    pattern: &'static str,
+    pattern: String,
+    timeout: std::time::Duration,
 ) {
     tokio::spawn(async move {
         use futures_util::StreamExt;
         use std::time::SystemTime;
 
         // Only fetch logs produced from ~10 seconds before we start watching
-        // (catches any fast startup lines) while avoiding old "Done" lines from
-        // a previous run.
+        // (catches any fast startup lines) while avoiding stale lines from a
+        // previous run of the same container.
         let since = (SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
             .unwrap_or_default()
@@ -114,69 +102,115 @@ pub fn spawn_readiness_watcher(
             - 10)
             .max(0);
 
-        let opts = bollard::query_parameters::LogsOptions {
-            stdout: true,
-            stderr: true,
-            follow: true,
-            since: since as i32,
-            ..Default::default()
-        };
+        let deadline = tokio::time::sleep(timeout);
+        tokio::pin!(deadline);
 
-        let mut stream = docker.logs(&container_id, Some(opts));
-        let timeout = tokio::time::sleep(std::time::Duration::from_secs(600));
-        tokio::pin!(timeout);
+        // The `follow` log stream ends whenever the container exits — including
+        // a bootstrap exit followed by a restart-policy restart (Project Zomboid
+        // does exactly this on first boot). Losing the stream must not kill the
+        // watcher while the container is coming back, so on stream end we
+        // re-attach as long as the container is alive. `since` stays at the
+        // original value: `docker logs` replays pre-restart history, and
+        // re-checking already-seen lines is harmless for a `contains` match.
+        'watch: loop {
+            let opts = bollard::query_parameters::LogsOptions {
+                stdout: true,
+                stderr: true,
+                follow: true,
+                since: since as i32,
+                ..Default::default()
+            };
+            let mut stream = docker.logs(&container_id, Some(opts));
 
-        loop {
-            tokio::select! {
-                biased;
-                _ = &mut timeout => {
-                    // 10-minute limit reached. Don't blindly promote to "running"
-                    // — re-check the actual container state first, otherwise a
-                    // server that crashed mid-startup gets reported alive.
-                    let actual = verify_container_status(&docker, &container_id).await;
-                    let _ = queries::update_cubelit_status(
-                        &pool, &server_id, actual, None,
-                    ).await;
-                    events.emit(CoreEvent::ServerStatusChanged {
-                        server_id: server_id.clone(),
-                    });
-                    if actual != "running" {
+            loop {
+                tokio::select! {
+                    biased;
+                    _ = &mut deadline => {
+                        let actual = verify_container_status(&docker, &container_id).await;
+                        let _ = queries::update_cubelit_status(
+                            &pool, &server_id, actual, None,
+                        ).await;
+                        events.emit(CoreEvent::ServerStatusChanged {
+                            server_id: server_id.clone(),
+                        });
+                        // Always warn on timeout. If actual=="running" the container
+                        // is up but the readiness pattern never matched — the server
+                        // may not yet be accepting connections. If actual!="running"
+                        // the container also crashed or stopped during startup.
                         tracing::warn!(
                             server_id = %server_id,
-                            "Readiness watcher timed out after 10 min and container is not running"
+                            timeout_secs = %timeout.as_secs(),
+                            resolved_status = %actual,
+                            "Readiness watcher timed out without seeing the log pattern; \
+                            status set to '{}' — server may not yet be accepting connections",
+                            actual,
                         );
+                        break 'watch;
                     }
-                    break;
-                }
-                item = stream.next() => {
-                    match item {
-                        Some(Ok(log)) => {
-                            if log.to_string().contains(pattern) {
+                    item = stream.next() => {
+                        match item {
+                            Some(Ok(log)) => {
+                                if log.to_string().contains(pattern.as_str()) {
+                                    let _ = queries::update_cubelit_status(
+                                        &pool, &server_id, "running", None,
+                                    ).await;
+                                    events.emit(CoreEvent::ServerStatusChanged {
+                                        server_id: server_id.clone(),
+                                    });
+                                    break 'watch;
+                                }
+                            }
+                            Some(Err(_)) | None => {
+                                // Give a restart policy time to bring the container
+                                // back (it cycles exited → restarting → running).
+                                for _ in 0..2 {
+                                    tokio::time::sleep(std::time::Duration::from_secs(4)).await;
+                                    if container_is_alive(&docker, &container_id).await {
+                                        tracing::info!(
+                                            server_id = %server_id,
+                                            "Readiness log stream ended but container is alive \
+                                            (restarted?); re-attaching"
+                                        );
+                                        continue 'watch;
+                                    }
+                                }
+                                // Container stayed down — record reality and stop.
+                                let actual = verify_container_status(&docker, &container_id).await;
                                 let _ = queries::update_cubelit_status(
-                                    &pool, &server_id, "running", None,
+                                    &pool, &server_id, actual, None,
                                 ).await;
                                 events.emit(CoreEvent::ServerStatusChanged {
                                     server_id: server_id.clone(),
                                 });
-                                break;
+                                tracing::warn!(
+                                    server_id = %server_id,
+                                    resolved_status = %actual,
+                                    "Readiness watcher log stream ended and container did not \
+                                    come back; status set to '{}'",
+                                    actual,
+                                );
+                                break 'watch;
                             }
                         }
-                        Some(Err(e)) => {
-                            tracing::warn!(
-                                server_id = %server_id,
-                                error = %e,
-                                "Readiness watcher log stream errored — exiting; sync_single_server will correct status on next poll"
-                            );
-                            break;
-                        }
-                        // Stream ended (container stopped) — exit silently;
-                        // sync_single_server will correct the status on the next poll.
-                        None => break,
                     }
                 }
             }
         }
     });
+}
+
+/// True while the container is running or mid-restart (a restart policy cycles
+/// `exited → restarting → running`). Used by the readiness watcher to decide
+/// whether a dead log stream is worth re-attaching.
+async fn container_is_alive(docker: &bollard::Docker, container_id: &str) -> bool {
+    use bollard::models::ContainerStateStatusEnum as S;
+    match docker.inspect_container(container_id, None).await {
+        Ok(info) => matches!(
+            info.state.and_then(|s| s.status),
+            Some(S::RUNNING | S::RESTARTING)
+        ),
+        Err(_) => false,
+    }
 }
 
 /// Spawns a background task that subscribes to Docker events and emits
@@ -300,17 +334,31 @@ mod tests {
     }
 
     #[test]
-    fn readiness_pattern_minecraft_java() {
-        assert_eq!(
-            readiness_pattern("minecraft-java"),
-            Some(r#"! For help, type "help""#)
-        );
+    fn recipe_readiness_default_timeout() {
+        use crate::recipes::RecipeReadiness;
+        let r: RecipeReadiness =
+            serde_json::from_str(r#"{"log_pattern":"Server started"}"#).unwrap();
+        assert_eq!(r.log_pattern, "Server started");
+        assert_eq!(r.timeout_secs, 600);
     }
 
     #[test]
-    fn readiness_pattern_unknown_returns_none() {
-        assert_eq!(readiness_pattern("valheim"), None);
-        assert_eq!(readiness_pattern("fivem"), None);
-        assert_eq!(readiness_pattern(""), None);
+    fn recipe_readiness_custom_timeout() {
+        use crate::recipes::RecipeReadiness;
+        let r: RecipeReadiness =
+            serde_json::from_str(r#"{"log_pattern":"VAC secure","timeout_secs":900}"#).unwrap();
+        assert_eq!(r.timeout_secs, 900);
+    }
+
+    #[test]
+    fn recipe_without_readiness_parses() {
+        use crate::recipes::Recipe;
+        let json = r#"{
+            "id":"test","name":"Test","description":"","icon":"test",
+            "docker_image":"example/test","default_tag":"1.0",
+            "ports":[],"environment":[],"volumes":[]
+        }"#;
+        let r: Recipe = serde_json::from_str(json).unwrap();
+        assert!(r.readiness.is_none());
     }
 }

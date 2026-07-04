@@ -1,7 +1,10 @@
 <script lang="ts">
-  import { getGameDefinition } from "$lib/games/registry";
-  import type { Cubelit } from "$lib/types/server";
-  import StatusRibbon from "./StatusRibbon.svelte";
+  import { getGameDefinition } from '$lib/games/registry';
+  import { GAME_ART, GAME_HUE } from '$lib/games/art';
+  import { getServerStats } from '$lib/api/docker';
+  import GameIcon from './GameIcon.svelte';
+  import StatusPill from './StatusPill.svelte';
+  import type { Cubelit } from '$lib/types/server';
 
   interface Props {
     server: Cubelit;
@@ -13,109 +16,139 @@
   let { server, onstart, onstop, onclick }: Props = $props();
 
   let actionLoading = $state(false);
+  let cpuPct = $state<number | null>(null);
+  let memUsedGb = $state<number | null>(null);
 
-  const statusDot: Record<string, string> = {
-    starting: "bg-cubelit-warning",
-    running: "bg-cubelit-success",
-    stopped: "bg-cubelit-error",
-    created: "bg-cubelit-warning",
-    error: "bg-cubelit-error",
-  };
+  const art = $derived(GAME_ART[server.recipe_id] ?? {});
+  const hue = $derived(GAME_HUE[server.recipe_id] ?? 30);
+  const gameDef = $derived(getGameDefinition(server.recipe_id));
 
-  const statusLabels: Record<string, string> = {
-    starting: "Starting",
-    running: "Online",
-    stopped: "Offline",
-    created: "Created",
-    error: "Error",
-  };
-
-  function getStyle() {
-    return getGameDefinition(server.recipe_id).cardStyle ?? {
-      titleClass: "font-bold",
-      subtitle: server.game,
-      gradient: "from-cubelit-border/40 to-cubelit-surface",
-    };
-  }
+  // Fetch live stats for running servers
+  $effect(() => {
+    if (server.status !== 'running') {
+      cpuPct = null;
+      memUsedGb = null;
+      return;
+    }
+    getServerStats(server.id).then(s => {
+      cpuPct = s.cpu_percent;
+      memUsedGb = s.memory_usage_mb / 1024;
+    }).catch(() => {});
+  });
 
   function getAddress(): string {
     try {
       const ports: Record<string, number> = JSON.parse(server.port_mappings);
-      const firstPort = Object.values(ports)[0];
-      if (firstPort) return `localhost:${firstPort}`;
+      const first = Object.values(ports)[0];
+      if (first) return `localhost:${first}`;
     } catch { /* ignore */ }
-    return "";
+    return '—';
   }
 
   async function handleStart(e: MouseEvent) {
     e.stopPropagation();
     actionLoading = true;
-    try {
-      await onstart(server.id);
-    } finally {
-      actionLoading = false;
-    }
+    try { await onstart(server.id); } finally { actionLoading = false; }
   }
 
   async function handleStop(e: MouseEvent) {
     e.stopPropagation();
     actionLoading = true;
-    try {
-      await onstop(server.id);
-    } finally {
-      actionLoading = false;
-    }
+    try { await onstop(server.id); } finally { actionLoading = false; }
   }
+
+  const isRunningOrStarting = $derived(server.status === 'running' || server.status === 'starting');
+  const canStart = $derived(server.status === 'stopped' || server.status === 'created');
 </script>
 
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
+  class="card-lift animate-fade-up bg-cubelit-surface border border-cubelit-border rounded-2xl overflow-hidden cursor-pointer hover:border-cubelit-border-2"
+  onclick={() => onclick(server.id)}
+  onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onclick(server.id); } }}
   role="button"
   tabindex="0"
-  class="relative rounded-2xl border border-cubelit-border bg-gradient-to-b {getStyle().gradient} cursor-pointer hover:border-cubelit-accent/50 transition-all overflow-hidden group"
-  onclick={() => onclick(server.id)}
-  onkeydown={(e: KeyboardEvent) => {
-    if (e.target !== e.currentTarget) return;
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      onclick(server.id);
-    }
-  }}
 >
-  <StatusRibbon status={server.status} />
-
-  <div class="p-6 pb-0">
-    <h3 class="text-2xl text-cubelit-text {getStyle().titleClass}">{server.game}</h3>
-    <p class="text-sm text-cubelit-muted mt-0.5">{getStyle().subtitle}</p>
-
-    <div class="flex items-center gap-2 mt-4">
-      <span class="w-2.5 h-2.5 rounded-full {statusDot[server.status] ?? 'bg-cubelit-muted'} {server.status === 'running' || server.status === 'starting' ? 'animate-pulse' : ''}"></span>
-      <span class="text-sm text-cubelit-text">{statusLabels[server.status] ?? server.status}</span>
+  <!-- Hero band -->
+  <div class="relative h-24 overflow-hidden">
+    {#if art.hero}
+      <div
+        class="absolute inset-0"
+        style="background-image: linear-gradient(180deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.75) 100%), url({art.hero}); background-size: cover; background-position: center;"
+      ></div>
+    {:else}
+      <div
+        class="absolute inset-0"
+        style="background: linear-gradient(135deg, oklch(0.42 0.13 {hue}) 0%, var(--c-surface) 100%);"
+      ></div>
+    {/if}
+    <!-- Header overlay -->
+    <div class="absolute inset-0 p-4 flex items-start justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <GameIcon recipeId={server.recipe_id} gameName={server.game} size={40} radius={10} />
+        <div>
+          <div class="text-[15px] font-semibold text-white leading-tight" style="text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
+            {server.name}
+          </div>
+          <div class="text-xs text-white/80" style="text-shadow: 0 1px 2px rgba(0,0,0,0.5);">
+            {server.game}{gameDef.cardStyle?.subtitle ? ` · ${gameDef.cardStyle.subtitle}` : ''}
+          </div>
+        </div>
+      </div>
+      <div onclick={(e) => e.stopPropagation()} onkeydown={() => {}}>
+        <StatusPill status={server.status} glass />
+      </div>
     </div>
-
-    <p class="text-sm text-cubelit-muted mt-1 truncate">{server.name}</p>
   </div>
 
-  <div class="border-t border-cubelit-border/50 mt-4 px-6 py-3 flex items-center justify-between">
-    <span class="text-xs text-cubelit-muted font-mono">{getAddress()}</span>
-    <div class="flex gap-1.5">
-      {#if server.status === "running" || server.status === "starting"}
+  <!-- Data rows -->
+  <div class="px-4 py-3 flex flex-col gap-1.5">
+    <div class="flex justify-between text-xs">
+      <span class="text-cubelit-muted">Address</span>
+      <span class="font-mono text-cubelit-text">{getAddress()}</span>
+    </div>
+    <div class="flex justify-between text-xs">
+      <span class="text-cubelit-muted">Status</span>
+      <span class="text-cubelit-text capitalize">{server.status}</span>
+    </div>
+  </div>
+
+  <!-- Footer: live stats + start/stop -->
+  <div class="px-4 py-2.5 border-t border-cubelit-border flex items-center justify-between">
+    <div class="flex items-center gap-3 text-[11px] text-cubelit-text-dim">
+      <div class="flex items-center gap-1">
+        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+          <rect x="5" y="5" width="14" height="14" rx="1"/>
+          <rect x="9" y="9" width="6" height="6"/>
+          <path d="M9 1v3M15 1v3M9 20v3M15 20v3M1 9h3M1 15h3M20 9h3M20 15h3"/>
+        </svg>
+        <span>{cpuPct !== null ? cpuPct.toFixed(0) + '%' : '—'}</span>
+      </div>
+      <div class="flex items-center gap-1">
+        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+          <rect x="3" y="8" width="18" height="9" rx="1"/>
+          <path d="M7 8V5M11 8V5M15 8V5M19 8V5"/>
+        </svg>
+        <span>{memUsedGb !== null ? memUsedGb.toFixed(1) + 'G' : '—'}</span>
+      </div>
+    </div>
+
+    <div onclick={(e) => e.stopPropagation()} onkeydown={() => {}}>
+      {#if isRunningOrStarting}
         <button
           type="button"
-          class="px-3 py-1 text-xs rounded-lg bg-cubelit-error/10 text-cubelit-error border border-cubelit-error/30 hover:bg-cubelit-error/20 transition-colors disabled:opacity-50"
+          class="px-2.5 py-1 text-xs font-medium rounded-md text-cubelit-error border border-cubelit-error/40 bg-cubelit-error/10 hover:bg-cubelit-error/20 transition-colors disabled:opacity-50"
           onclick={handleStop}
           disabled={actionLoading}
-        >
-          Stop
-        </button>
-      {:else if server.status === "stopped" || server.status === "created"}
+        >Stop</button>
+      {:else if canStart}
         <button
           type="button"
-          class="px-3 py-1 text-xs rounded-lg bg-cubelit-accent/10 text-cubelit-accent border border-cubelit-accent/30 hover:bg-cubelit-accent/20 transition-colors disabled:opacity-50"
+          class="px-2.5 py-1 text-xs font-medium rounded-md text-cubelit-accent border border-cubelit-accent/40 bg-cubelit-accent/10 hover:bg-cubelit-accent/20 transition-colors disabled:opacity-50"
           onclick={handleStart}
           disabled={actionLoading}
-        >
-          Start
-        </button>
+        >Start</button>
       {/if}
     </div>
   </div>

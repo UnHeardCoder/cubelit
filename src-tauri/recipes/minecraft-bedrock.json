@@ -3,9 +3,9 @@
   "name": "Minecraft Bedrock",
   "description": "Cross-platform Minecraft for consoles, mobile, and Windows 10/11.",
   "icon": "minecraft-bedrock",
-  "available": false,
+  "available": true,
   "docker_image": "itzg/minecraft-bedrock-server",
-  "default_tag": "latest",
+  "default_tag": "2026.5.3",
   "ports": [
     {
       "container_port": 19132,
@@ -27,14 +27,23 @@
       "default_value": "survival",
       "label": "Game Mode",
       "type": "select",
-      "options": ["survival", "creative", "adventure"]
+      "options": [
+        "survival",
+        "creative",
+        "adventure"
+      ]
     },
     {
       "key": "DIFFICULTY",
       "default_value": "normal",
       "label": "Difficulty",
       "type": "select",
-      "options": ["peaceful", "easy", "normal", "hard"]
+      "options": [
+        "peaceful",
+        "easy",
+        "normal",
+        "hard"
+      ]
     },
     {
       "key": "MAX_PLAYERS",
@@ -64,8 +73,116 @@
       "label": "Server Data"
     }
   ],
-  "config_files": [],
+  "config_files": [
+    {
+      "path": "server.properties",
+      "format": "properties",
+      "label": "Server Properties",
+      "fields": [
+        {
+          "key": "gamemode",
+          "label": "Game mode",
+          "type": "select",
+          "options": [
+            "survival",
+            "creative",
+            "adventure"
+          ]
+        },
+        {
+          "key": "difficulty",
+          "label": "Difficulty",
+          "type": "select",
+          "options": [
+            "peaceful",
+            "easy",
+            "normal",
+            "hard"
+          ]
+        },
+        {
+          "key": "max-players",
+          "label": "Max players",
+          "type": "number",
+          "min": 1,
+          "max": 100
+        },
+        {
+          "key": "allow-cheats",
+          "label": "Allow cheats",
+          "type": "boolean"
+        },
+        {
+          "key": "allow-list",
+          "label": "Enforce allow list",
+          "type": "boolean"
+        },
+        {
+          "key": "view-distance",
+          "label": "View distance",
+          "type": "number",
+          "min": 3,
+          "max": 32
+        }
+      ]
+    },
+    {
+      "path": "allowlist.json",
+      "format": "json",
+      "label": "Allow List"
+    },
+    {
+      "path": "permissions.json",
+      "format": "json",
+      "label": "Operator Permissions"
+    }
+  ],
+  "dashboard": {
+    "command": {
+      "mode": "docker_exec",
+      "exec_template": [
+        "send-command"
+      ],
+      "exec_user": "root",
+      "probe": "list",
+      "quick_commands": [
+        {
+          "label": "Allowlist self",
+          "command": "allowlist add {user}"
+        },
+        {
+          "label": "List players",
+          "command": "list"
+        },
+        {
+          "label": "Save",
+          "command": "save hold"
+        },
+        {
+          "label": "Clear weather",
+          "command": "weather clear"
+        }
+      ]
+    },
+    "file_tabs": [
+      {
+        "path": "worlds",
+        "label": "Worlds",
+        "upload": false
+      }
+    ]
+  },
   "mods": null,
+  "cap_add": [
+    "SYS_PTRACE"
+  ],
   "estimated_disk_mb": 500,
-  "tags": ["popular", "crossplay"]
+  "tags": [
+    "popular",
+    "crossplay"
+  ],
+  "readiness": {
+    "log_pattern": "Server started.",
+    "timeout_secs": 300
+  }
 }

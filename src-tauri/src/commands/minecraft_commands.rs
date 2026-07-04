@@ -17,6 +17,17 @@ pub async fn send_minecraft_command(
     state.host.send_minecraft_command(&id, &command).await
 }
 
+/// Send a console command to any server, dispatching by the recipe's
+/// `dashboard.command` descriptor (Source RCON / docker exec / external).
+#[tauri::command]
+pub async fn send_server_command(
+    state: State<'_, AppState>,
+    id: String,
+    command: String,
+) -> Result<String, CoreError> {
+    state.host.send_server_command(&id, &command).await
+}
+
 /// Copy the server's data directory to a timestamped backup folder.
 /// Returns the path of the created backup.
 #[tauri::command]

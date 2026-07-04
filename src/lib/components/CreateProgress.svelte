@@ -1,54 +1,87 @@
 <script lang="ts">
-  import Spinner from "./Spinner.svelte";
-
   interface Props {
     step: string;
     progress: number | null;
     message: string;
+    recipeName?: string;
+    serverName?: string;
   }
 
-  let { step, progress, message }: Props = $props();
+  let { step, progress, message, recipeName = '', serverName = '' }: Props = $props();
 
-  const steps = ["preparing", "pulling", "creating", "starting", "ready"];
+  const steps = ['preparing', 'pulling', 'creating', 'starting', 'ready'] as const;
+  type Step = typeof steps[number];
 
-  function stepIndex(s: string): number {
-    return steps.indexOf(s);
+  const currentIdx = $derived(steps.indexOf(step as Step));
+
+  const checkmarks: Record<string, string> = {
+    pulling:  'recipe loaded',
+    creating: 'image pulled',
+    starting: 'container created',
+    ready:    'port bound · server started',
+  };
+
+  // Boot stage status
+  function stageStatus(stage: 'prepare' | 'pull' | 'boot'): 'done' | 'active' | 'todo' {
+    const stageMap = {
+      prepare: 0,
+      pull:    1,
+      boot:    3,
+    };
+    const threshold = stageMap[stage];
+    if (currentIdx > threshold) return 'done';
+    if (currentIdx === threshold) return 'active';
+    return 'todo';
   }
 </script>
 
-<div class="max-w-md mx-auto text-center">
-  <div class="mb-8">
-    {#if step === "ready"}
-      <div class="w-16 h-16 mx-auto rounded-full bg-cubelit-success/20 flex items-center justify-center mb-4">
-        <svg class="w-8 h-8 text-cubelit-success" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-        </svg>
+<div class="bg-cubelit-surface border border-cubelit-border rounded-2xl p-6">
+  <!-- Boot stages -->
+  <div class="boot-stages mb-5">
+    {#each [
+      { key: 'prepare' as const, label: 'PREPARE' },
+      { key: 'pull'    as const, label: 'PULL' },
+      { key: 'boot'    as const, label: 'BOOT' },
+    ] as s}
+      <div class="st {stageStatus(s.key)}">
+        <div class="lab">{s.label}</div>
+        <div class="bar"></div>
       </div>
-    {:else}
-      <Spinner size="lg" class="text-cubelit-accent mx-auto mb-4" />
-    {/if}
-    <p class="text-lg font-medium text-cubelit-text">{message}</p>
+    {/each}
+  </div>
+
+  <!-- Terminal command line -->
+  <div class="font-mono text-xs text-cubelit-text-dim mb-4">
+    $ cubelit create {recipeName ? `--recipe ${recipeName}` : ''}{serverName ? ` --name "${serverName}"` : ''}
   </div>
 
   <!-- Progress bar -->
   {#if progress !== null}
-    <div class="w-full bg-cubelit-bg rounded-full h-2 mb-6">
-      <div
-        class="h-2 rounded-full transition-all duration-500 {step === 'ready' ? 'bg-cubelit-success' : 'bg-cubelit-accent'}"
-        style="width: {Math.round(progress * 100)}%"
-      ></div>
+    <div class="mb-4">
+      <div class="flex justify-between text-xs mb-1.5">
+        <span class="text-cubelit-text-dim">{message}</span>
+        <span class="font-mono text-cubelit-muted">{Math.round(progress * 100)}%</span>
+      </div>
+      <div class="h-1.5 bg-cubelit-bg-2 rounded-full overflow-hidden">
+        <div
+          class="h-full rounded-full transition-all duration-500"
+          style="width: {Math.round(progress * 100)}%; background: {step === 'ready' ? 'var(--c-success)' : 'var(--c-accent)'};"
+        ></div>
+      </div>
     </div>
   {/if}
 
-  <!-- Step indicators -->
-  <div class="flex justify-between">
+  <!-- Terminal output -->
+  <div class="font-mono text-xs leading-relaxed text-cubelit-text-dim space-y-1">
     {#each steps as s, i}
-      <div class="flex flex-col items-center gap-1">
-        <div
-          class="w-3 h-3 rounded-full transition-colors {stepIndex(step) >= i ? (step === 'ready' ? 'bg-cubelit-success' : 'bg-cubelit-accent') : 'bg-cubelit-border'}"
-        ></div>
-        <span class="text-xs text-cubelit-muted capitalize">{s}</span>
-      </div>
+      {#if i <= currentIdx && checkmarks[s]}
+        <div style="color: {step === 'ready' || i < currentIdx ? 'var(--c-success)' : 'var(--c-accent)'};">
+          ✓ {checkmarks[s]}
+        </div>
+      {/if}
     {/each}
+    {#if step !== 'ready'}
+      <div class="text-cubelit-muted">{message}<span class="cursor-blink">_</span></div>
+    {/if}
   </div>
 </div>
