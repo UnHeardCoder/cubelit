@@ -57,11 +57,11 @@
       version: 'v0.2.0',
       progress: 100,
       showLiveBadge: true,
-      plainEnglish: `Cubelit is a <strong>working desktop app</strong> for Windows, Mac, and Linux. You download it, open it, click a button, and you have a game server running on your own computer — no technical knowledge needed. Under the hood, it uses Docker to run the server safely in an isolated container. The v0.2.0 release candidate adds the full visual redesign, 11 available recipes, corrected WSL2/Docker onboarding, and the public website/docs refresh.`,
+      plainEnglish: `Cubelit is a <strong>working desktop app</strong> for Windows, Mac, and Linux. You download it, open it, click a button, and you have a game server running on your own computer — no technical knowledge needed. Under the hood, it uses Docker to run the server safely in an isolated container. The v0.2.0 release adds the full visual redesign, 11 available recipes, in-app consoles, corrected WSL2/Docker onboarding, and the public website/docs refresh.`,
       personas: {
         gamer: `Think of Cubelit like a control panel for your game server. Instead of typing confusing commands into a terminal, you get a clean app with buttons. Your server runs on <em>your</em> computer — you own it, you control it, there's no monthly fee.`,
         developer: `The v0.1.8 refactor extracted all business logic into <code>cubelit-core</code> (lib crate). Tauri commands are now 5–15 line shims. <code>ServerRunner</code> and <code>ServerLifecycle</code> traits are defined. <code>EventSink</code> abstraction ships with <code>TauriEventSink</code>. Cargo workspace is live. Stack: Rust + Bollard + sqlx WAL + Tokio + Svelte 5 runes + Tauri v2.`,
-        investor: `We have a working product with real users and clean architecture. The v0.2.0 release candidate moves the desktop app from proof-of-concept UI to public-facing product, while preserving the multi-client foundation established by cubelit-core and the CLI. Open source on GitHub. This is the point where distribution begins in earnest.`,
+        investor: `We have a working product with real users and clean architecture. The v0.2.0 release moves the desktop app from proof-of-concept UI to public-facing product, while preserving the multi-client foundation established by cubelit-core and the CLI. Open source on GitHub. This is the point where distribution begins in earnest.`,
       },
       archTitle: 'How it works today',
       arch: [
@@ -139,7 +139,7 @@
       title: 'A much better looking app',
       version: 'v0.2.0',
       progress: 100,
-      plainEnglish: `v0.2.0 is the public-facing desktop release candidate: a full visual redesign, 11 available game recipes, corrected Windows WSL2/Docker onboarding, a smoke-test harness, and refreshed website/docs. The core architecture stays intact; the release turns the working product into something ready for broader Windows validation and launch.`,
+      plainEnglish: `v0.2.0 is the public-facing desktop release: a full visual redesign, 11 available game recipes verified end-to-end on real Docker, in-app server consoles, corrected Windows WSL2/Docker onboarding, an extended smoke-test harness, and refreshed website/docs. The core architecture stays intact; the release turns the working product into something ready for broader distribution.`,
       personas: {
         gamer: `The app now feels like something you'd actually show your friends: a cleaner dashboard, clearer server cards, better onboarding, and a much broader game list.`,
         developer: `v0.2.0 keeps the Tauri IPC and cubelit-core contracts stable while replacing the desktop surface, expanding recipes, and adding smoke-test coverage through the core crate and CLI.`,
@@ -385,7 +385,7 @@
           <span class="phase-num">{phase.num}</span>
           <span class="status-chip status-{phase.status}">{statusLabel(phase.status)}</span>
           {#if phase.showLiveBadge}
-            <span class="live-badge"><span class="live-dot"></span>v0.2.0 release candidate</span>
+            <span class="live-badge"><span class="live-dot"></span>v0.2.0 — current release</span>
           {/if}
         </div>
 
