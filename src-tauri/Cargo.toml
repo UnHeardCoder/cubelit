@@ -39,7 +39,7 @@ tokio = { version = "1.52.1", features = ["macros", "rt-multi-thread"] }
 reqwest = { version = "0.12", features = ["rustls-tls"], default-features = false }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-sentry = { version = "0.34", features = ["tracing", "tokio", "panic"] }
+sentry = { version = "0.48", features = ["tracing", "tokio", "panic"] }
 # Note: chrono / uuid / rand / thiserror / sqlx / futures-util / dirs all
 # moved to cubelit-core in the v0.1.8 workspace split. The desktop crate
 # pulls them transitively but does not need to declare them.
