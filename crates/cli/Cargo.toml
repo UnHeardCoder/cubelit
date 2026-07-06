@@ -16,7 +16,7 @@ clap = { version = "4", features = ["derive"] }
 tokio = { version = "1.52.1", features = ["macros", "rt-multi-thread", "signal"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-sentry = { version = "0.34", features = ["tokio", "panic"] }
+sentry = { version = "0.48", features = ["tokio", "panic"] }
 serde_json = "1"
 tabled = "0.20"
 dirs = "6"
